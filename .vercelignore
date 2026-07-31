@@ -1,0 +1,10 @@
+node_modules/
+release/
+backups/
+qa/video-review/
+public/downloads/
+public/assets/v09/
+*.zip
+*.log
+.env
+.env.*
