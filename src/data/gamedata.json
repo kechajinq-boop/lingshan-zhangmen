@@ -1,0 +1,108 @@
+﻿{
+  "factions": [
+    { "id": "dan", "name": "丹霞丹宗", "desc": "以丹立派：解锁辟谷丹，炼丹速度+15%", "bonusType": "craftSpeed", "bonusValue": 0.15, "unlockRecipe": "bigu" },
+    { "id": "jian", "name": "青松剑宗", "desc": "以剑立派：访客消费+10%，弟子训练更快", "bonusType": "sellPrice", "bonusValue": 0.10, "unlockRecipe": "jianqi" }
+  ],
+  "buildings": [
+    { "id": "lingtian", "name": "灵田", "cost": 50, "w": 2, "h": 2, "color": "0x4a7c3a", "type": "gather", "output": "herb", "baseTime": 6, "desc": "产出药草", "upgrades": [ { "cost": 100, "speed": 0.4 }, { "cost": 150, "speed": 0.9 }, { "cost": 200, "speed": 0.45 }, { "cost": 250, "speed": 0.55 } ] },
+    { "id": "danfang", "name": "炼丹房", "cost": 120, "w": 2, "h": 2, "color": "0xa8542a", "type": "craft", "input": "herb", "baseTime": 8, "desc": "药草炼成丹药", "upgrades": [ { "cost": 150, "speed": 0.4 }, { "cost": 200, "speed": 0.9 }, { "cost": 250, "speed": 0.45 }, { "cost": 300, "speed": 0.55 } ] },
+    { "id": "danpu", "name": "丹药铺", "cost": 100, "w": 2, "h": 2, "color": "0xc9a227", "type": "sell", "baseTime": 4, "capacity": 3, "desc": "向访客售卖丹药", "upgrades": [ { "cost": 150, "speed": 0.35, "capacity": 1 }, { "cost": 200, "speed": 0.8, "capacity": 2 }, { "cost": 250, "speed": 0.4, "capacity": 1 }, { "cost": 300, "speed": 0.5, "capacity": 1 } ] },
+    { "id": "liangong", "name": "练功房", "cost": 150, "w": 2, "h": 2, "color": "0x5a6b8c", "type": "train", "baseTime": 10, "desc": "弟子修炼提升效率", "upgrades": [ { "cost": 200, "speed": 0.15 }, { "cost": 250, "speed": 0.15 }, { "cost": 300, "speed": 0.15 }, { "cost": 350, "speed": 0.15 } ] },
+    { "id": "xiangfang", "name": "厢房", "cost": 80, "w": 2, "h": 2, "color": "0x8c6b4a", "type": "house", "beds": 2, "desc": "每间+2弟子上限", "upgrades": [ { "cost": 100, "beds": 1 }, { "cost": 150, "beds": 2 }, { "cost": 200, "beds": 1 }, { "cost": 250, "beds": 2 } ] }
+  ],
+  "recipes": [
+    { "id": "juling", "name": "聚灵丹", "input": 2, "price": 30, "unlock": "default" },
+    { "id": "bigu", "name": "辟谷丹", "input": 3, "price": 55, "unlock": "dan" },
+    { "id": "jianqi", "name": "剑气丸", "input": 3, "price": 50, "unlock": "jian" },
+    { "id": "zhuji", "name": "筑基丹", "input": 5, "price": 110, "unlock": "research", "research": { "spirit": 400, "rep": 40 } },
+    { "id": "ningjian", "name": "凝剑丸", "input": 6, "price": 150, "unlock": "research", "research": { "spirit": 700, "rep": 80 } },
+    { "id": "huashen", "name": "化神丹", "input": 9, "price": 300, "unlock": "research", "research": { "spirit": 1500, "rep": 150 } }
+  ],
+  "combos": [
+    { "id": "danxiang_full", "name": "丹香阵·圆满", "needs": ["lingtian", "danfang", "xiangfang"], "effect": "craftSpeed", "value": 0.5, "desc": "灵田+炼丹房+厢房相邻：炼丹+50%" },
+    { "id": "zaqi", "name": "杂气相冲", "needs": ["danpu", "liangong"], "effect": "craftSpeed", "value": -0.2, "negative": true, "desc": "丹药铺紧贴练功房：附近炼丹-20%" },
+    { "id": "danxiang", "name": "丹香阵", "needs": ["lingtian", "danfang"], "effect": "craftSpeed", "value": 0.25, "desc": "灵田与炼丹房相邻：炼丹+25%" },
+    { "id": "ketuan", "name": "客满盈门", "needs": ["danpu", "xiangfang"], "effect": "visitor", "value": 0.20, "desc": "丹药铺与厢房相邻：来客+20%" }
+  ],
+  "disciple": { "maxTrainLevel": 15 },
+  "spiritRoots": [
+    { "id": "tian", "name": "天灵根", "weight": 3, "min": 85, "max": 100, "maxLevel": 15, "cost": 500, "color": "#e3a928" },
+    { "id": "shuang", "name": "双灵根", "weight": 12, "min": 70, "max": 84, "maxLevel": 10, "cost": 300, "color": "#9b66d9" },
+    { "id": "san", "name": "三灵根", "weight": 25, "min": 55, "max": 69, "maxLevel": 8, "cost": 150, "color": "#4d9fce" },
+    { "id": "si", "name": "四灵根", "weight": 30, "min": 40, "max": 54, "maxLevel": 8, "cost": 100, "color": "#58a962" },
+    { "id": "wu", "name": "五灵根", "weight": 30, "min": 25, "max": 39, "maxLevel": 5, "cost": 80, "color": "#8b8070" }
+  ],
+  "discipleNames": [
+    "顾长风", "苏灵溪", "沈青崖", "洛清霜", "叶知秋", "楚云舟", "林问道", "白若蘅",
+    "谢玄真", "陆星河", "姜照月", "温如玉", "秦暮雪", "萧景行", "许清和", "宋归尘",
+    "孟扶摇", "唐观澜", "裴青竹", "江晚照", "柳含烟", "周云深", "韩灵素", "程砚秋",
+    "宁无咎", "杜明夷", "纪南枝", "徐怀瑾", "乔木心", "闻人月", "凌寒衣", "陆青冥",
+    "云归岫", "沈照夜", "顾听澜", "谢无尘", "白临川", "洛星辞", "秦怀霜", "楚问玄",
+    "温不语", "叶栖迟", "江映雪", "柳玄微", "周见素", "韩知白", "程观云", "宁扶光",
+    "杜若虚", "纪清商", "徐照水", "乔听雨", "闻人照", "慕云笙", "萧问舟", "许临渊",
+    "宋鹤眠", "孟星回", "唐不染", "裴照影", "林玄策", "苏怀瑶", "沈玉衡", "洛云深",
+    "秦照川", "楚清越", "温雪蘅", "叶明夷", "江问雪", "柳归真", "周寒枝", "韩照溪",
+    "程无涯", "宁观澜", "杜青崖", "纪怀月", "徐问秋", "乔云岫", "闻人清", "慕照林",
+    "萧扶疏", "许听寒", "宋临风", "孟玄同", "唐知微", "裴问星", "林照晚", "苏清弦",
+    "沈归鸿", "洛寒烟", "秦不疑", "楚照眠", "温怀真", "叶观棋", "江临月", "柳问蝉",
+    "周清昼", "韩归鹤", "程照野", "宁听雪", "杜问渠", "纪玄霜", "徐归云", "乔照尘",
+    "闻人怀玉", "慕清辞", "萧照白", "许归元", "宋问心", "孟寒洲", "唐照岚", "裴清和",
+    "林听泉", "苏问夏", "沈照青", "洛归尘", "秦听雪", "楚怀川", "温观潮", "叶照微",
+    "江清砚", "柳临霜", "周问道", "韩照月", "程归璧", "宁清衡", "杜听竹", "纪照寒",
+    "徐玄衣", "乔问梅", "闻人归海", "慕照雪", "萧清野", "许怀星", "宋听澜", "孟照溪",
+    "唐归晚", "裴玄青", "林问鹤", "苏照晴", "沈清梧", "洛听云", "秦归雁", "楚照庭",
+    "温问松", "叶清辞", "江照棠", "柳怀瑾", "周听风", "韩问竹", "程清晏", "宁照衡",
+    "杜归舟", "纪问雪", "徐清尘", "乔照川", "闻人听雨", "慕归真", "萧问月", "许清霜",
+    "宋照寒", "孟听雪", "唐问溪", "裴归云", "林清昼", "苏照月", "沈问星", "洛清岚"
+  ],
+  "commissions": [
+    { "id": "herb_order", "name": "百草堂求购", "desc": "上交12份药草", "type": "herbs", "target": 12, "reward": { "spirit": 100, "reputation": 8 } },
+    { "id": "juling_aid", "name": "山下疫病", "desc": "上交4枚聚灵丹", "type": "pill", "recipeId": "juling", "target": 4, "reward": { "reputation": 30 } },
+    { "id": "bigu_caravan", "name": "商队求药", "desc": "上交3枚辟谷丹", "type": "pill", "recipeId": "bigu", "target": 3, "reward": { "spirit": 120, "reputation": 12 } },
+    { "id": "zhuji_help", "name": "散修筑基", "desc": "上交1枚筑基丹", "type": "pill", "recipeId": "zhuji", "target": 1, "reward": { "reputation": 35, "training": 0.2 } },
+    { "id": "mixed_pills", "name": "仙门丹会", "desc": "上交4枚任意丹药", "type": "anyPill", "target": 4, "reward": { "reputation": 22 } },
+    { "id": "serve_visitors", "name": "开坛济世", "desc": "承接后服务6位访客", "type": "visitors", "target": 6, "reward": { "reputation": 25 } },
+    { "id": "craft_trial", "name": "长老试丹", "desc": "承接后炼成5枚丹药", "type": "craft", "target": 5, "reward": { "training": 0.25 } },
+    { "id": "train_trial", "name": "仙门考校", "desc": "承接后完成1次弟子突破", "type": "train", "target": 1, "reward": { "reputation": 30 } }
+  ],
+  "visitor": { "spawnBase": 9, "spawnMin": 3.5, "patience": 14, "happyTip": 5 },
+  "expansions": [ { "spirit": 600, "rep": 60, "side": "east" }, { "spirit": 1800, "rep": 160, "side": "east" } ],
+  "elders": [
+    { "id": "danchi", "name": "丹痴长老", "cost": 500, "rep": 50, "effect": "craftSpeed", "value": 0.5, "desc": "全派炼丹速度+50%" },
+    { "id": "zhaocai", "name": "招财长老", "cost": 500, "rep": 50, "effect": "sellPrice", "value": 0.25, "desc": "全派丹药售价+25%" },
+    { "id": "yingke", "name": "迎客长老", "cost": 400, "rep": 40, "effect": "visitor", "value": 0.3, "desc": "来客速度+30%" }
+  ],
+  "titles": [
+    { "id": "t0", "name": "草创山门", "minDay": 1, "conds": [] },
+    { "id": "t1", "name": "初具规模", "minDay": 3, "conds": [ { "type": "hasCore", "value": 1, "desc": "建好灵田+炼丹房+丹药铺" }, { "type": "firstSell", "value": 1, "desc": "完成首次售卖" } ] },
+    { "id": "t2", "name": "小有名气", "minDay": 7, "conds": [ { "type": "visitorsServed", "value": 15, "desc": "服务15位访客" }, { "type": "reputation", "value": 40, "desc": "声望40" }, { "type": "totalEarned", "value": 800, "desc": "累计收入800" } ] },
+    { "id": "t3", "name": "声名鹊起", "minDay": 12, "conds": [ { "type": "disciples", "value": 5, "desc": "弟子5人" } ], "anyConds": [ { "type": "research", "value": 1, "desc": "完成1次研发" }, { "type": "elders", "value": 1, "desc": "聘请1位长老" } ] },
+    { "id": "t3a", "name": "一方名门", "minDay": 18, "conds": [ { "type": "reputation", "value": 100, "desc": "声望100" }, { "type": "totalEarned", "value": 3000, "desc": "累计收入3000" }, { "type": "expansions", "value": 1, "desc": "扩张1次" }, { "type": "upgradeLevels", "value": 3, "desc": "累计升级3次" } ] },
+    { "id": "t4", "name": "名震一方", "minDay": 24, "conds": [ { "type": "visitorsServed", "value": 50, "desc": "服务50位访客" }, { "type": "reputation", "value": 160, "desc": "声望160" }, { "type": "totalEarned", "value": 7000, "desc": "累计收入7000" }, { "type": "research", "value": 2, "desc": "完成2次研发" }, { "type": "elders", "value": 1, "desc": "聘请1位长老" } ] },
+    { "id": "t4a", "name": "威震群山", "minDay": 30, "conds": [ { "type": "disciples", "value": 10, "desc": "弟子10人" }, { "type": "expansions", "value": 2, "desc": "扩张2次" }, { "type": "upgradeLevels", "value": 6, "desc": "累计升级6次" } ] },
+    { "id": "t5", "name": "声名赫赫·大宗", "minDay": 36, "conds": [ { "type": "visitorsServed", "value": 100, "desc": "服务100位访客" }, { "type": "reputation", "value": 260, "desc": "声望260" }, { "type": "totalEarned", "value": 15000, "desc": "累计收入15000" }, { "type": "research", "value": 3, "desc": "完成全部研发" }, { "type": "elders", "value": 3, "desc": "聘请全部长老" } ] },
+    { "id": "t6", "name": "仙门巨擘", "minDay": 45, "conds": [ { "type": "disciples", "value": 15, "desc": "弟子15人" }, { "type": "visitorsServed", "value": 180, "desc": "服务180位访客" }, { "type": "reputation", "value": 400, "desc": "声望400" }, { "type": "totalEarned", "value": 30000, "desc": "累计收入30000" } ] },
+    { "id": "t7", "name": "天下道宗", "minDay": 60, "conds": [ { "type": "visitorsServed", "value": 300, "desc": "服务300位访客" }, { "type": "reputation", "value": 600, "desc": "声望600" }, { "type": "totalEarned", "value": 60000, "desc": "累计收入60000" } ] }
+  ],
+  "visitorNames": [
+    { "identity": "散修", "name": "云中鹤" }, { "identity": "散修", "name": "叶孤城" }, { "identity": "散修", "name": "柳随风" },
+    { "identity": "散修", "name": "陆青衣" }, { "identity": "散修", "name": "白照山" }, { "identity": "散修", "name": "沈归元" },
+    { "identity": "散修", "name": "楚听泉" }, { "identity": "散修", "name": "秦问雪" }, { "identity": "散修", "name": "洛怀川" },
+    { "identity": "商队管事", "name": "沈万贯" }, { "identity": "商队管事", "name": "钱有余" }, { "identity": "商队管事", "name": "金满堂" },
+    { "identity": "商队管事", "name": "陆丰年" }, { "identity": "商队管事", "name": "乔四海" }, { "identity": "商队管事", "name": "许长财" },
+    { "identity": "外门弟子", "name": "林小竹" }, { "identity": "外门弟子", "name": "苏青禾" }, { "identity": "外门弟子", "name": "石敢当" },
+    { "identity": "外门弟子", "name": "唐问溪" }, { "identity": "外门弟子", "name": "宋照晚" }, { "identity": "外门弟子", "name": "宁清岚" },
+    { "identity": "游方郎中", "name": "孙百草" }, { "identity": "游方郎中", "name": "华子衿" },
+    { "identity": "游方郎中", "name": "温药尘" }, { "identity": "游方郎中", "name": "杜青囊" }, { "identity": "游方郎中", "name": "纪回春" },
+    { "identity": "世家公子", "name": "慕容复" }, { "identity": "世家公子", "name": "欧阳明" },
+    { "identity": "世家公子", "name": "闻人玉" }, { "identity": "世家公子", "name": "萧照白" }, { "identity": "世家公子", "name": "裴清宴" },
+    { "identity": "江湖剑客", "name": "燕十三" }, { "identity": "江湖剑客", "name": "西门雪" },
+    { "identity": "江湖剑客", "name": "谢寒舟" }, { "identity": "江湖剑客", "name": "顾惊鸿" }, { "identity": "江湖剑客", "name": "江不平" },
+    { "identity": "云游道人", "name": "清风子" }, { "identity": "云游道人", "name": "明月心" },
+    { "identity": "云游道人", "name": "玄微子" }, { "identity": "云游道人", "name": "观尘子" }, { "identity": "云游道人", "name": "照真子" },
+    { "identity": "山下药农", "name": "何采芝" }, { "identity": "山下药农", "name": "田青苗" }, { "identity": "山下药农", "name": "罗守田" },
+    { "identity": "凡人镇民", "name": "王大柱" }, { "identity": "凡人镇民", "name": "李秀娥" }, { "identity": "凡人镇民", "name": "赵铁匠" },
+    { "identity": "凡人镇民", "name": "陈阿福" }, { "identity": "凡人镇民", "name": "周小满" }, { "identity": "凡人镇民", "name": "刘二郎" }
+  ],
+  "maxLevel": 5
+}
