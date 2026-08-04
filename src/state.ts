@@ -146,6 +146,11 @@ export class GameState {
       if (restored.nextCommissionDay === undefined) restored.nextCommissionDay = restored.day;
       if (!Array.isArray(restored.disciples)) restored.disciples = [];
       if (!Array.isArray(restored.buildings)) restored.buildings = [];
+      if (!Array.isArray(restored.unlockedRecipes)) restored.unlockedRecipes = [];
+      if (!restored.pills || typeof restored.pills !== 'object') restored.pills = {};
+      for (const recipeId of restored.unlockedRecipes) {
+        if (!Number.isFinite(restored.pills[recipeId])) restored.pills[recipeId] = 0;
+      }
       for (const building of restored.buildings) {
         if (building.craftRecipe === undefined) building.craftRecipe = null;
         if (building.sellRecipe === undefined) building.sellRecipe = null;

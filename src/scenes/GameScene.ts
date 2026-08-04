@@ -172,6 +172,9 @@ export class GameScene extends Phaser.Scene {
       _dx: number,
       dy: number,
     ) => this.onWheel(p, dy));
+    const cancelPointerInteraction = () => this.cancelPointerInteraction();
+    this.game.canvas.addEventListener('pointercancel', cancelPointerInteraction);
+    window.addEventListener('blur', cancelPointerInteraction);
 
     this.gs.events.on('float', (b: PlacedBuilding, text: string, color: number) => this.floatText(b, text, color));
     this.gs.events.on('visitor-spawn', (v: Visitor, shop: PlacedBuilding) => this.spawnVisitorSprite(v, shop));
@@ -199,7 +202,11 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.scale.on('resize', this.handleResize, this);
-    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off('resize', this.handleResize, this));
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off('resize', this.handleResize, this);
+      this.game.canvas.removeEventListener('pointercancel', cancelPointerInteraction);
+      window.removeEventListener('blur', cancelPointerInteraction);
+    });
   }
 
   // ---------- Grid & buildings ----------
@@ -956,6 +963,12 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (this.panPointerId === p.id) this.panPointerId = null;
+  }
+
+  cancelPointerInteraction(): void {
+    if (this.buildDragPointerId !== null) this.cancelBuild();
+    this.panPointerId = null;
+    this.panDistance = 0;
   }
 
   beginBuildPointer(defId: string, p: Phaser.Input.Pointer): void {
