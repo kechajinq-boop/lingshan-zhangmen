@@ -8,7 +8,6 @@ export type SpiritRootId = 'tian' | 'shuang' | 'san' | 'si' | 'wu';
 export type DiscipleAppearance = 'a' | 'b' | 'c' | 'd';
 const INITIAL_GRID_W = 26;
 const INITIAL_GRID_H = 19;
-const EXPANSION_WIDTH = 4;
 
 export interface BuildingDef {
   id: string; name: string; cost: number; w: number; h: number; color: string;
@@ -21,7 +20,7 @@ export interface RecipeDef { id: string; name: string; input: number; price: num
 export interface ComboDef { id: string; name: string; needs: string[]; effect: string; value: number; desc: string; negative?: boolean; }
 
 export interface PlacedBuilding {
-  uid: number; defId: string; gx: number; gy: number;
+  uid: number; defId: string; gx: number; gy: number; slotId?: string;
   progress: number;
   level: number;
   craftRecipe: string | null;
@@ -154,7 +153,7 @@ export class GameState {
       this.normalizeDisciples(restored.disciples);
       let oldGridW = restored.gridW || 8;
       let oldGridH = restored.gridH || 8;
-      const desiredGridW = INITIAL_GRID_W + (restored.expansionsUnlocked || 0) * EXPANSION_WIDTH;
+      const desiredGridW = INITIAL_GRID_W;
       if (oldGridW > desiredGridW || oldGridH > INITIAL_GRID_H) {
         const trimX = Math.max(0, Math.floor((oldGridW - desiredGridW) / 2));
         const trimY = Math.max(0, Math.floor((oldGridH - INITIAL_GRID_H) / 2));
@@ -193,7 +192,7 @@ export class GameState {
       const fac = raw.factions.find((f: any) => f.id === faction);
       const recipes = raw.recipes.filter((r: RecipeDef) => r.unlock === 'default' || r.unlock === faction).map((r: RecipeDef) => r.id);
       this.data = {
-        schemaVersion: 6,
+        schemaVersion: 7,
         faction, spirit: 300, herbs: 0, pills: {}, reputation: 10,
         day: 1, dayTime: 0, gridW: INITIAL_GRID_W, gridH: INITIAL_GRID_H,
         unlockedRecipes: recipes,
@@ -648,9 +647,8 @@ export class GameState {
     const ex = this.nextExpansion()!;
     this.data.spirit -= ex.spirit;
     this.data.expansionsUnlocked++;
-    this.grid.w += 4;
     this.data.gridW = this.grid.w;
-    for (const row of this.grid.occupied) while (row.length < this.grid.w) row.push(null);
+    this.data.gridH = this.grid.h;
     return true;
   }
 

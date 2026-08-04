@@ -1,0 +1,12 @@
+Use case: precise-object-edit
+Asset type: foundation-only layered raster map for a Phaser H5 xianxia management game
+Primary request: Turn the visible Stage 1 floating sect island into the Stage 2 expanded island by changing only the outer island boundary and surrounding cloud cover.
+Input image: the visible image immediately above is the exact edit target and composition reference.
+Style: preserve the same bright refined pixel-inspired xianxia game art, 3/4 top-down view, crisp readable terrain, left-upper lighting, soft cloud sea and distant immortal mountains.
+Canvas and framing: preserve the exact 1672x941 landscape canvas, camera angle, scale, horizon, central island position and surrounding mountain composition. Do not crop, zoom, rotate or move the core island.
+Core invariants: preserve the central plateau, central crossroads, path directions, stream route, pond, waterfalls, cliff material, grass texture and all existing playable terrain as closely as possible.
+Stage 2 expansion: clouds retreat to reveal two broad continuous land extensions integrated into the same floating island, mainly along the upper-left/west side and right/east side. Replace limited sections of the old outer cliff edge at those attachment points with natural continuous grassy terrain and stone paths. Add roughly 30 percent more usable flat land, enough for about 10 to 12 additional medium buildings, while keeping generous cloud-sea margins for a later Stage 3 expansion.
+Terrain design: new land must contain broad continuous grass and subtle stone-paved routes, with natural cliff boundaries, small low ground flowers and rocks only. Keep the buildable areas visually open and readable; do not draw circles, construction pads, grid squares or checkerboard tiles.
+Layer contract: BASE GROUND MAP ONLY. Include only terrain, grass, flat paths, water, cliffs, waterfalls, cloud sea, distant mountains and ground-level details.
+Do not add: buildings, halls, gates, bridges, pavilions, trees, tall plants, lanterns, incense burners, signs, fences, NPCs, animals, characters, UI, labels, arrows, text, watermarks or player-placeable props.
+Critical restriction: no bridge anywhere, no detached expansion island, no causeway across water, and no fixed object baked into the map.

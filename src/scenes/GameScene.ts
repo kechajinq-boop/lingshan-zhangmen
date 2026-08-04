@@ -1,18 +1,50 @@
 import Phaser from 'phaser';
 import { BuildingDef, CommissionDef, GameState, PlacedBuilding, RecruitCandidate, Visitor } from '../state';
+import {
+  V10_BUILD_SLOTS,
+  V10_FIXED_OBJECTS,
+  V10_GATE_POINT,
+  V10_MAP_STAGES,
+  V10BuildSlot,
+  v10StageForBuildingCount,
+} from '../data/v10Map';
 import { TILE_W, TILE_H } from '../systems/IsoGrid';
 
 interface BuildGhost { gx: number; gy: number; ok: boolean; gfx?: Phaser.GameObjects.Container; }
+interface BuildingRenderConfig {
+  width: number;
+  height: number;
+  offsetX: number;
+  anchorOffsetY: number;
+}
 type VisitorVariant = 'a' | 'b' | 'c' | 'd';
 
 const FONT = '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif';
 const FACILITY_DEPTH_LAYER = 20;
 const NPC_DEPTH_LAYER = 30;
-const BUILDING_DISPLAY_W = 48;
-const BUILDING_DISPLAY_H = 42;
-const DEFAULT_BUILDING_SCALE = 0.8;
-const GATE_GRID_X = 10;
-const INITIAL_GRID_DIAGONAL = 26 + 19;
+const DEFAULT_BUILDING_SCALE = 1;
+const GATE_GRID_X = 16;
+const FIXED_MAP_ART = {
+  x: 84,
+  y: 258,
+  width: 1184,
+  height: 666,
+  sourceWidth: 1672,
+  sourceHeight: 941,
+};
+const DEFAULT_BUILDING_RENDER: BuildingRenderConfig = {
+  width: 114,
+  height: 114,
+  offsetX: 0,
+  anchorOffsetY: 30,
+};
+const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
+  lingtian: { width: 114, height: 114, offsetX: 0, anchorOffsetY: 30 },
+  danfang: { width: 117, height: 117, offsetX: 3, anchorOffsetY: 31 },
+  danpu: { width: 115, height: 115, offsetX: -2, anchorOffsetY: 30 },
+  liangong: { width: 115, height: 115, offsetX: 2, anchorOffsetY: 31 },
+  xiangfang: { width: 114, height: 114, offsetX: 0, anchorOffsetY: 30 },
+};
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: true, back: true },
   b: { front: false, back: true },
@@ -28,7 +60,6 @@ export class GameScene extends Phaser.Scene {
   placementLayer!: Phaser.GameObjects.Container;
   entityLayer!: Phaser.GameObjects.Container;
   overlayLayer!: Phaser.GameObjects.Container;
-  backdrop!: Phaser.GameObjects.Image;
   hudLayer!: Phaser.GameObjects.Container;
   hud!: Phaser.GameObjects.Text;
   timeText!: Phaser.GameObjects.Text;
@@ -59,7 +90,10 @@ export class GameScene extends Phaser.Scene {
   selectedBuilding: PlacedBuilding | null = null;
   visitorSprites = new Map<number, Phaser.GameObjects.Container>();
   floatTexts: Phaser.GameObjects.Text[] = [];
-  gridTiles: Phaser.GameObjects.Polygon[] = [];
+  mapBase?: Phaser.GameObjects.Image;
+  gridTiles = new Map<string, Phaser.GameObjects.Graphics>();
+  gridTileKeys = new Set<string>();
+  stageDecor: Phaser.GameObjects.Image[] = [];
   eventEntries: { text: string; color: string }[] = [];
   gameSpeed = 1;
   directionCheckRunning = false;
@@ -71,6 +105,11 @@ export class GameScene extends Phaser.Scene {
   panLastX = 0;
   panLastY = 0;
   panDistance = 0;
+  buildDragPointerId: number | null = null;
+  buildDragStartX = 0;
+  buildDragStartY = 0;
+  buildDragDistance = 0;
+  buildDragWasSelected = false;
 
   constructor() { super('Game'); }
 
@@ -82,14 +121,19 @@ export class GameScene extends Phaser.Scene {
       restored = tmp.save.load();
     }
     this.gs = new GameState(this, raw, (data.faction as any) || (restored ? restored.faction : 'dan'), restored || undefined);
+    if (!this.gs.data.expansionsUnlocked) this.gs.data.expansionsUnlocked = 0;
+    if (restored) {
+      this.gs.data.expansionsUnlocked = Math.max(
+        this.gs.data.expansionsUnlocked,
+        v10StageForBuildingCount(this.gs.data.buildings.length),
+      );
+      this.alignRestoredBuildingsToSlots();
+      this.gs.save.save();
+    }
     this.originX = 0;
     this.originY = 0;
 
     this.cameras.main.setBackgroundColor(0x8edcf2);
-    this.backdrop = this.add.image(this.scale.width / 2, this.scale.height / 2, 'menu-bg')
-      .setDisplaySize(this.scale.width, this.scale.height)
-      .setAlpha(0.22)
-      .setDepth(-10);
     this.board = this.add.container(0, 0);
     this.groundLayer = this.add.container(0, 0);
     this.placementLayer = this.add.container(0, 0);
@@ -98,7 +142,6 @@ export class GameScene extends Phaser.Scene {
     this.board.add([this.groundLayer, this.placementLayer, this.entityLayer, this.overlayLayer]);
     this.drawGrid();
     if (restored) {
-      if (!this.gs.data.expansionsUnlocked) this.gs.data.expansionsUnlocked = 0;
       if (!this.gs.data.elders) this.gs.data.elders = [];
       for (const b of this.gs.data.buildings) {
         if (!b.level) b.level = 1;
@@ -160,39 +203,257 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ---------- Grid & buildings ----------
-  drawGrid(): void {
-    const g = this.gs.grid;
-    for (let gy = 0; gy < g.h; gy++) {
-      for (let gx = 0; gx < g.w; gx++) {
-        const s = this.toScreen(gx, gy);
-        const color = (gx + gy) % 2 === 0 ? 0x8fd16d : 0x7bc45f;
-        const tile = this.add.polygon(s.x, s.y, [0, TILE_H / 2, TILE_W / 2, 0, 0, -TILE_H / 2, -TILE_W / 2, 0], color)
-          .setStrokeStyle(1, 0xd9ee91, 0.22);
-        this.groundLayer.add(tile);
-        this.gridTiles.push(tile);
+  visibleMapStage(): number {
+    return Phaser.Math.Clamp(this.gs.data.expansionsUnlocked || 0, 0, 2);
+  }
+
+  alignRestoredBuildingsToSlots(): void {
+    const available = V10_BUILD_SLOTS.filter(slot => slot.stage <= this.visibleMapStage());
+    const used = new Set<string>();
+    for (const building of this.gs.data.buildings) {
+      let target = available.find(slot => slot.id === building.slotId && !used.has(slot.id));
+      if (!target) target = available.find(slot => slot.gx === building.gx && slot.gy === building.gy && !used.has(slot.id));
+      if (!target) {
+        target = available
+          .filter(slot => !used.has(slot.id))
+          .sort((a, b) => (
+            Math.abs(a.gx - building.gx) + Math.abs(a.gy - building.gy)
+          ) - (
+            Math.abs(b.gx - building.gx) + Math.abs(b.gy - building.gy)
+          ))[0];
       }
+      if (!target) continue;
+      building.slotId = target.id;
+      building.gx = target.gx;
+      building.gy = target.gy;
+      used.add(target.id);
     }
+    this.gs.grid.occupied = Array.from(
+      { length: this.gs.grid.h },
+      () => Array<number | null>(this.gs.grid.w).fill(null),
+    );
+    for (const building of this.gs.data.buildings) {
+      const def = this.gs.buildingDef(building.defId);
+      if (building.slotId && this.gs.grid.canPlace(building.gx, building.gy, def.w, def.h)) {
+        this.gs.grid.place(building.gx, building.gy, building.uid, def.w, def.h);
+        continue;
+      }
+      const fallback = this.gs.grid.findNearestAvailable(building.gx, building.gy, def.w, def.h);
+      if (!fallback) continue;
+      building.gx = fallback.gx;
+      building.gy = fallback.gy;
+      this.gs.grid.place(building.gx, building.gy, building.uid, def.w, def.h);
+    }
+  }
+
+  inStageRegion(gx: number, gy: number, stage: number): boolean {
+    return V10_BUILD_SLOTS.some(slot => {
+      if (slot.stage !== stage) return false;
+      return gx >= slot.gx && gx < slot.gx + 2 && gy >= slot.gy && gy < slot.gy + 2;
+    });
+  }
+
+  isUnlockedCell(gx: number, gy: number): boolean {
+    if (!this.gs.grid.inBounds(gx, gy)) return false;
+    const stage = this.visibleMapStage();
+    for (let s = 0; s <= stage; s++) {
+      if (this.inStageRegion(gx, gy, s)) return true;
+    }
+    return false;
+  }
+
+  isWaterCell(gx: number, gy: number): boolean {
+    return !this.isUnlockedCell(gx, gy);
+  }
+
+  unlockedBuildSlots(): V10BuildSlot[] {
+    const stage = this.visibleMapStage();
+    return V10_BUILD_SLOTS.filter(slot => slot.stage <= stage);
+  }
+
+  fixedMapPoint(mapX: number, mapY: number): { x: number; y: number } {
+    return {
+      x: FIXED_MAP_ART.x - FIXED_MAP_ART.width / 2 + mapX * FIXED_MAP_ART.width / FIXED_MAP_ART.sourceWidth,
+      y: FIXED_MAP_ART.y - FIXED_MAP_ART.height / 2 + mapY * FIXED_MAP_ART.height / FIXED_MAP_ART.sourceHeight,
+    };
+  }
+
+  visualDepth(localY: number, layer: number): number {
+    return Math.round(localY * 100) + layer;
+  }
+
+  slotVisualPosition(gx: number, gy: number): { x: number; y: number } | null {
+    const slot = V10_BUILD_SLOTS.find(item => item.gx === gx && item.gy === gy);
+    if (!slot) return null;
+    return this.fixedMapPoint(slot.mapX, slot.mapY);
+  }
+
+  nearestVisualSlot(localX: number, localY: number): V10BuildSlot | null {
+    let best: { slot: V10BuildSlot; distance: number } | null = null;
+    for (const slot of this.unlockedBuildSlots()) {
+      const point = this.fixedMapPoint(slot.mapX, slot.mapY);
+      const distance = Phaser.Math.Distance.Between(localX, localY, point.x, point.y);
+      if (!best || distance < best.distance) best = { slot, distance };
+    }
+    return best && best.distance <= 76 ? best.slot : null;
+  }
+
+  slotForFootprint(gx: number, gy: number, width: number, height: number): V10BuildSlot | null {
+    return this.unlockedBuildSlots().find(slot => slot.gx === gx && slot.gy === gy && width <= 2 && height <= 2) || null;
+  }
+
+  nearestSlotPosition(gx: number, gy: number, width: number, height: number): { gx: number; gy: number } | null {
+    const exact = this.slotForFootprint(gx, gy, width, height);
+    if (exact) return { gx: exact.gx, gy: exact.gy };
+    if (width > 2 || height > 2) return null;
+    let best: { gx: number; gy: number; distance: number } | null = null;
+    for (const slot of this.unlockedBuildSlots()) {
+      const distance = Math.abs(slot.gx - gx) + Math.abs(slot.gy - gy);
+      if (best === null || distance < best.distance) best = { gx: slot.gx, gy: slot.gy, distance };
+    }
+    return best && best.distance <= 5 ? { gx: best.gx, gy: best.gy } : null;
+  }
+
+  isBuildableFootprint(gx: number, gy: number, width = 1, height = 1): boolean {
+    return this.slotForFootprint(gx, gy, width, height) !== null;
+  }
+
+  terrainKey(gx: number, gy: number): string {
+    const edge = !this.isUnlockedCell(gx + 1, gy) || !this.isUnlockedCell(gx, gy + 1);
+    if (this.isWaterCell(gx, gy)) return 'v10-tile_water_base_01';
+    if ((gx === 12 && gy >= 6 && gy <= 17) || (gy === 10 && gx >= 7 && gx <= 20)) {
+      if (gx === 12 && gy === 10) return 'v10-tile_stone_path_cross_01';
+      return 'v10-tile_stone_path_straight_01';
+    }
+    if (this.visibleMapStage() >= 1 && gx >= 18 && gx <= 22 && gy >= 5 && gy <= 8) return 'v10-tile_herb_base_01';
+    if (this.visibleMapStage() >= 2 && gx >= 4 && gx <= 9 && gy >= 12 && gy <= 15) return 'v10-tile_stone_base_01';
+    if (edge) return 'v10-tile_cliff_edge_01';
+    return 'v10-tile_grass_base_01';
+  }
+
+  drawCliffForCell(gx: number, gy: number, s: { x: number; y: number }): void {
+    const frontMissing = !this.isUnlockedCell(gx, gy + 1);
+    const rightMissing = !this.isUnlockedCell(gx + 1, gy);
+    if (!frontMissing && !rightMissing) return;
+    const cliff = this.add.graphics();
+    const drop = 26;
+    if (frontMissing) {
+      cliff.fillStyle(0x68725e, 0.94);
+      cliff.fillPoints([
+        new Phaser.Math.Vector2(s.x - TILE_W / 2, s.y),
+        new Phaser.Math.Vector2(s.x, s.y + TILE_H / 2),
+        new Phaser.Math.Vector2(s.x, s.y + TILE_H / 2 + drop),
+        new Phaser.Math.Vector2(s.x - TILE_W / 2, s.y + drop),
+      ], true);
+      cliff.lineStyle(1, 0x405044, 0.5);
+      cliff.lineBetween(s.x - TILE_W / 2 + 8, s.y + 8, s.x - TILE_W / 2 + 8, s.y + drop - 2);
+      cliff.lineBetween(s.x - TILE_W / 4, s.y + 12, s.x - TILE_W / 4, s.y + drop + 8);
+    }
+    if (rightMissing) {
+      cliff.fillStyle(0x59675c, 0.96);
+      cliff.fillPoints([
+        new Phaser.Math.Vector2(s.x, s.y + TILE_H / 2),
+        new Phaser.Math.Vector2(s.x + TILE_W / 2, s.y),
+        new Phaser.Math.Vector2(s.x + TILE_W / 2, s.y + drop),
+        new Phaser.Math.Vector2(s.x, s.y + TILE_H / 2 + drop),
+      ], true);
+      cliff.lineStyle(1, 0x39473d, 0.55);
+      cliff.lineBetween(s.x + TILE_W / 4, s.y + 12, s.x + TILE_W / 4, s.y + drop + 8);
+    }
+    cliff.setDepth(-6);
+    this.groundLayer.add(cliff);
+  }
+
+  drawGroundCell(gx: number, gy: number): void {
+    const key = gx + ',' + gy;
+    if (this.gridTileKeys.has(key)) return;
+    const slot = this.unlockedBuildSlots().find(item => item.gx === gx && item.gy === gy);
+    if (!slot) return;
+    const point = this.slotVisualPosition(gx, gy);
+    if (!point) return;
+    this.gridTileKeys.add(key);
+    const highlight = this.add.graphics({ x: point.x, y: point.y })
+      .setDepth(this.gs.grid.getDepth(gx, gy, { width: 2, height: 2 }, -20))
+      .setVisible(false);
+    highlight.setData('slotId', slot.id);
+    this.placementLayer.add(highlight);
+    this.gridTiles.set(slot.id, highlight);
+  }
+
+  drawGrid(): void {
+    this.mapBase = this.add.image(FIXED_MAP_ART.x, FIXED_MAP_ART.y, this.currentMapTexture())
+      .setDisplaySize(FIXED_MAP_ART.width, FIXED_MAP_ART.height)
+      .setOrigin(0.5)
+      .setDepth(-12);
+    this.groundLayer.add(this.mapBase);
+    const g = this.gs.grid;
+    for (const slot of this.unlockedBuildSlots()) this.drawGroundCell(slot.gx, slot.gy);
     const gateGrid = this.gateGridPosition();
-    const e = this.toScreen(gateGrid.gx, gateGrid.gy);
-    const gateFoot = g.getSpritePosition(gateGrid.gx, gateGrid.gy);
-    const gateTile = this.add.polygon(e.x, e.y, [0, TILE_H / 2, TILE_W / 2, 0, 0, -TILE_H / 2, -TILE_W / 2, 0], 0xe5c66a)
-      .setStrokeStyle(1, 0xfff1a6, 0.9);
+    const gateFoot = this.fixedMapPoint(V10_GATE_POINT.mapX, V10_GATE_POINT.mapY);
     const gate = this.add.container(gateFoot.x, gateFoot.y);
-    const gateArt = this.add.image(0, 0, 'building-gate').setDisplaySize(70, 60).setOrigin(0.5, 1.0);
-    const gt = this.add.text(0, -TILE_H / 2 - 48, '山门', {
+    const gateArt = this.add.image(0, 0, 'v10-fixed-sect-gate').setDisplaySize(142, 142).setOrigin(0.5, 1.0);
+    const gt = this.add.text(0, -126, '山门', {
       fontSize: '10px', color: '#ffe2a3', fontFamily: FONT,
       backgroundColor: '#2b1d13cc', padding: { x: 4, y: 2 },
     }).setOrigin(0.5);
     gate.add([gateArt, gt]);
-    gate.setDepth(g.getDepth(gateGrid.gx, gateGrid.gy, { width: 1, height: 1 }, FACILITY_DEPTH_LAYER));
-    this.groundLayer.add(gateTile);
+    gate.setDepth(this.visualDepth(gateFoot.y, FACILITY_DEPTH_LAYER));
     this.entityLayer.add(gate);
+    this.drawStageDecor();
+    this.sortBoard();
+  }
+
+  drawStageDecor(): void {
+    for (const art of this.stageDecor) art.destroy();
+    this.stageDecor = [];
+    for (const object of V10_FIXED_OBJECTS) {
+      const point = this.fixedMapPoint(object.mapX, object.mapY);
+      const art = this.add.image(point.x, point.y, object.texture)
+        .setDisplaySize(object.width, object.height)
+        .setOrigin(0.5, 1)
+        .setDepth(this.visualDepth(point.y, FACILITY_DEPTH_LAYER + (object.depthOffset || 0)));
+      this.entityLayer.add(art);
+      this.stageDecor.push(art);
+    }
     this.sortBoard();
   }
 
   setGridEmphasis(active: boolean): void {
-    for (const tile of this.gridTiles) {
-      tile.setStrokeStyle(1, 0xd9ee91, active ? 0.72 : 0.22);
+    if (!active) {
+      for (const tile of this.gridTiles.values()) tile.setVisible(false);
+      return;
+    }
+    this.refreshBuildSlotHighlights();
+  }
+
+  currentMapTexture(): string {
+    return V10_MAP_STAGES[this.visibleMapStage()].texture;
+  }
+
+  refreshBuildSlotHighlights(hoveredSlotId?: string): void {
+    const def = this.selectedBuild ? this.gs.buildingDef(this.selectedBuild) : null;
+    for (const slot of this.unlockedBuildSlots()) {
+      const tile = this.gridTiles.get(slot.id);
+      if (!tile) continue;
+      const available = !!def
+        && this.gs.grid.canPlace(slot.gx, slot.gy, def.w, def.h)
+        && this.isBuildableFootprint(slot.gx, slot.gy, def.w, def.h);
+      tile.clear();
+      tile.setVisible(available);
+      if (!available) continue;
+      const hovered = slot.id === hoveredSlotId;
+      const halfW = hovered ? 38 : 34;
+      const halfH = hovered ? 20 : 17;
+      const points = [
+        new Phaser.Math.Vector2(0, -halfH),
+        new Phaser.Math.Vector2(halfW, 0),
+        new Phaser.Math.Vector2(0, halfH),
+        new Phaser.Math.Vector2(-halfW, 0),
+      ];
+      tile.fillStyle(hovered ? 0x6ff08a : 0x53d878, hovered ? 0.48 : 0.28);
+      tile.fillPoints(points, true);
+      tile.lineStyle(hovered ? 3 : 2, hovered ? 0xd8ffd9 : 0x2aa95b, 0.95);
+      tile.strokePoints(points, true);
     }
   }
 
@@ -218,13 +479,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   buildingArtPosition(gx: number, gy: number, width: number, height: number): { x: number; y: number } {
+    const slot = this.slotVisualPosition(gx, gy);
+    if (slot) return { x: slot.x, y: slot.y + 40 };
     const center = this.gs.grid.toScreen(gx + (width - 1) / 2, gy + (height - 1) / 2);
     return { x: center.x, y: center.y + 5 };
   }
 
   buildingEntrance(b: PlacedBuilding): { x: number; y: number; gx: number; gy: number } {
     const def = this.gs.buildingDef(b.defId);
-    const foot = this.gs.grid.getSpritePosition(b.gx, b.gy, def.w, def.h);
+    const foot = this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
     return {
       x: foot.x,
       y: foot.y + 2,
@@ -252,6 +515,14 @@ export class GameScene extends Phaser.Scene {
     originY = 0,
     prismHeight = 34,
   ): void {
+    const slot = this.slotVisualPosition(gx, gy);
+    if (slot) {
+      graphics.fillStyle(color, 0.05);
+      graphics.fillEllipse(slot.x - originX, slot.y - originY, 96, 58);
+      graphics.lineStyle(2, color, 0.95);
+      graphics.strokeEllipse(slot.x - originX, slot.y - originY, 96, 58);
+      return;
+    }
     const base = this.lotVertices(gx, gy, width, height)
       .map(point => new Phaser.Math.Vector2(point.x - originX, point.y - originY));
     const top = base.map(point => new Phaser.Math.Vector2(point.x, point.y - prismHeight));
@@ -266,26 +537,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   drawCourtyard(b: PlacedBuilding, def: BuildingDef): void {
-    const palette = this.courtyardPalette(def);
     const lot = this.add.container(0, 0);
-    const graphics = this.add.graphics();
-    const footprintVertices = this.lotVertices(b.gx, b.gy, def.w, def.h);
-    const centerX = footprintVertices.reduce((sum, point) => sum + point.x, 0) / footprintVertices.length;
-    const centerY = footprintVertices.reduce((sum, point) => sum + point.y, 0) / footprintVertices.length;
-    const vertices = footprintVertices.map(point => new Phaser.Math.Vector2(
-      Phaser.Math.Linear(point.x, centerX, 0.06),
-      Phaser.Math.Linear(point.y, centerY, 0.06),
-    ));
-    graphics.fillStyle(palette.fill, 0.58);
-    graphics.fillPoints(vertices, true);
-    graphics.lineStyle(1, 0xfff0a8, 0.72);
-    graphics.strokePoints(vertices, true);
-    graphics.lineStyle(3, palette.edge, 0.92);
-    graphics.lineBetween(vertices[1].x, vertices[1].y, vertices[2].x, vertices[2].y);
-    graphics.lineBetween(vertices[2].x, vertices[2].y, vertices[3].x, vertices[3].y);
-    graphics.fillStyle(palette.post, 0.96);
-    for (const point of vertices) graphics.fillRect(point.x - 2, point.y - 6, 4, 7);
-    lot.add(graphics);
     this.groundLayer.add(lot);
     b.lotSprite = lot;
   }
@@ -302,9 +554,12 @@ export class GameScene extends Phaser.Scene {
     const g = this.gs.grid;
     const w = this.scale.width;
     const h = this.scale.height;
-    const initialWidth = INITIAL_GRID_DIAGONAL * TILE_W / 2;
-    const initialHeight = INITIAL_GRID_DIAGONAL * TILE_H / 2;
-    const scale = Math.min((w * 0.9) / initialWidth, (h * 0.8) / initialHeight);
+    const topSafe = (w < 900 ? 10 : 16) + this.topBarHeight() + (w < 900 ? 8 : 12);
+    const bottomSafe = h - this.buildMenuHeight() - (w < 900 ? 14 : 20);
+    const scale = Math.max(
+      w / FIXED_MAP_ART.width,
+      h / FIXED_MAP_ART.height,
+    ) * 1.01;
     let focusX = (g.w - g.h) * TILE_W / 4;
     let focusY = (g.w + g.h - 2) * TILE_H / 4;
     if (this.gs.data.buildings.length > 0) {
@@ -312,7 +567,7 @@ export class GameScene extends Phaser.Scene {
       let totalY = 0;
       for (const b of this.gs.data.buildings) {
         const def = this.gs.buildingDef(b.defId);
-        const point = this.gs.grid.toScreen(
+        const point = this.slotVisualPosition(b.gx, b.gy) || this.gs.grid.toScreen(
           b.gx + (def.w - 1) / 2,
           b.gy + (def.h - 1) / 2,
         );
@@ -323,23 +578,27 @@ export class GameScene extends Phaser.Scene {
       focusY = totalY / this.gs.data.buildings.length;
     }
 
-    this.minBoardScale = scale * 0.82;
-    this.maxBoardScale = scale * 2.2;
-    const hudSafeOffsetX = w >= 900 ? 40 : 0;
-    this.originX = w / 2 + hudSafeOffsetX - focusX * scale;
-    this.originY = h * 0.56 - focusY * scale;
+    this.minBoardScale = scale;
+    this.maxBoardScale = scale * 2.0;
+    if (this.gs.data.buildings.length > 0) {
+      const hudSafeOffsetX = w >= 900 ? 20 : 0;
+      this.originX = w / 2 + hudSafeOffsetX - focusX * scale;
+      this.originY = (topSafe + bottomSafe) / 2 - focusY * scale;
+    } else {
+      this.originX = w / 2 - FIXED_MAP_ART.x * scale;
+      this.originY = (topSafe + bottomSafe) / 2 - FIXED_MAP_ART.y * scale;
+    }
     this.board.setScale(scale).setPosition(this.originX, this.originY);
     this.clampBoardPosition();
   }
 
   clampBoardPosition(): void {
-    const g = this.gs.grid;
     const scale = this.board.scaleX;
-    const edge = 48;
-    const minLocalX = -g.h * TILE_W / 2;
-    const maxLocalX = g.w * TILE_W / 2;
-    const minLocalY = -TILE_H / 2;
-    const maxLocalY = (g.w + g.h - 1) * TILE_H / 2;
+    const edge = 0;
+    const minLocalX = FIXED_MAP_ART.x - FIXED_MAP_ART.width / 2;
+    const maxLocalX = FIXED_MAP_ART.x + FIXED_MAP_ART.width / 2;
+    const minLocalY = FIXED_MAP_ART.y - FIXED_MAP_ART.height / 2;
+    const maxLocalY = FIXED_MAP_ART.y + FIXED_MAP_ART.height / 2;
     const mapWidth = (maxLocalX - minLocalX) * scale;
     const mapHeight = (maxLocalY - minLocalY) * scale;
 
@@ -358,7 +617,20 @@ export class GameScene extends Phaser.Scene {
         edge - minLocalX * scale,
       );
     }
-    if (mapHeight <= this.scale.height - edge * 2) {
+    if (this.scale.width < 900) {
+      const topSafe = 10 + this.topBarHeight() + 8;
+      const bottomSafe = this.scale.height - this.buildMenuHeight() - 14;
+      const safeHeight = Math.max(140, bottomSafe - topSafe);
+      if (mapHeight <= safeHeight) {
+        this.board.y = (topSafe + bottomSafe) / 2 - (minLocalY + maxLocalY) * scale / 2;
+      } else {
+        this.board.y = Phaser.Math.Clamp(
+          this.board.y,
+          bottomSafe - maxLocalY * scale,
+          topSafe - minLocalY * scale,
+        );
+      }
+    } else if (mapHeight <= this.scale.height - edge * 2) {
       this.board.y = this.scale.height / 2 - (minLocalY + maxLocalY) * scale / 2;
     } else {
       this.board.y = Phaser.Math.Clamp(
@@ -389,9 +661,9 @@ export class GameScene extends Phaser.Scene {
     const top = compact ? 10 : 16;
     if (p.y >= top && p.y <= top + this.topBarHeight()) return true;
     if (p.y >= this.scale.height - this.buildMenuHeight() - 18) return true;
-    if (this.scale.width >= 900 && p.x >= 18 && p.x <= 318 && p.y >= top + this.topBarHeight() + 18) {
-      const feedHeight = 28 + Math.max(1, this.eventEntries.length) * 42;
-      if (p.y <= top + this.topBarHeight() + 18 + feedHeight) return true;
+    if (this.scale.width >= 900) {
+      const feed = this.eventFeedBounds();
+      if (p.x >= feed.x && p.x <= feed.x + feed.width && p.y >= feed.y && p.y <= feed.y + feed.height) return true;
     }
     if (this.selectedBuilding) {
       const panelWidth = 320 * this.infoPanel.scaleX;
@@ -412,6 +684,12 @@ export class GameScene extends Phaser.Scene {
     return this.gs.grid.toGrid(localX, localY);
   }
 
+  pointerToBuildSlot(p: Phaser.Input.Pointer): V10BuildSlot | null {
+    const localX = (p.x - this.board.x) / this.board.scaleX;
+    const localY = (p.y - this.board.y) / this.board.scaleY;
+    return this.nearestVisualSlot(localX, localY);
+  }
+
   discipleTexture(b: PlacedBuilding): string {
     const discipleId = b.assigned[0];
     const disciple = this.gs.data.disciples.find(d => d.id === discipleId);
@@ -421,13 +699,14 @@ export class GameScene extends Phaser.Scene {
   drawBuilding(b: PlacedBuilding, animateConstruction = false): void {
     const def = this.gs.buildingDef(b.defId);
     this.drawCourtyard(b, def);
-    const foot = this.gs.grid.getSpritePosition(b.gx, b.gy, def.w, def.h);
-    const artPosition = this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
-    const artX = artPosition.x - foot.x;
-    const artY = artPosition.y - foot.y;
+    const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
+    const slotPoint = this.slotVisualPosition(b.gx, b.gy);
+    const foot = slotPoint || this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
+    const artX = slotPoint ? render.offsetX : 0;
+    const artY = slotPoint ? render.anchorOffsetY : 0;
     const renderScale = def.renderScale ?? DEFAULT_BUILDING_SCALE;
-    const displayW = BUILDING_DISPLAY_W * renderScale;
-    const displayH = BUILDING_DISPLAY_H * renderScale;
+    const displayW = render.width * renderScale;
+    const displayH = render.height * renderScale;
     const c = this.add.container(foot.x, foot.y);
     const art = this.add.image(artX, artY, 'building-' + def.id)
       .setDisplaySize(displayW, displayH)
@@ -493,12 +772,14 @@ export class GameScene extends Phaser.Scene {
     c.on('pointerout', () => hoverFrame.setVisible(false));
     worker.setVisible(b.assigned.length > 0);
     b.sprite = c;
-    c.setDepth(this.gs.grid.getDepth(
-      b.gx,
-      b.gy,
-      { width: def.w, height: def.h },
-      FACILITY_DEPTH_LAYER,
-    ));
+    c.setDepth(slotPoint
+      ? this.visualDepth(foot.y + artY, FACILITY_DEPTH_LAYER)
+      : this.gs.grid.getDepth(
+        b.gx,
+        b.gy,
+        { width: def.w, height: def.h },
+        FACILITY_DEPTH_LAYER,
+      ));
     this.entityLayer.add(c);
     this.sortBoard();
 
@@ -561,28 +842,51 @@ export class GameScene extends Phaser.Scene {
 
   // ---------- Input ----------
   onMove(p: Phaser.Input.Pointer): void {
+    if (this.buildDragPointerId === p.id && p.isDown) {
+      this.buildDragDistance = Phaser.Math.Distance.Between(
+        this.buildDragStartX,
+        this.buildDragStartY,
+        p.x,
+        p.y,
+      );
+    }
     if (this.researchOpen || this.elderOpen || this.recruitOpen || this.commissionOpen) {
       this.clearGhost();
       return;
     }
     if (this.selectedBuild) {
-      const g = this.pointerToGrid(p);
+      const slot = this.pointerToBuildSlot(p);
+      if (!slot) {
+        this.clearGhost();
+        this.refreshBuildSlotHighlights();
+        return;
+      }
       const def = this.gs.buildingDef(this.selectedBuild);
-      if (!this.ghost) this.ghost = { gx: g.gx, gy: g.gy, ok: false };
-      this.ghost.gx = g.gx; this.ghost.gy = g.gy;
-      this.ghost.ok = this.gs.grid.canPlace(g.gx, g.gy, def.w, def.h);
+      const targetGX = slot.gx;
+      const targetGY = slot.gy;
+      if (!this.ghost) this.ghost = { gx: targetGX, gy: targetGY, ok: false };
+      this.ghost.gx = targetGX; this.ghost.gy = targetGY;
+      this.ghost.ok = this.gs.grid.canPlace(targetGX, targetGY, def.w, def.h)
+        && this.isBuildableFootprint(targetGX, targetGY, def.w, def.h);
+      this.refreshBuildSlotHighlights(slot.id);
       if (this.ghost.gfx) this.ghost.gfx.destroy();
       const col = this.ghost.ok ? 0x7ddb6a : 0xdd6a6a;
       this.ghost.gfx = this.add.container(0, 0);
-      const artPosition = this.buildingArtPosition(g.gx, g.gy, def.w, def.h);
+      const slotPoint = this.slotVisualPosition(targetGX, targetGY);
+      const artPosition = slotPoint || this.buildingArtPosition(targetGX, targetGY, def.w, def.h);
+      const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
       const renderScale = def.renderScale ?? DEFAULT_BUILDING_SCALE;
-      const preview = this.add.image(artPosition.x, artPosition.y, 'building-' + def.id)
-        .setDisplaySize(BUILDING_DISPLAY_W * renderScale, BUILDING_DISPLAY_H * renderScale)
+      const preview = this.add.image(
+        artPosition.x + (slotPoint ? render.offsetX : 0),
+        artPosition.y + (slotPoint ? render.anchorOffsetY : 0),
+        'building-' + def.id,
+      )
+        .setDisplaySize(render.width * renderScale, render.height * renderScale)
         .setOrigin(0.5, 1)
         .setTint(col)
         .setAlpha(0.58);
       const frame = this.add.graphics();
-      this.drawLotPrism(frame, g.gx, g.gy, def.w, def.h, col);
+      this.drawLotPrism(frame, targetGX, targetGY, def.w, def.h, col);
       this.ghost.gfx.add([preview, frame]);
       this.placementLayer.add(this.ghost.gfx);
       return;
@@ -603,18 +907,25 @@ export class GameScene extends Phaser.Scene {
 
   onDown(p: Phaser.Input.Pointer): void {
     if (this.researchOpen || this.elderOpen || this.recruitOpen || this.commissionOpen) return;
+    if (this.buildDragPointerId === p.id) return;
     if (this.selectedBuild) {
-      // 优先用 ghost，否则直接从指针位置反算格子（避免 hover 间隙导致点空）
       let gx = this.ghost?.gx, gy = this.ghost?.gy;
       if (gx === undefined || gy === undefined) {
-        const g = this.pointerToGrid(p);
-        gx = g.gx; gy = g.gy;
+        const slot = this.pointerToBuildSlot(p);
+        if (slot) {
+          gx = slot.gx;
+          gy = slot.gy;
+        }
       }
       const def = this.gs.buildingDef(this.selectedBuild);
-      if (this.gs.grid.canPlace(gx, gy, def.w, def.h)) {
+      if (gx === undefined || gy === undefined) {
+        this.toast('请点击仙山上的圆形建造空地');
+        return;
+      }
+      if (this.gs.grid.canPlace(gx, gy, def.w, def.h) && this.isBuildableFootprint(gx, gy, def.w, def.h)) {
         this.tryPlace(this.selectedBuild, gx, gy);
       } else {
-        this.toast('此处需要 ' + def.w + '×' + def.h + ' 的完整空地');
+        this.toast('此处未开放或需要 ' + def.w + '×' + def.h + ' 的完整空地');
       }
     } else {
       this.selectBuilding(null);
@@ -626,7 +937,37 @@ export class GameScene extends Phaser.Scene {
   }
 
   onPointerUp(p: Phaser.Input.Pointer): void {
+    if (this.buildDragPointerId === p.id) {
+      const dragged = this.buildDragDistance >= 8;
+      const defId = this.selectedBuild;
+      this.buildDragPointerId = null;
+      this.buildDragDistance = 0;
+      if (dragged) {
+        if (defId && this.ghost?.ok && !this.isPointerOverHUD(p)) {
+          this.tryPlace(defId, this.ghost.gx, this.ghost.gy);
+        } else {
+          this.toast('只能放在亮起的绿色空地');
+          this.cancelBuild();
+        }
+      } else if (this.buildDragWasSelected) {
+        this.cancelBuild();
+      }
+      this.buildDragWasSelected = false;
+      return;
+    }
     if (this.panPointerId === p.id) this.panPointerId = null;
+  }
+
+  beginBuildPointer(defId: string, p: Phaser.Input.Pointer): void {
+    this.buildDragWasSelected = this.selectedBuild === defId;
+    this.selectedBuild = defId;
+    this.buildDragPointerId = p.id;
+    this.buildDragStartX = p.x;
+    this.buildDragStartY = p.y;
+    this.buildDragDistance = 0;
+    this.clearGhost();
+    this.refreshBuildSlotHighlights();
+    this.refreshBuildMenu();
   }
 
   tryPlace(defId: string, gx: number, gy: number): void {
@@ -636,7 +977,7 @@ export class GameScene extends Phaser.Scene {
     d.spirit -= def.cost;
     const b: PlacedBuilding = {
       uid: Date.now() + Math.floor(Math.random() * 999),
-      defId, gx, gy, progress: 0, level: 1,
+      defId, gx, gy, slotId: this.slotForFootprint(gx, gy, def.w, def.h)?.id, progress: 0, level: 1,
       craftRecipe: null, sellRecipe: null,
       assigned: [], queue: 0, comboBonus: 0, stock: 0,
     };
@@ -659,6 +1000,7 @@ export class GameScene extends Phaser.Scene {
       ? this.input.keyboard.checkDown(this.input.keyboard.addKey('SHIFT'), 0)
       : false;
     if (!keepBuilding) this.cancelBuild();
+    else this.refreshBuildSlotHighlights();
   }
 
   clearGhost(): void {
@@ -668,6 +1010,9 @@ export class GameScene extends Phaser.Scene {
 
   cancelBuild(): void {
     this.selectedBuild = null;
+    this.buildDragPointerId = null;
+    this.buildDragDistance = 0;
+    this.buildDragWasSelected = false;
     this.clearGhost();
     this.setGridEmphasis(false);
     this.refreshBuildMenu();
@@ -702,16 +1047,9 @@ export class GameScene extends Phaser.Scene {
       onUpdate: (tween: Phaser.Tweens.Tween) => {
         const phase = tween.progress * Math.PI * 10;
         const lift = Math.abs(Math.sin(phase)) * 1.5;
-        const gridX = Math.floor(Phaser.Math.Linear(startGX, targetGX, tween.progress));
-        const gridY = Math.floor(Phaser.Math.Linear(startGY, targetGY, tween.progress));
         person.setY(baseY - lift).setAngle(Math.sin(phase) * 2.2);
         shadow.setScale(1 - lift * 0.055, 1 + lift * 0.015);
-        c.setDepth(this.gs.grid.getDepth(
-          gridX,
-          gridY,
-          { width: 1, height: 1 },
-          NPC_DEPTH_LAYER,
-        ));
+        c.setDepth(this.visualDepth(c.y, NPC_DEPTH_LAYER));
         this.sortBoard();
       },
       onComplete: () => {
@@ -719,12 +1057,7 @@ export class GameScene extends Phaser.Scene {
         shadow.setScale(1);
         c.setData('gridX', targetGX);
         c.setData('gridY', targetGY);
-        c.setDepth(this.gs.grid.getDepth(
-          targetGX,
-          targetGY,
-          { width: 1, height: 1 },
-          NPC_DEPTH_LAYER,
-        ));
+        c.setDepth(this.visualDepth(c.y, NPC_DEPTH_LAYER));
         this.sortBoard();
         if (onComplete) onComplete();
       },
@@ -733,7 +1066,7 @@ export class GameScene extends Phaser.Scene {
 
   spawnVisitorSprite(v: Visitor, shop: PlacedBuilding): void {
     const gateGrid = this.gateGridPosition();
-    const gate = this.toScreen(gateGrid.gx, gateGrid.gy);
+    const gate = this.fixedMapPoint(V10_GATE_POINT.mapX, V10_GATE_POINT.mapY);
     const c = this.add.container(gate.x, gate.y);
     const shadow = this.add.ellipse(0, 1, 14, 5, 0x1c120d, 0.3);
     const variant = ['a', 'b', 'c', 'd'][Math.abs(v.id) % 4];
@@ -744,12 +1077,7 @@ export class GameScene extends Phaser.Scene {
     c.setData('variant', variant);
     c.setData('gridX', gateGrid.gx);
     c.setData('gridY', gateGrid.gy);
-    c.setDepth(this.gs.grid.getDepth(
-      gateGrid.gx,
-      gateGrid.gy,
-      { width: 1, height: 1 },
-      NPC_DEPTH_LAYER,
-    ));
+    c.setDepth(this.visualDepth(gate.y, NPC_DEPTH_LAYER));
     this.entityLayer.add(c);
     this.sortBoard();
     this.visitorSprites.set(v.id, c);
@@ -762,7 +1090,7 @@ export class GameScene extends Phaser.Scene {
     if (!c) return;
     this.visitorSprites.delete(v.id);
     const gateGrid = this.gateGridPosition();
-    const gate = this.toScreen(gateGrid.gx, gateGrid.gy);
+    const gate = this.fixedMapPoint(V10_GATE_POINT.mapX, V10_GATE_POINT.mapY);
     this.walkTo(c, gate.x, gate.y, gateGrid.gx, gateGrid.gy, 1200, () => c.destroy());
   }
 
@@ -1051,51 +1379,49 @@ export class GameScene extends Phaser.Scene {
     const compact = this.scale.width < 900;
     this.eventFeed.setVisible(!compact);
     if (compact) return;
-    const x = 18;
-    const y = 16 + this.topBarHeight() + 18;
-    const width = 350;
-    const rowHeight = 48;
-    const shown = this.gs.data.eventLog.slice(-4).reverse();
-    const entries = shown.length > 0 ? shown : null;
-    const height = 34 + Math.max(1, entries ? entries.length : 1) * rowHeight + 22;
+    const { x, y, width, height } = this.eventFeedBounds();
+    const entry = this.gs.data.eventLog[this.gs.data.eventLog.length - 1];
     this.eventFeed.setPosition(x, y);
-    const bg = this.add.rectangle(0, 0, width, height, 0x2b241d, 0.78)
+    const bg = this.add.rectangle(0, 0, width, height, 0xffefc1, 0.82)
       .setOrigin(0, 0)
-      .setStrokeStyle(1, 0xf0b45b, 0.7)
+      .setStrokeStyle(2, 0x8c5a2b, 0.85)
       .setInteractive();
     bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
-    const title = this.add.text(12, 8, '宗门近况', {
-      fontSize: '14px', color: '#ffe08a', fontFamily: FONT, fontStyle: 'bold',
-    });
-    const all = this.add.text(width - 12, 9, '查看全部 ›', {
-      fontSize: '12px', color: '#ffd36b', fontFamily: FONT, fontStyle: 'bold',
+    const title = this.add.text(10, height / 2, '近况', {
+      fontSize: '11px', color: '#6a361c', fontFamily: FONT, fontStyle: 'bold',
+    }).setOrigin(0, 0.5);
+    const message = entry ? entry.title + ' · ' + entry.detail : '暂无新事件';
+    const detail = this.add.text(48, height / 2, message, {
+      fontSize: '11px', color: entry ? '#5b4833' : '#8a765e', fontFamily: FONT,
+      wordWrap: { width: width - 116 },
+    }).setOrigin(0, 0.5);
+    const all = this.add.text(width - 10, height / 2, '展开', {
+      fontSize: '11px', color: '#7a4b25', fontFamily: FONT, fontStyle: 'bold',
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    all.setOrigin(1, 0.5);
     all.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
       ev.stopPropagation();
       this.toggleEventHistory();
     });
-    this.eventFeed.add([bg, title, all]);
-    if (!entries) {
-      this.eventFeed.add(this.add.text(12, 34, '暂无新事件', { fontSize: '12px', color: '#b9aa90', fontFamily: FONT }));
-    } else {
-      entries.forEach((entry, index) => {
-        const rowY = 34 + index * rowHeight;
-        const row = this.add.rectangle(8, rowY, width - 16, rowHeight - 6, 0x41372d, 0.82)
-          .setOrigin(0, 0)
-          .setStrokeStyle(1, 0x8d7353, 0.45);
-        const dot = this.add.rectangle(16, rowY + 9, 5, 20, Phaser.Display.Color.HexStringToColor(entry.color).color, 1)
-          .setOrigin(0, 0);
-        const head = this.add.text(30, rowY + 6, entry.title + '  ·  ' + entry.time, {
-          fontSize: '12px', color: entry.color, fontFamily: FONT, fontStyle: 'bold',
-          wordWrap: { width: width - 60 },
-        });
-        const detail = this.add.text(30, rowY + 22, entry.detail, {
-          fontSize: '12px', color: '#fff1cf', fontFamily: FONT,
-          wordWrap: { width: width - 60 },
-        });
-        this.eventFeed.add([row, dot, head, detail]);
-      });
-    }
+    this.eventFeed.add([bg, title, detail, all]);
+  }
+
+  eventFeedBounds(): { x: number; y: number; width: number; height: number } {
+    const top = this.scale.width < 900 ? 10 : 16;
+    const brandWidth = this.scale.width < 900 ? 104 : 190;
+    const timeWidth = this.scale.width < 900 ? 82 : 142;
+    const margin = this.scale.width < 900 ? 8 : 18;
+    const systemWidth = this.scale.width < 900 ? 104 : 150;
+    const timeRight = margin + brandWidth + timeWidth;
+    const systemLeft = this.scale.width - margin - systemWidth;
+    const x = timeRight + 12;
+    const width = Math.max(260, systemLeft - x - 12);
+    return {
+      x,
+      y: top + this.topBarHeight() - 24,
+      width,
+      height: 20,
+    };
   }
 
   toggleEventHistory(): void {
@@ -1220,7 +1546,7 @@ export class GameScene extends Phaser.Scene {
       y: number,
       label: string,
       color: number,
-      run: () => void,
+      run: (pointer: Phaser.Input.Pointer) => void,
       dataKey?: { key: string; value: string | number },
       iconKey?: string,
       glyph?: string,
@@ -1235,9 +1561,9 @@ export class GameScene extends Phaser.Scene {
         fontFamily: FONT,
         fontStyle: 'bold',
       }).setOrigin(0.5);
-      btn.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
+      btn.on('pointerdown', (pointer: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
         ev.stopPropagation();
-        run();
+        run(pointer);
       });
       this.buildMenu.add(btn);
       if (iconKey) {
@@ -1264,10 +1590,8 @@ export class GameScene extends Phaser.Scene {
       : -totalW / 2 + buttonW / 2;
     defs.forEach((def, i) => {
       const bx = buildingStartX + i * (buttonW + gap);
-      addButton(bx, firstRowY, def.name, 0xffcf68, () => {
-        this.selectedBuild = this.selectedBuild === def.id ? null : def.id;
-        this.setGridEmphasis(this.selectedBuild !== null);
-        this.refreshBuildMenu();
+      addButton(bx, firstRowY, def.name, 0xffcf68, pointer => {
+        this.beginBuildPointer(def.id, pointer);
       }, { key: 'defId', value: def.id });
       const icon = this.add.image(bx, firstRowY - 8, 'building-' + def.id)
         .setDisplaySize(compact ? 30 : 38, compact ? 27 : 34);
@@ -1603,6 +1927,7 @@ export class GameScene extends Phaser.Scene {
     if (b.lotSprite) b.lotSprite.destroy();
     this.gs.combo.recalc();
     this.selectBuilding(null);
+    this.refreshBuildSlotHighlights();
     this.gs.save.save();
   }
 
@@ -1712,18 +2037,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   drawGridExpansion(): void {
-    const g = this.gs.grid;
-    const startX = g.w - 4;
-    for (let gy = 0; gy < g.h; gy++) {
-      for (let gx = startX; gx < g.w; gx++) {
-        const s = this.toScreen(gx, gy);
-        const color = (gx + gy) % 2 === 0 ? 0x8fd16d : 0x7bc45f;
-        const tile = this.add.polygon(s.x, s.y, [0, TILE_H / 2, TILE_W / 2, 0, 0, -TILE_H / 2, -TILE_W / 2, 0], color)
-          .setStrokeStyle(1, 0xd9ee91, this.selectedBuild ? 0.72 : 0.22);
-        this.groundLayer.add(tile);
-        this.gridTiles.push(tile);
-      }
-    }
+    this.mapBase?.setTexture(this.currentMapTexture());
+    for (const slot of this.unlockedBuildSlots()) this.drawGroundCell(slot.gx, slot.gy);
+    this.drawStageDecor();
+    this.refreshBuildSlotHighlights();
   }
 
   // ---------- Elders ----------
@@ -2073,8 +2390,6 @@ export class GameScene extends Phaser.Scene {
 
   handleResize(): void {
     this.layoutBoard();
-    this.backdrop.setPosition(this.scale.width / 2, this.scale.height / 2)
-      .setDisplaySize(this.scale.width, this.scale.height);
     this.layoutHUD();
     this.renderEventFeed();
     if (this.eventHistoryOpen) this.renderEventHistory();

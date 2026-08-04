@@ -1,7 +1,7 @@
 ﻿import { GameState, GameStateData } from '../state';
 
 const KEY = 'lingshan_save_v1';
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 
 export class SaveSystem {
   gs: GameState;

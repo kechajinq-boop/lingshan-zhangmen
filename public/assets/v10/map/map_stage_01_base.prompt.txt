@@ -1,0 +1,9 @@
+Use case: precise-object-edit
+Asset type: production foundation-only base map revision
+Primary request: Use the visible base map as the exact reference and make one targeted correction only: remove both long stone-road land extensions that currently run from the main island toward the distant upper-left and upper-right mountains.
+Replace each extension with a clearly broken floating-island cliff edge and a broad gap of cloud sea and mist, so the central island reads unmistakably as a fully detached suspended island with no land bridge, causeway, road connection or continuous terrain reaching any distant mountain.
+Preserve exactly: 1672x941 framing, camera, central island size and silhouette except where the two extensions are removed, continuous open buildable courtyard, all internal stone paths, lower-center entry road ending at the island edge, stream, pond, waterfalls, cliffs, cloud density, distant mountains, lighting, colors and pixel-inspired detail.
+At the two removed extension areas, finish the main island edge naturally with grass rim, rock cliff face, small waterfall or mist as appropriate. The distant mountains may remain visible behind clouds, but must be fully separated from the main island.
+Layering contract: foundation-only terrain image. No buildings, gates, bridges, UI, text, NPCs, animals, trees on the playable island, signs or freestanding props.
+Constraints: change only the two upper side extensions; no new roads leaving the island, no circular pads, no visible grid, no green tiles, no checkerboard, no labels, no watermark.
+Post-processing: normalized deterministically to the project map canvas size of 1672x941 after generation returned 1671x941.
