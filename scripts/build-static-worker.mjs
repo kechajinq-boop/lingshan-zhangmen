@@ -8,7 +8,7 @@ const serverDir = new URL("../dist/server/", import.meta.url);
 const hostingPath = new URL("../.openai/hosting.json", import.meta.url);
 
 await rm(new URL("../dist/", import.meta.url), { recursive: true, force: true });
-await build({ root: rootPath, build: { outDir: "dist/static" } });
+await build({ root: rootPath, build: { outDir: "dist/client" } });
 
 const hosting = await readFile(hostingPath, "utf8");
 const worker = `
