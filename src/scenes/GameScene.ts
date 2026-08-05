@@ -5,10 +5,14 @@ import {
   V10_FIXED_OBJECTS,
   V10_GATE_POINT,
   V10_MAP_STAGES,
+  V10_WALKABLE_POLYGONS,
+  V10_WATER_POLYGON,
   V10BuildSlot,
+  V10MapPoint,
   v10StageForBuildingCount,
 } from '../data/v10Map';
 import { TILE_W, TILE_H } from '../systems/IsoGrid';
+import { findVisitorPath, VisitorObstacle } from '../systems/VisitorPath';
 
 interface BuildGhost { gx: number; gy: number; ok: boolean; gfx?: Phaser.GameObjects.Container; }
 interface BuildingRenderConfig {
@@ -22,7 +26,8 @@ type VisitorVariant = 'a' | 'b' | 'c' | 'd';
 const FONT = '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif';
 const FACILITY_DEPTH_LAYER = 20;
 const NPC_DEPTH_LAYER = 30;
-const DEFAULT_BUILDING_SCALE = 1;
+const DEFAULT_BUILDING_SCALE = 0.75;
+const VISITOR_SPEED = 220;
 const GATE_GRID_X = 16;
 const FIXED_MAP_ART = {
   x: 84,
@@ -66,6 +71,7 @@ export class GameScene extends Phaser.Scene {
   eventFeed!: Phaser.GameObjects.Container;
   eventHistoryPanel?: Phaser.GameObjects.Container;
   eventHistoryOpen = false;
+  eventFeedCollapsed = false;
   eventHistoryPage = 0;
   infoPanel!: Phaser.GameObjects.Container;
   buildMenu!: Phaser.GameObjects.Container;
@@ -285,6 +291,100 @@ export class GameScene extends Phaser.Scene {
     };
   }
 
+  fixedMapSourcePoint(localX: number, localY: number): V10MapPoint {
+    return {
+      mapX: (localX - FIXED_MAP_ART.x + FIXED_MAP_ART.width / 2) * FIXED_MAP_ART.sourceWidth / FIXED_MAP_ART.width,
+      mapY: (localY - FIXED_MAP_ART.y + FIXED_MAP_ART.height / 2) * FIXED_MAP_ART.sourceHeight / FIXED_MAP_ART.height,
+    };
+  }
+
+  buildingMapPoint(building: PlacedBuilding): V10MapPoint | null {
+    const slot = V10_BUILD_SLOTS.find(item => item.id === building.slotId)
+      || V10_BUILD_SLOTS.find(item => item.gx === building.gx && item.gy === building.gy);
+    return slot ? { mapX: slot.mapX, mapY: slot.mapY } : null;
+  }
+
+  visitorObstacles(excludeBuildingUid?: number, buildingHalfWidth = 48, buildingHalfHeight = 34): VisitorObstacle[] {
+    const rawPerLocalX = FIXED_MAP_ART.sourceWidth / FIXED_MAP_ART.width;
+    const rawPerLocalY = FIXED_MAP_ART.sourceHeight / FIXED_MAP_ART.height;
+    const fixed = V10_FIXED_OBJECTS
+      .filter(object => object.id !== 'pond-lotus')
+      .map(object => {
+        const rawWidth = object.width * rawPerLocalX;
+        const rawHeight = object.height * rawPerLocalY;
+        const halfHeight = Math.max(12, rawHeight * 0.34);
+        return {
+          x: object.mapX,
+          y: object.mapY - halfHeight,
+          halfWidth: Math.max(12, rawWidth * 0.38),
+          halfHeight,
+        };
+      });
+    if (buildingHalfWidth <= 0 || buildingHalfHeight <= 0) return fixed;
+    const buildings = this.gs.data.buildings
+      .filter(building => building.uid !== excludeBuildingUid)
+      .map(building => this.buildingMapPoint(building))
+      .filter((point): point is V10MapPoint => !!point)
+      .map(point => ({
+        x: point.mapX,
+        y: point.mapY + 8,
+        halfWidth: buildingHalfWidth,
+        halfHeight: buildingHalfHeight,
+      }));
+    return [...fixed, ...buildings];
+  }
+
+  planVisitorPath(start: V10MapPoint, target: V10MapPoint, excludeBuildingUid?: number): V10MapPoint[] | null {
+    const walkable = V10_WALKABLE_POLYGONS[this.visibleMapStage()];
+    for (const [halfWidth, halfHeight] of [[48, 34], [34, 24], [0, 0]] as const) {
+      const path = findVisitorPath(
+        start,
+        target,
+        walkable,
+        V10_WATER_POLYGON,
+        this.visitorObstacles(excludeBuildingUid, halfWidth, halfHeight),
+      );
+      if (path) return path;
+    }
+    return null;
+  }
+
+  visitorRouteDuration(path: ReadonlyArray<V10MapPoint>): number {
+    let distance = 0;
+    for (let index = 1; index < path.length; index++) {
+      const from = this.fixedMapPoint(path[index - 1].mapX, path[index - 1].mapY);
+      const to = this.fixedMapPoint(path[index].mapX, path[index].mapY);
+      distance += Math.hypot(to.x - from.x, to.y - from.y);
+    }
+    return Math.max(450, distance / VISITOR_SPEED * 1000);
+  }
+
+  walkVisitorPath(
+    container: Phaser.GameObjects.Container,
+    path: ReadonlyArray<V10MapPoint>,
+    finalGX: number,
+    finalGY: number,
+    onComplete?: () => void,
+  ): void {
+    let index = 1;
+    const walkSegment = (): void => {
+      if (index >= path.length) {
+        if (onComplete) onComplete();
+        return;
+      }
+      const mapPoint = path[index++];
+      const target = this.fixedMapPoint(mapPoint.mapX, mapPoint.mapY);
+      const distance = Math.hypot(target.x - container.x, target.y - container.y);
+      const duration = Math.max(140, distance / VISITOR_SPEED * 1000);
+      this.walkTo(container, target.x, target.y, finalGX, finalGY, duration, () => {
+        container.setData('mapX', mapPoint.mapX);
+        container.setData('mapY', mapPoint.mapY);
+        walkSegment();
+      });
+    };
+    walkSegment();
+  }
+
   visualDepth(localY: number, layer: number): number {
     return Math.round(localY * 100) + layer;
   }
@@ -383,7 +483,9 @@ export class GameScene extends Phaser.Scene {
       .setDepth(this.gs.grid.getDepth(gx, gy, { width: 2, height: 2 }, -20))
       .setVisible(false);
     highlight.setData('slotId', slot.id);
-    this.placementLayer.add(highlight);
+    // Legal build markers must remain readable even when the last free slot is
+    // beside a tall building or a fixed facility.
+    this.overlayLayer.add(highlight);
     this.gridTiles.set(slot.id, highlight);
   }
 
@@ -711,25 +813,26 @@ export class GameScene extends Phaser.Scene {
     const foot = slotPoint || this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
     const artX = slotPoint ? render.offsetX : 0;
     const artY = slotPoint ? render.anchorOffsetY : 0;
-    const renderScale = def.renderScale ?? DEFAULT_BUILDING_SCALE;
+    const renderScale = (def.renderScale ?? 1) * DEFAULT_BUILDING_SCALE;
     const displayW = render.width * renderScale;
     const displayH = render.height * renderScale;
     const c = this.add.container(foot.x, foot.y);
     const art = this.add.image(artX, artY, 'building-' + def.id)
       .setDisplaySize(displayW, displayH)
       .setOrigin(0.5, 1.0);
-    const worker = this.add.image(artX + displayW * 0.38, artY + 2, this.discipleTexture(b)).setDisplaySize(12, 18).setOrigin(0.5, 1);
+    const worker = this.add.image(artX + displayW * 0.38, artY + 2, this.discipleTexture(b)).setDisplaySize(10, 15).setOrigin(0.5, 1);
     const label = this.add.text(artX, artY - displayH - 8, def.name, {
       fontSize: '9px', color: '#fff0c6', fontFamily: FONT,
       backgroundColor: '#2b1d13dd', padding: { x: 4, y: 2 },
       stroke: '#2b1d13', strokeThickness: 1,
     }).setOrigin(0.5);
+    const progressBarWidth = Phaser.Math.Clamp(displayW * 0.5, 34, 54);
     const barY = artY - displayH + 1;
-    const bar = this.add.rectangle(artX, barY, TILE_W * 0.66, 5, 0x33251b, 0.95)
+    const bar = this.add.rectangle(artX, barY, progressBarWidth, 4, 0x33251b, 0.9)
       .setOrigin(0.5)
       .setStrokeStyle(1, 0xc6a45c, 0.65)
       .setVisible(false);
-    const fill = this.add.rectangle(artX - TILE_W * 0.33, barY, 0, 3, 0x91c96b)
+    const fill = this.add.rectangle(artX - progressBarWidth / 2, barY, 0, 2, 0x91c96b)
       .setOrigin(0, 0.5)
       .setVisible(false);
     const hoverFrame = this.add.graphics().setVisible(false);
@@ -755,6 +858,7 @@ export class GameScene extends Phaser.Scene {
     c.add([art, worker, label, bar, fill, scaffold, hoverFrame]);
     c.setData('bar', bar);
     c.setData('fill', fill);
+    c.setData('progressBarWidth', progressBarWidth);
     c.setData('label', label);
     c.setData('worker', worker);
     c.setData('art', art);
@@ -774,9 +878,13 @@ export class GameScene extends Phaser.Scene {
       this.selectBuilding(b);
     });
     c.on('pointerover', () => {
+      c.setData('hovering', true);
       if (!this.selectedBuild) hoverFrame.setVisible(true);
     });
-    c.on('pointerout', () => hoverFrame.setVisible(false));
+    c.on('pointerout', () => {
+      c.setData('hovering', false);
+      hoverFrame.setVisible(false);
+    });
     worker.setVisible(b.assigned.length > 0);
     b.sprite = c;
     c.setDepth(slotPoint
@@ -827,7 +935,8 @@ export class GameScene extends Phaser.Scene {
     const worker = b.sprite.getData('worker') as Phaser.GameObjects.Image;
     const def = this.gs.buildingDef(b.defId);
     const showBar = b.progress > 0 || b.queue > 0 || this.selectedBuilding?.uid === b.uid;
-    fill.width = (TILE_W * 0.66) * Phaser.Math.Clamp(b.progress, 0, 1);
+    const progressBarWidth = (b.sprite.getData('progressBarWidth') as number) || 54;
+    fill.width = progressBarWidth * Phaser.Math.Clamp(b.progress, 0, 1);
     bar.setVisible(showBar);
     fill.setVisible(showBar);
     worker.setTexture(this.discipleTexture(b));
@@ -835,10 +944,13 @@ export class GameScene extends Phaser.Scene {
     const label = b.sprite.getData('label') as Phaser.GameObjects.Text;
     const scale = this.board ? this.board.scaleX : 1;
     const selected = this.selectedBuilding?.uid === b.uid;
-    if (scale <= 0.55) { label.setVisible(false); return; }
-    label.setVisible(true);
+    const hovering = !!b.sprite.getData('hovering');
+    const zoomRatio = this.minBoardScale > 0 ? scale / this.minBoardScale : 1;
+    const showLabel = selected || hovering || zoomRatio >= 1.42;
+    label.setVisible(showLabel);
+    if (!showLabel) return;
     let extra = '';
-    if (scale > 0.95 || selected) {
+    if (zoomRatio >= 1.42 || selected) {
       if ((b.level || 1) > 1) extra += ' Lv' + b.level;
       if (def.type === 'sell' && b.sellRecipe) extra += '·' + this.gs.recipeDef(b.sellRecipe).name;
       if (def.type === 'sell' && b.queue > 0) extra += ' 排' + b.queue;
@@ -882,7 +994,7 @@ export class GameScene extends Phaser.Scene {
       const slotPoint = this.slotVisualPosition(targetGX, targetGY);
       const artPosition = slotPoint || this.buildingArtPosition(targetGX, targetGY, def.w, def.h);
       const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
-      const renderScale = def.renderScale ?? DEFAULT_BUILDING_SCALE;
+      const renderScale = (def.renderScale ?? 1) * DEFAULT_BUILDING_SCALE;
       const preview = this.add.image(
         artPosition.x + (slotPoint ? render.offsetX : 0),
         artPosition.y + (slotPoint ? render.anchorOffsetY : 0),
@@ -1037,18 +1149,20 @@ export class GameScene extends Phaser.Scene {
     const person = c.getData('person') as Phaser.GameObjects.Image;
     const variant = c.getData('variant') as VisitorVariant;
     const facingBack = screenDY < -0.1;
-    const movingRight = screenDX > 0;
+    const previousMovingRight = c.getData('movingRight');
+    const movingRight = Math.abs(screenDX) > 0.6
+      ? screenDX > 0
+      : (typeof previousMovingRight === 'boolean' ? previousMovingRight : true);
     const facing = facingBack ? 'back' : 'front';
+    c.setData('movingRight', movingRight);
     person.setTexture('character-visitor-' + variant + (facingBack ? '-back' : ''));
-    person.setFlipX(facingBack ? false : VISITOR_NATIVE_RIGHT[variant][facing] !== movingRight);
+    person.setFlipX(VISITOR_NATIVE_RIGHT[variant][facing] !== movingRight);
   }
 
   walkTo(c: Phaser.GameObjects.Container, x: number, y: number, targetGX: number, targetGY: number, duration: number, onComplete?: () => void): void {
     this.tweens.killTweensOf(c);
     const person = c.getData('person') as Phaser.GameObjects.Image;
     const shadow = c.getData('shadow') as Phaser.GameObjects.Ellipse;
-    const startGX = c.getData('gridX') as number;
-    const startGY = c.getData('gridY') as number;
     const baseY = 2;
     this.updateNPCAnimation(c, x - c.x, y - c.y);
     this.tweens.add({
@@ -1090,12 +1204,25 @@ export class GameScene extends Phaser.Scene {
     c.setData('variant', variant);
     c.setData('gridX', gateGrid.gx);
     c.setData('gridY', gateGrid.gy);
+    c.setData('mapX', V10_GATE_POINT.mapX);
+    c.setData('mapY', V10_GATE_POINT.mapY);
     c.setDepth(this.visualDepth(gate.y, NPC_DEPTH_LAYER));
     this.entityLayer.add(c);
     this.sortBoard();
     this.visitorSprites.set(v.id, c);
+    const shopPoint = this.buildingMapPoint(shop);
     const target = this.buildingEntrance(shop);
-    this.walkTo(c, target.x, target.y, target.gx, target.gy, 1600);
+    const targetMap = shopPoint ? { mapX: shopPoint.mapX, mapY: shopPoint.mapY + 44 } : null;
+    const path = targetMap ? this.planVisitorPath(V10_GATE_POINT, targetMap, shop.uid) : null;
+    if (!path) {
+      this.visitorSprites.delete(v.id);
+      this.gs.data.visitors = this.gs.data.visitors.filter(visitor => visitor.id !== v.id);
+      shop.queue = Math.max(0, shop.queue - 1);
+      c.destroy();
+      return;
+    }
+    v.walkTimer = this.visitorRouteDuration(path) / 1000 + 0.08;
+    this.walkVisitorPath(c, path, target.gx, target.gy);
   }
 
   removeVisitorSprite(v: Visitor): void {
@@ -1103,8 +1230,14 @@ export class GameScene extends Phaser.Scene {
     if (!c) return;
     this.visitorSprites.delete(v.id);
     const gateGrid = this.gateGridPosition();
-    const gate = this.fixedMapPoint(V10_GATE_POINT.mapX, V10_GATE_POINT.mapY);
-    this.walkTo(c, gate.x, gate.y, gateGrid.gx, gateGrid.gy, 1200, () => c.destroy());
+    const start = this.fixedMapSourcePoint(c.x, c.y);
+    const path = this.planVisitorPath(start, V10_GATE_POINT);
+    if (!path) {
+      this.tweens.killTweensOf(c);
+      this.tweens.add({ targets: c, alpha: 0, duration: 240, onComplete: () => c.destroy() });
+      return;
+    }
+    this.walkVisitorPath(c, path, gateGrid.gx, gateGrid.gy, () => c.destroy());
   }
 
   runVisitorDirectionCheck(): void {
@@ -1390,50 +1523,78 @@ export class GameScene extends Phaser.Scene {
     if (!this.eventFeed) return;
     this.eventFeed.removeAll(true);
     const compact = this.scale.width < 900;
-    this.eventFeed.setVisible(!compact);
-    if (compact) return;
+    this.eventFeed.setVisible(true);
     const { x, y, width, height } = this.eventFeedBounds();
-    const entry = this.gs.data.eventLog[this.gs.data.eventLog.length - 1];
+    const entries = this.gs.data.eventLog.slice(-(compact || this.eventFeedCollapsed ? 1 : 2)).reverse();
     this.eventFeed.setPosition(x, y);
-    const bg = this.add.rectangle(0, 0, width, height, 0xffefc1, 0.82)
+    const bg = this.add.rectangle(0, 0, width, height, 0xffefc1, 0.94)
       .setOrigin(0, 0)
       .setStrokeStyle(2, 0x8c5a2b, 0.85)
       .setInteractive();
     bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
-    const title = this.add.text(10, height / 2, '近况', {
-      fontSize: '11px', color: '#6a361c', fontFamily: FONT, fontStyle: 'bold',
+    const title = this.add.text(12, compact || this.eventFeedCollapsed ? height / 2 : 16, '宗门近况', {
+      fontSize: compact ? '11px' : '13px', color: '#6a361c', fontFamily: FONT, fontStyle: 'bold',
     }).setOrigin(0, 0.5);
-    const message = entry ? entry.title + ' · ' + entry.detail : '暂无新事件';
-    const detail = this.add.text(48, height / 2, message, {
-      fontSize: '11px', color: entry ? '#5b4833' : '#8a765e', fontFamily: FONT,
-      wordWrap: { width: width - 116 },
-    }).setOrigin(0, 0.5);
-    const all = this.add.text(width - 10, height / 2, '展开', {
+    const toggle = this.add.text(width - (compact ? 10 : 58), compact || this.eventFeedCollapsed ? height / 2 : 16, this.eventFeedCollapsed ? '展开' : '收起', {
       fontSize: '11px', color: '#7a4b25', fontFamily: FONT, fontStyle: 'bold',
     }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
-    all.setOrigin(1, 0.5);
-    all.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
+    toggle.setOrigin(1, 0.5);
+    toggle.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
       ev.stopPropagation();
-      this.toggleEventHistory();
+      this.eventFeedCollapsed = !this.eventFeedCollapsed;
+      this.renderEventFeed();
     });
-    this.eventFeed.add([bg, title, detail, all]);
+    this.eventFeed.add([bg, title, toggle]);
+
+    if (!compact && !this.eventFeedCollapsed) {
+      const all = this.add.text(width - 10, 16, '全部', {
+        fontSize: '11px', color: '#7a4b25', fontFamily: FONT, fontStyle: 'bold',
+      }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+      all.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
+        ev.stopPropagation();
+        this.toggleEventHistory();
+      });
+      this.eventFeed.add(all);
+    }
+
+    if (entries.length === 0) {
+      const empty = this.add.text(compact || this.eventFeedCollapsed ? 82 : 12, compact || this.eventFeedCollapsed ? height / 2 : 49, '暂无新事件', {
+        fontSize: '11px', color: '#8a765e', fontFamily: FONT,
+      }).setOrigin(0, 0.5);
+      this.eventFeed.add(empty);
+      return;
+    }
+    if (compact || this.eventFeedCollapsed) {
+      const entry = entries[0];
+      const latest = this.add.text(compact ? 82 : 88, height / 2, entry.title, {
+        fontSize: '11px', color: '#5b4833', fontFamily: FONT,
+      }).setOrigin(0, 0.5).setMaxLines(1);
+      latest.setWordWrapWidth(Math.max(80, width - (compact ? 158 : 160)));
+      this.eventFeed.add(latest);
+      return;
+    }
+    entries.forEach((entry, index) => {
+      const rowY = 39 + index * 31;
+      const marker = this.add.circle(15, rowY + 4, 3, index === 0 ? 0x67a451 : 0xc19555, 0.95);
+      const head = this.add.text(24, rowY, entry.title, {
+        fontSize: '11px', color: index === 0 ? '#5d3a22' : '#72563f', fontFamily: FONT, fontStyle: 'bold',
+      }).setMaxLines(1).setWordWrapWidth(width - 36);
+      const detail = this.add.text(24, rowY + 14, entry.detail, {
+        fontSize: '10px', color: '#7d6a54', fontFamily: FONT,
+      }).setMaxLines(1).setWordWrapWidth(width - 36);
+      this.eventFeed.add([marker, head, detail]);
+    });
   }
 
   eventFeedBounds(): { x: number; y: number; width: number; height: number } {
-    const top = this.scale.width < 900 ? 10 : 16;
-    const brandWidth = this.scale.width < 900 ? 104 : 190;
-    const timeWidth = this.scale.width < 900 ? 82 : 142;
-    const margin = this.scale.width < 900 ? 8 : 18;
-    const systemWidth = this.scale.width < 900 ? 104 : 150;
-    const timeRight = margin + brandWidth + timeWidth;
-    const systemLeft = this.scale.width - margin - systemWidth;
-    const x = timeRight + 12;
-    const width = Math.max(260, systemLeft - x - 12);
+    const compact = this.scale.width < 900;
+    const top = compact ? 10 : 16;
+    const margin = compact ? 8 : 18;
     return {
-      x,
-      y: top + this.topBarHeight() - 24,
-      width,
-      height: 20,
+      x: margin,
+      y: top + this.topBarHeight() + (compact ? 6 : 12),
+      width: compact ? Math.min(300, this.scale.width - margin * 2) : 300,
+      height: compact || this.eventFeedCollapsed ? 34 : 106,
     };
   }
 
