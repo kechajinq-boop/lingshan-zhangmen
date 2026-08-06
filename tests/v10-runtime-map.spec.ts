@@ -20,6 +20,29 @@ async function savedState(page: import('@playwright/test').Page) {
   }, SAVE_KEY);
 }
 
+async function buildablePoint(page: import('@playwright/test').Page, slotId: string) {
+  await expect.poll(async () => page.locator('canvas').evaluate((canvas, id) => (
+    JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>
+  ).some(point => point.id === id), slotId)).toBe(true);
+  return page.locator('canvas').evaluate((canvas, id) => {
+    const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;
+    return points.find(point => point.id === id)!;
+  }, slotId);
+}
+
+async function dragFirstBuildingToSlot(
+  page: import('@playwright/test').Page,
+  slotId: string,
+  button = { x: 570, y: 1033 },
+) {
+  await page.mouse.move(button.x, button.y);
+  await page.mouse.down();
+  const point = await buildablePoint(page, slotId);
+  await page.mouse.move(point.x, point.y, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(500);
+}
+
 test('dragging a building highlights slots and places only on an eligible slot', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -28,7 +51,8 @@ test('dragging a building highlights slots and places only on an eligible slot',
 
   await page.mouse.move(570, 1033);
   await page.mouse.down();
-  await page.mouse.move(964, 517, { steps: 12 });
+  const slotOne = await buildablePoint(page, 'slot-01');
+  await page.mouse.move(slotOne.x, slotOne.y, { steps: 12 });
   await page.waitForTimeout(250);
   await page.screenshot({
     path: 'deliverables/v10-runtime-map/01-drag-green-slots.png',
@@ -55,9 +79,7 @@ test('dragging a building highlights slots and places only on an eligible slot',
 
 test('two expansions switch stages and preserve existing building slots', async ({ page }) => {
   await enterNewGame(page);
-  await page.mouse.click(570, 1033);
-  await page.mouse.click(964, 517);
-  await page.waitForTimeout(800);
+  await dragFirstBuildingToSlot(page, 'slot-01');
   const before = await savedState(page);
   expect(before.buildings).toHaveLength(1);
 
@@ -120,9 +142,7 @@ test('schema 6 save migrates to slots without losing buildings', async ({ page }
 
 test('all twenty stage-one slots remain usable together', async ({ page }) => {
   await enterNewGame(page);
-  await page.mouse.click(570, 1033);
-  await page.mouse.click(964, 517);
-  await page.waitForTimeout(500);
+  await dragFirstBuildingToSlot(page, 'slot-01');
   await page.evaluate(key => {
     const state = JSON.parse(localStorage.getItem(key)!);
     const defs = ['lingtian', 'danfang', 'danpu', 'liangong', 'xiangfang'];
@@ -167,7 +187,8 @@ test('mobile landscape can drag a building onto a green slot', async ({ page }) 
 
   await page.mouse.move(31, 335);
   await page.mouse.down();
-  await page.mouse.move(297, 263, { steps: 12 });
+  const mobileSlot = await buildablePoint(page, 'slot-03');
+  await page.mouse.move(mobileSlot.x, mobileSlot.y, { steps: 12 });
   await page.waitForTimeout(250);
   await page.screenshot({ path: 'deliverables/v10-runtime-map/05-mobile-drag-green-slots.png', fullPage: true });
   await page.mouse.up();

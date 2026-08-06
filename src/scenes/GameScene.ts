@@ -4,6 +4,7 @@ import {
   V10_BUILD_SLOTS,
   V10_FIXED_OBJECTS,
   V10_GATE_POINT,
+  V10_GRID_BASIS,
   V10_MAP_STAGES,
   V10_WALKABLE_POLYGONS,
   V10_WATER_POLYGON,
@@ -26,7 +27,7 @@ type VisitorVariant = 'a' | 'b' | 'c' | 'd';
 const FONT = '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif';
 const FACILITY_DEPTH_LAYER = 20;
 const NPC_DEPTH_LAYER = 30;
-const DEFAULT_BUILDING_SCALE = 0.75;
+const DEFAULT_BUILDING_SCALE = 0.68;
 const VISITOR_SPEED = 220;
 const GATE_GRID_X = 16;
 const FIXED_MAP_ART = {
@@ -37,6 +38,8 @@ const FIXED_MAP_ART = {
   sourceWidth: 1672,
   sourceHeight: 941,
 };
+const MAP_ART_SCALE_X = FIXED_MAP_ART.width / FIXED_MAP_ART.sourceWidth;
+const MAP_ART_SCALE_Y = FIXED_MAP_ART.height / FIXED_MAP_ART.sourceHeight;
 const DEFAULT_BUILDING_RENDER: BuildingRenderConfig = {
   width: 114,
   height: 114,
@@ -305,18 +308,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   visitorObstacles(excludeBuildingUid?: number, buildingHalfWidth = 48, buildingHalfHeight = 34): VisitorObstacle[] {
-    const rawPerLocalX = FIXED_MAP_ART.sourceWidth / FIXED_MAP_ART.width;
-    const rawPerLocalY = FIXED_MAP_ART.sourceHeight / FIXED_MAP_ART.height;
     const fixed = V10_FIXED_OBJECTS
       .filter(object => object.id !== 'pond-lotus')
       .map(object => {
-        const rawWidth = object.width * rawPerLocalX;
-        const rawHeight = object.height * rawPerLocalY;
-        const halfHeight = Math.max(12, rawHeight * 0.34);
+        const halfHeight = Math.max(12, object.height * 0.34);
         return {
           x: object.mapX,
           y: object.mapY - halfHeight,
-          halfWidth: Math.max(12, rawWidth * 0.38),
+          halfWidth: Math.max(12, object.width * 0.38),
           halfHeight,
         };
       });
@@ -336,7 +335,7 @@ export class GameScene extends Phaser.Scene {
 
   planVisitorPath(start: V10MapPoint, target: V10MapPoint, excludeBuildingUid?: number): V10MapPoint[] | null {
     const walkable = V10_WALKABLE_POLYGONS[this.visibleMapStage()];
-    for (const [halfWidth, halfHeight] of [[48, 34], [34, 24], [0, 0]] as const) {
+    for (const [halfWidth, halfHeight] of [[48, 34], [34, 24], [26, 18]] as const) {
       const path = findVisitorPath(
         start,
         target,
@@ -395,6 +394,25 @@ export class GameScene extends Phaser.Scene {
     return this.fixedMapPoint(slot.mapX, slot.mapY);
   }
 
+  slotVisualVertices(gx: number, gy: number, scale = 1): Phaser.Math.Vector2[] | null {
+    const center = this.slotVisualPosition(gx, gy);
+    if (!center) return null;
+    const column = {
+      x: V10_GRID_BASIS.column.x * MAP_ART_SCALE_X * scale,
+      y: V10_GRID_BASIS.column.y * MAP_ART_SCALE_Y * scale,
+    };
+    const row = {
+      x: V10_GRID_BASIS.row.x * MAP_ART_SCALE_X * scale,
+      y: V10_GRID_BASIS.row.y * MAP_ART_SCALE_Y * scale,
+    };
+    return [
+      new Phaser.Math.Vector2(center.x - (column.x + row.x) / 2, center.y - (column.y + row.y) / 2),
+      new Phaser.Math.Vector2(center.x + (column.x - row.x) / 2, center.y + (column.y - row.y) / 2),
+      new Phaser.Math.Vector2(center.x + (column.x + row.x) / 2, center.y + (column.y + row.y) / 2),
+      new Phaser.Math.Vector2(center.x + (-column.x + row.x) / 2, center.y + (-column.y + row.y) / 2),
+    ];
+  }
+
   nearestVisualSlot(localX: number, localY: number): V10BuildSlot | null {
     let best: { slot: V10BuildSlot; distance: number } | null = null;
     for (const slot of this.unlockedBuildSlots()) {
@@ -402,7 +420,7 @@ export class GameScene extends Phaser.Scene {
       const distance = Phaser.Math.Distance.Between(localX, localY, point.x, point.y);
       if (!best || distance < best.distance) best = { slot, distance };
     }
-    return best && best.distance <= 76 ? best.slot : null;
+    return best && best.distance <= 44 ? best.slot : null;
   }
 
   slotForFootprint(gx: number, gy: number, width: number, height: number): V10BuildSlot | null {
@@ -500,8 +518,10 @@ export class GameScene extends Phaser.Scene {
     const gateGrid = this.gateGridPosition();
     const gateFoot = this.fixedMapPoint(V10_GATE_POINT.mapX, V10_GATE_POINT.mapY);
     const gate = this.add.container(gateFoot.x, gateFoot.y);
-    const gateArt = this.add.image(0, 0, 'v10-fixed-sect-gate').setDisplaySize(142, 142).setOrigin(0.5, 1.0);
-    const gt = this.add.text(0, -126, '山门', {
+    const gateArt = this.add.image(0, 0, 'v10-fixed-sect-gate')
+      .setDisplaySize(142 * MAP_ART_SCALE_X, 142 * MAP_ART_SCALE_Y)
+      .setOrigin(0.5, 1.0);
+    const gt = this.add.text(0, -126 * MAP_ART_SCALE_Y, '山门', {
       fontSize: '10px', color: '#ffe2a3', fontFamily: FONT,
       backgroundColor: '#2b1d13cc', padding: { x: 4, y: 2 },
     }).setOrigin(0.5);
@@ -518,7 +538,7 @@ export class GameScene extends Phaser.Scene {
     for (const object of V10_FIXED_OBJECTS) {
       const point = this.fixedMapPoint(object.mapX, object.mapY);
       const art = this.add.image(point.x, point.y, object.texture)
-        .setDisplaySize(object.width, object.height)
+        .setDisplaySize(object.width * MAP_ART_SCALE_X, object.height * MAP_ART_SCALE_Y)
         .setOrigin(0.5, 1)
         .setDepth(this.visualDepth(point.y, FACILITY_DEPTH_LAYER + (object.depthOffset || 0)));
       this.entityLayer.add(art);
@@ -530,6 +550,8 @@ export class GameScene extends Phaser.Scene {
   setGridEmphasis(active: boolean): void {
     if (!active) {
       for (const tile of this.gridTiles.values()) tile.setVisible(false);
+      this.game.canvas.dataset.buildableSlotIds = '[]';
+      this.game.canvas.dataset.buildableSlotPoints = '[]';
       return;
     }
     this.refreshBuildSlotHighlights();
@@ -541,6 +563,7 @@ export class GameScene extends Phaser.Scene {
 
   refreshBuildSlotHighlights(hoveredSlotId?: string): void {
     const def = this.selectedBuild ? this.gs.buildingDef(this.selectedBuild) : null;
+    const availableSlots: V10BuildSlot[] = [];
     for (const slot of this.unlockedBuildSlots()) {
       const tile = this.gridTiles.get(slot.id);
       if (!tile) continue;
@@ -550,20 +573,26 @@ export class GameScene extends Phaser.Scene {
       tile.clear();
       tile.setVisible(available);
       if (!available) continue;
+      availableSlots.push(slot);
       const hovered = slot.id === hoveredSlotId;
-      const halfW = hovered ? 38 : 34;
-      const halfH = hovered ? 20 : 17;
-      const points = [
-        new Phaser.Math.Vector2(0, -halfH),
-        new Phaser.Math.Vector2(halfW, 0),
-        new Phaser.Math.Vector2(0, halfH),
-        new Phaser.Math.Vector2(-halfW, 0),
-      ];
+      const center = this.slotVisualPosition(slot.gx, slot.gy);
+      const points = this.slotVisualVertices(slot.gx, slot.gy, hovered ? 1.08 : 1)
+        ?.map(point => new Phaser.Math.Vector2(point.x - (center?.x || 0), point.y - (center?.y || 0)));
+      if (!points) continue;
       tile.fillStyle(hovered ? 0x6ff08a : 0x53d878, hovered ? 0.48 : 0.28);
       tile.fillPoints(points, true);
       tile.lineStyle(hovered ? 3 : 2, hovered ? 0xd8ffd9 : 0x2aa95b, 0.95);
       tile.strokePoints(points, true);
     }
+    this.game.canvas.dataset.buildableSlotIds = JSON.stringify(availableSlots.map(slot => slot.id));
+    this.game.canvas.dataset.buildableSlotPoints = JSON.stringify(availableSlots.map(slot => {
+      const point = this.fixedMapPoint(slot.mapX, slot.mapY);
+      return {
+        id: slot.id,
+        x: this.board.x + point.x * this.board.scaleX,
+        y: this.board.y + point.y * this.board.scaleY,
+      };
+    }));
   }
 
   toScreen(gx: number, gy: number): { x: number; y: number } {
@@ -589,14 +618,18 @@ export class GameScene extends Phaser.Scene {
 
   buildingArtPosition(gx: number, gy: number, width: number, height: number): { x: number; y: number } {
     const slot = this.slotVisualPosition(gx, gy);
-    if (slot) return { x: slot.x, y: slot.y + 40 };
+    if (slot) return { x: slot.x, y: slot.y + DEFAULT_BUILDING_RENDER.anchorOffsetY * MAP_ART_SCALE_Y };
     const center = this.gs.grid.toScreen(gx + (width - 1) / 2, gy + (height - 1) / 2);
     return { x: center.x, y: center.y + 5 };
   }
 
   buildingEntrance(b: PlacedBuilding): { x: number; y: number; gx: number; gy: number } {
     const def = this.gs.buildingDef(b.defId);
-    const foot = this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
+    const slot = this.slotVisualPosition(b.gx, b.gy);
+    const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
+    const foot = slot
+      ? { x: slot.x + render.offsetX * MAP_ART_SCALE_X, y: slot.y + render.anchorOffsetY * MAP_ART_SCALE_Y }
+      : this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
     return {
       x: foot.x,
       y: foot.y + 2,
@@ -624,12 +657,13 @@ export class GameScene extends Phaser.Scene {
     originY = 0,
     prismHeight = 34,
   ): void {
-    const slot = this.slotVisualPosition(gx, gy);
-    if (slot) {
+    const slotVertices = this.slotVisualVertices(gx, gy);
+    if (slotVertices) {
+      const points = slotVertices.map(point => new Phaser.Math.Vector2(point.x - originX, point.y - originY));
       graphics.fillStyle(color, 0.05);
-      graphics.fillEllipse(slot.x - originX, slot.y - originY, 96, 58);
+      graphics.fillPoints(points, true);
       graphics.lineStyle(2, color, 0.95);
-      graphics.strokeEllipse(slot.x - originX, slot.y - originY, 96, 58);
+      graphics.strokePoints(points, true);
       return;
     }
     const base = this.lotVertices(gx, gy, width, height)
@@ -811,11 +845,11 @@ export class GameScene extends Phaser.Scene {
     const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
     const slotPoint = this.slotVisualPosition(b.gx, b.gy);
     const foot = slotPoint || this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
-    const artX = slotPoint ? render.offsetX : 0;
-    const artY = slotPoint ? render.anchorOffsetY : 0;
+    const artX = slotPoint ? render.offsetX * MAP_ART_SCALE_X : 0;
+    const artY = slotPoint ? render.anchorOffsetY * MAP_ART_SCALE_Y : 0;
     const renderScale = (def.renderScale ?? 1) * DEFAULT_BUILDING_SCALE;
-    const displayW = render.width * renderScale;
-    const displayH = render.height * renderScale;
+    const displayW = render.width * renderScale * MAP_ART_SCALE_X;
+    const displayH = render.height * renderScale * MAP_ART_SCALE_Y;
     const c = this.add.container(foot.x, foot.y);
     const art = this.add.image(artX, artY, 'building-' + def.id)
       .setDisplaySize(displayW, displayH)
@@ -996,11 +1030,11 @@ export class GameScene extends Phaser.Scene {
       const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
       const renderScale = (def.renderScale ?? 1) * DEFAULT_BUILDING_SCALE;
       const preview = this.add.image(
-        artPosition.x + (slotPoint ? render.offsetX : 0),
-        artPosition.y + (slotPoint ? render.anchorOffsetY : 0),
+        artPosition.x + (slotPoint ? render.offsetX * MAP_ART_SCALE_X : 0),
+        artPosition.y + (slotPoint ? render.anchorOffsetY * MAP_ART_SCALE_Y : 0),
         'building-' + def.id,
       )
-        .setDisplaySize(render.width * renderScale, render.height * renderScale)
+        .setDisplaySize(render.width * renderScale * MAP_ART_SCALE_X, render.height * renderScale * MAP_ART_SCALE_Y)
         .setOrigin(0.5, 1)
         .setTint(col)
         .setAlpha(0.58);

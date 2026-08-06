@@ -2,6 +2,19 @@ import { expect, test } from '@playwright/test';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
+async function placeSelectedBuilding(page: import('@playwright/test').Page, buttonX: number, slotId: string) {
+  await page.mouse.click(buttonX, 1033);
+  await expect.poll(async () => page.locator('canvas').evaluate((canvas, id) => (
+    (JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string }>).some(point => point.id === id)
+  ), slotId)).toBe(true);
+  const point = await page.locator('canvas').evaluate((canvas, id) => {
+    const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;
+    return points.find(item => item.id === id)!;
+  }, slotId);
+  await page.mouse.click(point.x, point.y);
+  await page.waitForTimeout(800);
+}
+
 test('v0.10 direction-one visual slice', async ({ page }) => {
   const errors: string[] = [];
   page.on('console', message => {
@@ -20,15 +33,9 @@ test('v0.10 direction-one visual slice', async ({ page }) => {
     fullPage: true,
   });
 
-  await page.mouse.click(570, 1033);
-  await page.mouse.click(964, 517);
-  await page.waitForTimeout(1000);
-  await page.mouse.click(635, 1033);
-  await page.mouse.click(848, 517);
-  await page.waitForTimeout(1000);
-  await page.mouse.click(700, 1033);
-  await page.mouse.click(906, 442);
-  await page.waitForTimeout(1400);
+  await placeSelectedBuilding(page, 570, 'slot-01');
+  await placeSelectedBuilding(page, 635, 'slot-02');
+  await placeSelectedBuilding(page, 700, 'slot-03');
   await page.screenshot({
     path: 'deliverables/v10-direction1-slice/02-core-buildings.png',
     fullPage: true,

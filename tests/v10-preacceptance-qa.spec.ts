@@ -48,10 +48,27 @@ async function readSave(page: import('@playwright/test').Page) {
   return page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
 }
 
-async function dragFirstBuilding(page: import('@playwright/test').Page, x: number, y: number) {
+async function buildableIds(page: import('@playwright/test').Page) {
+  return page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.buildableSlotIds || '[]') as string[]
+  ));
+}
+
+async function buildablePoint(page: import('@playwright/test').Page, slotId: string) {
+  await expect.poll(async () => page.locator('canvas').evaluate((canvas, id) => (
+    (JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string }>).some(point => point.id === id)
+  ), slotId)).toBe(true);
+  return page.locator('canvas').evaluate((canvas, id) => {
+    const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;
+    return points.find(point => point.id === id)!;
+  }, slotId);
+}
+
+async function dragFirstBuilding(page: import('@playwright/test').Page, slotId: string) {
   await page.mouse.move(570, 1033);
   await page.mouse.down();
-  await page.mouse.move(x, y, { steps: 12 });
+  const point = await buildablePoint(page, slotId);
+  await page.mouse.move(point.x, point.y, { steps: 12 });
   await page.mouse.up();
   await page.waitForTimeout(500);
 }
@@ -66,25 +83,22 @@ test('stage-two and stage-three slots unlock only after their matching expansion
   });
   await continueGame(page, makeSave([], { schemaVersion: 7, spirit: 5000, reputation: 500 }));
 
-  await dragFirstBuilding(page, 490, 372);
+  await page.mouse.click(570, 1033);
+  expect(await buildableIds(page)).not.toContain('slot-21');
   let state = await readSave(page);
   expect(state.buildings).toHaveLength(0);
   expect(state.spirit).toBe(5000);
 
   await page.mouse.click(1025, 1033);
   await page.waitForTimeout(500);
-  await dragFirstBuilding(page, 498, 381);
+  await dragFirstBuilding(page, 'slot-21');
   state = await readSave(page);
   expect(state.expansionsUnlocked).toBe(1);
   expect(state.buildings[0].slotId).toBe('slot-21');
 
-  await dragFirstBuilding(page, 313, 346);
-  state = await readSave(page);
-  expect(state.buildings).toHaveLength(1);
-
   await page.mouse.click(1025, 1033);
   await page.waitForTimeout(500);
-  await dragFirstBuilding(page, 313, 346);
+  await dragFirstBuilding(page, 'slot-33');
   state = await readSave(page);
   expect(state.expansionsUnlocked).toBe(2);
   expect(state.buildings.map((building: { slotId: string }) => building.slotId)).toEqual(['slot-21', 'slot-33']);

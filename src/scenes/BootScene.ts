@@ -60,6 +60,7 @@ export class BootScene extends Phaser.Scene {
     this.load.image('v10-fixed-lantern-left', fixedPath + 'prop_lantern_stone_01.png');
     this.load.image('v10-fixed-incense', fixedPath + 'prop_incense_burner.png');
     this.load.image('v10-fixed-lantern-right', fixedPath + 'prop_lantern_stone_02.png');
+    this.load.image('v10-fixed-water-lotus', fixedPath + 'prop_water_lotus.png');
     for (const variant of ['a', 'b', 'c', 'd']) {
       this.load.image('character-disciple-' + variant, basePath + 'character-disciple-' + variant + '.png');
       this.load.image('character-visitor-' + variant, basePath + 'character-visitor-' + variant + '.png');

@@ -53,6 +53,16 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await page.waitForTimeout(1000);
 }
 
+async function buildablePoint(page: import('@playwright/test').Page, slotId: string) {
+  await expect.poll(async () => page.locator('canvas').evaluate((canvas, id) => (
+    (JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string }>).some(point => point.id === id)
+  ), slotId)).toBe(true);
+  return page.locator('canvas').evaluate((canvas, id) => {
+    const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;
+    return points.find(point => point.id === id)!;
+  }, slotId);
+}
+
 test('stage one exposes and accepts the twentieth remaining slot', async ({ page }) => {
   const firstNineteen = Array.from({ length: 19 }, (_, index) => building(5000 + index, 'lingtian', index));
   await continueGame(page, saveWith(firstNineteen));
@@ -61,7 +71,8 @@ test('stage one exposes and accepts the twentieth remaining slot', async ({ page
   await page.waitForTimeout(300);
   await page.screenshot({ path: 'deliverables/v101-qa/01-stage-one-last-green-slot.png', fullPage: true });
 
-  await page.mouse.click(619, 518);
+  const slotTwenty = await buildablePoint(page, 'slot-20');
+  await page.mouse.click(slotTwenty.x, slotTwenty.y);
   await page.waitForTimeout(900);
   const state = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
   expect(state.buildings).toHaveLength(20);
@@ -69,18 +80,14 @@ test('stage one exposes and accepts the twentieth remaining slot', async ({ page
 });
 
 test('every unlocked shop slot has a safe route around fixed obstacles and water', () => {
-  const rawPerLocalX = 1672 / 1184;
-  const rawPerLocalY = 941 / 666;
   const fixed = V10_FIXED_OBJECTS
     .filter(object => object.id !== 'pond-lotus')
     .map(object => {
-      const rawWidth = object.width * rawPerLocalX;
-      const rawHeight = object.height * rawPerLocalY;
-      const halfHeight = Math.max(12, rawHeight * 0.34);
+      const halfHeight = Math.max(12, object.height * 0.34);
       return {
         x: object.mapX,
         y: object.mapY - halfHeight,
-        halfWidth: Math.max(12, rawWidth * 0.38),
+        halfWidth: Math.max(12, object.width * 0.38),
         halfHeight,
       };
     });

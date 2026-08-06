@@ -1,0 +1,281 @@
+{
+  "schema": "lingshan.build-grid-density-preview.v1",
+  "canvas": {
+    "width": 1672,
+    "height": 941
+  },
+  "buildingVisualScale": 0.68,
+  "gridSpacingScale": 1.08,
+  "cellBasis": {
+    "column": {
+      "x": 66.96000000000001,
+      "y": -16.200000000000003
+    },
+    "row": {
+      "x": 25.92,
+      "y": 41.040000000000006
+    }
+  },
+  "stages": [
+    {
+      "stage": 1,
+      "totalCells": 20,
+      "zones": [
+        {
+          "id": "northwest_main",
+          "state": "retained",
+          "origin": {
+            "x": 506.16,
+            "y": 385.36
+          },
+          "columns": 4,
+          "rows": 2,
+          "firstCellId": 1
+        },
+        {
+          "id": "west_aux",
+          "state": "retained",
+          "origin": {
+            "x": 391.12,
+            "y": 500.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 9
+        },
+        {
+          "id": "northeast_aux",
+          "state": "retained",
+          "origin": {
+            "x": 853.12,
+            "y": 408.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 13
+        },
+        {
+          "id": "southeast_aux",
+          "state": "retained",
+          "origin": {
+            "x": 916.12,
+            "y": 575.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 17
+        }
+      ]
+    },
+    {
+      "stage": 2,
+      "totalCells": 32,
+      "zones": [
+        {
+          "id": "northwest_main",
+          "state": "retained",
+          "origin": {
+            "x": 506.16,
+            "y": 385.36
+          },
+          "columns": 4,
+          "rows": 2,
+          "firstCellId": 1
+        },
+        {
+          "id": "west_aux",
+          "state": "retained",
+          "origin": {
+            "x": 391.12,
+            "y": 500.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 9
+        },
+        {
+          "id": "northeast_aux",
+          "state": "retained",
+          "origin": {
+            "x": 853.12,
+            "y": 408.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 13
+        },
+        {
+          "id": "southeast_aux",
+          "state": "retained",
+          "origin": {
+            "x": 916.12,
+            "y": 575.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 17
+        },
+        {
+          "id": "stage2_northwest",
+          "state": "stage2",
+          "origin": {
+            "x": 303.12,
+            "y": 338.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 21
+        },
+        {
+          "id": "stage2_central_west",
+          "state": "stage2",
+          "origin": {
+            "x": 623.12,
+            "y": 568.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 25
+        },
+        {
+          "id": "stage2_east",
+          "state": "stage2",
+          "origin": {
+            "x": 1173.12,
+            "y": 388.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 29
+        }
+      ]
+    },
+    {
+      "stage": 3,
+      "totalCells": 48,
+      "zones": [
+        {
+          "id": "northwest_main",
+          "state": "retained",
+          "origin": {
+            "x": 506.16,
+            "y": 385.36
+          },
+          "columns": 4,
+          "rows": 2,
+          "firstCellId": 1
+        },
+        {
+          "id": "west_aux",
+          "state": "retained",
+          "origin": {
+            "x": 391.12,
+            "y": 500.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 9
+        },
+        {
+          "id": "northeast_aux",
+          "state": "retained",
+          "origin": {
+            "x": 853.12,
+            "y": 408.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 13
+        },
+        {
+          "id": "southeast_aux",
+          "state": "retained",
+          "origin": {
+            "x": 916.12,
+            "y": 575.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 17
+        },
+        {
+          "id": "stage2_northwest",
+          "state": "stage2",
+          "origin": {
+            "x": 303.12,
+            "y": 338.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 21
+        },
+        {
+          "id": "stage2_central_west",
+          "state": "stage2",
+          "origin": {
+            "x": 623.12,
+            "y": 568.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 25
+        },
+        {
+          "id": "stage2_east",
+          "state": "stage2",
+          "origin": {
+            "x": 1173.12,
+            "y": 388.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 29
+        },
+        {
+          "id": "stage3_west_inner",
+          "state": "stage3",
+          "origin": {
+            "x": 223.12,
+            "y": 498.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 33
+        },
+        {
+          "id": "stage3_north_inner",
+          "state": "stage3",
+          "origin": {
+            "x": 463.12,
+            "y": 248.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 37
+        },
+        {
+          "id": "stage3_southeast_inner",
+          "state": "stage3",
+          "origin": {
+            "x": 1128.12,
+            "y": 658.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 41
+        },
+        {
+          "id": "stage3_southwest_inner",
+          "state": "stage3",
+          "origin": {
+            "x": 253.12,
+            "y": 598.16
+          },
+          "columns": 2,
+          "rows": 2,
+          "firstCellId": 45
+        }
+      ]
+    }
+  ]
+}
