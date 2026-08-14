@@ -123,6 +123,8 @@ export class GameScene extends Phaser.Scene {
   eventEntries: { text: string; color: string }[] = [];
   gameSpeed = 1;
   directionCheckRunning = false;
+  npcDebugEnabled = false;
+  npcDebugButton?: Phaser.GameObjects.Rectangle;
   keysBound = false;
   saveTimer = 0;
   minBoardScale = 1;
@@ -240,6 +242,8 @@ export class GameScene extends Phaser.Scene {
   purgeVisitorVisuals(): void {
     for (const sprite of this.visitorSprites.values()) {
       this.tweens?.killTweensOf(sprite);
+      const debugRoute = sprite.getData('debugRoute') as Phaser.GameObjects.Graphics | undefined;
+      if (debugRoute?.scene) debugRoute.destroy();
       if (sprite.scene) sprite.destroy();
     }
     this.visitorSprites.clear();
@@ -441,6 +445,7 @@ export class GameScene extends Phaser.Scene {
     onComplete?: () => void,
     trackReturnPath = false,
   ): void {
+    this.setVisitorDebugRoute(container, path);
     let index = 1;
     const walkSegment = (): void => {
       if (index >= path.length) {
@@ -777,50 +782,27 @@ export class GameScene extends Phaser.Scene {
 
   boardSafeViewport(): { left: number; right: number; top: number; bottom: number } {
     const compact = this.scale.width < 900;
+    const margin = compact ? 6 : 10;
     return {
-      left: compact ? 10 : 16,
-      right: this.scale.width - (compact ? 10 : 16),
-      top: (compact ? 10 : 16) + this.topBarHeight() + (compact ? 8 : 12),
-      bottom: this.scale.height - this.buildMenuHeight() - (compact ? 14 : 20),
+      left: margin,
+      right: this.scale.width - margin,
+      top: margin,
+      bottom: this.scale.height - margin,
     };
   }
 
   layoutBoard(): void {
-    const g = this.gs.grid;
     const safe = this.boardSafeViewport();
     const safeWidth = Math.max(160, safe.right - safe.left);
     const safeHeight = Math.max(120, safe.bottom - safe.top);
     const scale = Math.min(
       safeWidth / FIXED_MAP_ART.width,
       safeHeight / FIXED_MAP_ART.height,
-    ) * 0.98;
-    let focusX = (g.w - g.h) * TILE_W / 4;
-    let focusY = (g.w + g.h - 2) * TILE_H / 4;
-    if (this.gs.data.buildings.length > 0) {
-      let totalX = 0;
-      let totalY = 0;
-      for (const b of this.gs.data.buildings) {
-        const def = this.gs.buildingDef(b.defId);
-        const point = this.slotVisualPosition(b.gx, b.gy) || this.gs.grid.toScreen(
-          b.gx + (def.w - 1) / 2,
-          b.gy + (def.h - 1) / 2,
-        );
-        totalX += point.x;
-        totalY += point.y;
-      }
-      focusX = totalX / this.gs.data.buildings.length;
-      focusY = totalY / this.gs.data.buildings.length;
-    }
-
+    );
     this.minBoardScale = scale;
-    this.maxBoardScale = Math.max(scale * 2.4, 1.05);
-    if (this.gs.data.buildings.length > 0) {
-      this.originX = (safe.left + safe.right) / 2 - focusX * scale;
-      this.originY = (safe.top + safe.bottom) / 2 - focusY * scale;
-    } else {
-      this.originX = (safe.left + safe.right) / 2 - FIXED_MAP_ART.x * scale;
-      this.originY = (safe.top + safe.bottom) / 2 - FIXED_MAP_ART.y * scale;
-    }
+    this.maxBoardScale = scale;
+    this.originX = (safe.left + safe.right) / 2 - FIXED_MAP_ART.x * scale;
+    this.originY = (safe.top + safe.bottom) / 2 - FIXED_MAP_ART.y * scale;
     this.board.setScale(scale).setPosition(this.originX, this.originY);
     this.clampBoardPosition();
   }
@@ -870,16 +852,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   onWheel(p: Phaser.Input.Pointer, deltaY: number): void {
-    if (this.selectedBuild || this.researchOpen || this.elderOpen || this.recruitOpen || this.commissionOpen || this.isPointerOverHUD(p)) return;
-    const oldScale = this.board.scaleX;
-    const factor = deltaY > 0 ? 0.9 : 1.1;
-    const nextScale = Phaser.Math.Clamp(oldScale * factor, this.minBoardScale, this.maxBoardScale);
-    if (Math.abs(nextScale - oldScale) < 0.001) return;
-    const localX = (p.x - this.board.x) / oldScale;
-    const localY = (p.y - this.board.y) / oldScale;
-    this.board.setScale(nextScale);
-    this.board.setPosition(p.x - localX * nextScale, p.y - localY * nextScale);
-    this.clampBoardPosition();
+    void p;
+    void deltaY;
   }
 
   isPointerOverHUD(p: Phaser.Input.Pointer): boolean {
@@ -1153,16 +1127,6 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.clearGhost();
-    if (this.panPointerId !== p.id || !p.isDown) return;
-    const dx = p.x - this.panLastX;
-    const dy = p.y - this.panLastY;
-    this.panLastX = p.x;
-    this.panLastY = p.y;
-    this.panDistance += Math.hypot(dx, dy);
-    if (this.panDistance < 3) return;
-    this.board.x += dx;
-    this.board.y += dy;
-    this.clampBoardPosition();
   }
 
   onDown(p: Phaser.Input.Pointer): void {
@@ -1189,10 +1153,6 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       this.selectBuilding(null);
-      this.panPointerId = p.id;
-      this.panLastX = p.x;
-      this.panLastY = p.y;
-      this.panDistance = 0;
     }
   }
 
@@ -1285,6 +1245,75 @@ export class GameScene extends Phaser.Scene {
   }
 
   // ---------- Visitors ----------
+  visitorDirectionSymbol(dx: number, dy: number): string {
+    const horizontal = dx > 0 ? '右' : dx < 0 ? '左' : '';
+    const vertical = dy > 0 ? '下' : dy < 0 ? '上' : '';
+    return horizontal + vertical || '停';
+  }
+
+  refreshVisitorDebug(c: Phaser.GameObjects.Container): void {
+    const arrow = c.getData('debugArrow') as Phaser.GameObjects.Graphics | undefined;
+    const label = c.getData('debugLabel') as Phaser.GameObjects.Text | undefined;
+    const route = c.getData('debugRoute') as Phaser.GameObjects.Graphics | undefined;
+    if (!arrow || !label) return;
+    arrow.setVisible(this.npcDebugEnabled);
+    label.setVisible(this.npcDebugEnabled);
+    route?.setVisible(this.npcDebugEnabled);
+    if (!this.npcDebugEnabled) return;
+
+    const person = c.getData('person') as Phaser.GameObjects.Image;
+    const dx = Number(c.getData('actualDX') || 0);
+    const dy = Number(c.getData('actualDY') || 0);
+    const length = Math.hypot(dx, dy);
+    arrow.clear();
+    if (length > 0.01) {
+      const ux = dx / length;
+      const uy = dy / length;
+      const startY = -10;
+      const endX = ux * 24;
+      const endY = startY + uy * 24;
+      arrow.lineStyle(2, 0xff3b30, 1);
+      arrow.lineBetween(0, startY, endX, endY);
+      arrow.fillStyle(0xff3b30, 1);
+      arrow.fillCircle(endX, endY, 3);
+    }
+    const textureKey = person.texture.key;
+    const face = textureKey.endsWith('-back') ? '背' : '正';
+    const flip = person.flipX ? '翻' : '原';
+    const target = String(c.getData('debugTargetName') || '未知目标');
+    const shortId = String(c.getData('visitorId')).slice(-4);
+    label.setText(
+      '#' + shortId + ' ' + String(c.getData('variant')).toUpperCase()
+      + ' ' + this.visitorDirectionSymbol(Math.sign(dx), Math.sign(dy))
+      + ' ' + face + '/' + flip + '\n→' + target,
+    );
+  }
+
+  setVisitorDebugRoute(c: Phaser.GameObjects.Container, path: ReadonlyArray<V10MapPoint>): void {
+    let route = c.getData('debugRoute') as Phaser.GameObjects.Graphics | undefined;
+    if (!route) {
+      route = this.add.graphics();
+      this.overlayLayer.add(route);
+      c.setData('debugRoute', route);
+    }
+    route.clear();
+    route.lineStyle(2, 0xff3b30, 0.78);
+    for (let index = 1; index < path.length; index++) {
+      const from = this.fixedMapPoint(path[index - 1].mapX, path[index - 1].mapY);
+      const to = this.fixedMapPoint(path[index].mapX, path[index].mapY);
+      route.lineBetween(from.x, from.y, to.x, to.y);
+    }
+    route.setVisible(this.npcDebugEnabled);
+    c.setData('debugPath', path.map(point => ({ mapX: point.mapX, mapY: point.mapY })));
+  }
+
+  toggleNPCDebug(): void {
+    this.npcDebugEnabled = !this.npcDebugEnabled;
+    for (const sprite of this.visitorSprites.values()) this.refreshVisitorDebug(sprite);
+    this.layoutHUD();
+    this.toast(this.npcDebugEnabled ? 'NPC诊断已开启：红线为路径，红点箭头为实时移动方向' : 'NPC诊断已关闭');
+  }
+
   updateNPCAnimation(c: Phaser.GameObjects.Container, screenDX: number, screenDY: number): void {
     if (Math.abs(screenDX) < 0.1 && Math.abs(screenDY) < 0.1) return;
     const person = c.getData('person') as Phaser.GameObjects.Image;
@@ -1302,8 +1331,11 @@ export class GameScene extends Phaser.Scene {
     c.setData('facingBack', facingBack);
     c.setData('directionX', Math.sign(screenDX));
     c.setData('directionY', Math.sign(screenDY));
+    c.setData('actualDX', screenDX);
+    c.setData('actualDY', screenDY);
     person.setTexture('character-visitor-' + variant + (facingBack ? '-back' : ''));
     person.setFlipX(VISITOR_NATIVE_RIGHT[variant][facing] !== movingRight);
+    this.refreshVisitorDebug(c);
   }
 
   walkTo(c: Phaser.GameObjects.Container, x: number, y: number, targetGX: number, targetGY: number, duration: number, onComplete?: () => void): void {
@@ -1350,10 +1382,18 @@ export class GameScene extends Phaser.Scene {
     const shadow = this.add.ellipse(0, 1, 14, 5, 0x1c120d, 0.3);
     const variant = ['a', 'b', 'c', 'd'][Math.abs(v.id) % 4];
     const person = this.add.image(0, 2, 'character-visitor-' + variant).setDisplaySize(18, 26).setOrigin(0.5, 1);
-    c.add([shadow, person]);
+    const debugArrow = this.add.graphics().setVisible(false);
+    const debugLabel = this.add.text(0, -34, '', {
+      fontSize: '8px', color: '#ffffff', fontFamily: FONT, align: 'center',
+      backgroundColor: '#42160ddd', padding: { x: 3, y: 2 },
+    }).setOrigin(0.5, 1).setVisible(false);
+    c.add([shadow, person, debugArrow, debugLabel]);
     c.setData('person', person);
     c.setData('shadow', shadow);
     c.setData('variant', variant);
+    c.setData('visitorId', v.id);
+    c.setData('debugArrow', debugArrow);
+    c.setData('debugLabel', debugLabel);
     c.setData('gridX', gateGrid.gx);
     c.setData('gridY', gateGrid.gy);
     c.setData('mapX', V10_GATE_POINT.mapX);
@@ -1365,6 +1405,8 @@ export class GameScene extends Phaser.Scene {
     const shopPoint = this.buildingMapPoint(shop);
     const target = this.buildingEntrance(shop);
     const shopDef = this.gs.buildingDef(shop.defId);
+    c.setData('debugTargetUid', shop.uid);
+    c.setData('debugTargetName', shopDef.name + '#' + shop.uid);
     const render = BUILDING_RENDER[shopDef.id] || DEFAULT_BUILDING_RENDER;
     const targetMap = shopPoint ? {
       mapX: shopPoint.mapX + render.offsetX,
@@ -1375,6 +1417,8 @@ export class GameScene extends Phaser.Scene {
       this.visitorSprites.delete(v.id);
       this.gs.data.visitors = this.gs.data.visitors.filter(visitor => visitor.id !== v.id);
       shop.queue = Math.max(0, shop.queue - 1);
+      const debugRoute = c.getData('debugRoute') as Phaser.GameObjects.Graphics | undefined;
+      debugRoute?.destroy();
       c.destroy();
       return;
     }
@@ -1388,6 +1432,8 @@ export class GameScene extends Phaser.Scene {
     if (!c) return;
     const finish = () => {
       this.visitorSprites.delete(v.id);
+      const debugRoute = c.getData('debugRoute') as Phaser.GameObjects.Graphics | undefined;
+      debugRoute?.destroy();
       c.destroy();
     };
     const gateGrid = this.gateGridPosition();
@@ -1399,6 +1445,8 @@ export class GameScene extends Phaser.Scene {
     }
     const current = this.fixedMapSourcePoint(c.x, c.y);
     const exitPath = [current, ...path.slice(1)];
+    c.setData('debugTargetUid', null);
+    c.setData('debugTargetName', '离场→山门');
     this.walkVisitorPath(c, exitPath, gateGrid.gx, gateGrid.gy, finish);
   }
 
@@ -1591,7 +1639,7 @@ export class GameScene extends Phaser.Scene {
 
     const brandWidth = compact ? 104 : 190;
     const timeWidth = compact ? 82 : 142;
-    const systemWidth = compact ? 104 : 150;
+    const systemWidth = compact ? 160 : 220;
     const brandRight = margin + brandWidth;
     const timeRight = brandRight + timeWidth;
     const systemLeft = w - margin - systemWidth;
@@ -1634,11 +1682,17 @@ export class GameScene extends Phaser.Scene {
     this.hudLayer.add(this.hud);
 
     const systemButtons = [
+      {
+        label: this.npcDebugEnabled ? '关闭诊断' : 'NPC诊断',
+        color: this.npcDebugEnabled ? 0xc84335 : 0x704c35,
+        run: () => this.toggleNPCDebug(),
+        debug: true,
+      },
       { label: '保存', color: 0x5fb95a, run: () => { this.gs.save.save(); this.toast('进度已保存'); } },
       { label: '重开', color: 0xe56d5f, run: () => { this.gs.save.clear(); this.scene.start('Menu'); } },
     ];
     const buttonGap = 5;
-    const buttonWidth = (systemWidth - 18 - buttonGap) / 2;
+    const buttonWidth = (systemWidth - 18 - buttonGap * (systemButtons.length - 1)) / systemButtons.length;
     systemButtons.forEach((action, index) => {
       const x = systemLeft + 9 + buttonWidth / 2 + index * (buttonWidth + buttonGap);
       const btn = this.add.rectangle(x, top + barHeight / 2, buttonWidth, compact ? 28 : 34, action.color)
@@ -1654,6 +1708,7 @@ export class GameScene extends Phaser.Scene {
         ev.stopPropagation();
         action.run();
       });
+      if (action.debug) this.npcDebugButton = btn;
       this.hudLayer.add([btn, text]);
     });
   }
@@ -2846,10 +2901,21 @@ export class GameScene extends Phaser.Scene {
           facingBack,
           movingRight,
           visualFacingRight: VISITOR_NATIVE_RIGHT[variant][facingBack ? 'back' : 'front'] !== person.flipX,
+          textureKey: person.texture.key,
+          flipX: person.flipX,
+          targetUid: sprite.getData('debugTargetUid') ?? null,
+          targetName: String(sprite.getData('debugTargetName') || ''),
+          debugVisible: !!(sprite.getData('debugLabel') as Phaser.GameObjects.Text | undefined)?.visible,
+          debugLabel: String((sprite.getData('debugLabel') as Phaser.GameObjects.Text | undefined)?.text || ''),
+          debugPath: sprite.getData('debugPath') || [],
           displayWidth: person.displayWidth,
           displayHeight: person.displayHeight,
         };
       }),
+      npcDebug: {
+        enabled: this.npcDebugEnabled,
+        button: this.npcDebugButton ? { x: this.npcDebugButton.x, y: this.npcDebugButton.y } : null,
+      },
     });
     const cap = this.gs.discipleCap();
     const pillTotal = Object.values(d.pills).reduce((sum, count) => sum + count, 0);
@@ -2878,6 +2944,7 @@ export class GameScene extends Phaser.Scene {
       this.keysBound = true;
       this.input.keyboard.on('keydown-R', () => this.toggleRecruit());
       this.input.keyboard.on('keydown-V', () => this.runVisitorDirectionCheck());
+      this.input.keyboard.on('keydown-D', () => this.toggleNPCDebug());
       this.input.keyboard.on('keydown-ESC', () => {
         this.cancelBuild();
         this.selectBuilding(null);

@@ -179,42 +179,51 @@ test('continuing an old save clears stale visitor models and rebuilds shop queue
   await page.screenshot({ path: 'deliverables/v121-qa/old-save-clean.png', fullPage: true });
 });
 
-test('default desktop camera keeps all four map corners inside the HUD-safe viewport', async ({ page }) => {
+test('default desktop camera fills the page with a fixed all-corners-visible map', async ({ page }) => {
   await continueGame(page, schemaSevenSave([], 0));
   const camera = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12Camera || '{}'));
   expect(camera.map.left).toBeGreaterThanOrEqual(camera.safe.left - 1);
   expect(camera.map.right).toBeLessThanOrEqual(camera.safe.right + 1);
   expect(camera.map.top).toBeGreaterThanOrEqual(camera.safe.top - 1);
   expect(camera.map.bottom).toBeLessThanOrEqual(camera.safe.bottom + 1);
-  expect(camera.maxScale).toBeGreaterThan(camera.minScale);
+  expect(camera.maxScale).toBeCloseTo(camera.minScale, 6);
+  expect(camera.map.bottom - camera.map.top).toBeGreaterThan(1000);
   await page.mouse.move(960, 520);
   for (let index = 0; index < 4; index++) await page.mouse.wheel(0, -100);
   await page.waitForTimeout(100);
   const zoomed = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12Camera || '{}'));
-  expect(zoomed.scale).toBeGreaterThan(camera.scale);
+  expect(zoomed.scale).toBeCloseTo(camera.scale, 6);
   await page.mouse.move(960, 520);
   await page.mouse.down();
   await page.mouse.move(1060, 570, { steps: 5 });
   await page.mouse.up();
   const panned = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12Camera || '{}'));
-  expect(panned.map.left).not.toBe(zoomed.map.left);
-  for (let index = 0; index < 8; index++) await page.mouse.wheel(0, 100);
-  await page.waitForTimeout(100);
-  const reset = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12Camera || '{}'));
-  expect(reset.scale).toBeCloseTo(reset.minScale, 3);
-  expect(reset.map.left).toBeGreaterThanOrEqual(reset.safe.left - 1);
-  expect(reset.map.right).toBeLessThanOrEqual(reset.safe.right + 1);
-  expect(reset.map.top).toBeGreaterThanOrEqual(reset.safe.top - 1);
-  expect(reset.map.bottom).toBeLessThanOrEqual(reset.safe.bottom + 1);
+  expect(panned.map.left).toBeCloseTo(zoomed.map.left, 6);
+  expect(panned.map.top).toBeCloseTo(zoomed.map.top, 6);
 });
 
-test('live visitors keep full size, face each route segment and stay outside the main hall', async ({ page }) => {
+test('1920x952 desktop keeps the fixed map large and inside the page', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 1920, height: 952 } });
+  const page = await context.newPage();
+  await continueGame(page, schemaSevenSave([], 0), { x: 960, y: 781 });
+  const camera = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12Camera || '{}'));
+  expect(camera.map.left).toBeGreaterThanOrEqual(camera.safe.left - 1);
+  expect(camera.map.right).toBeLessThanOrEqual(camera.safe.right + 1);
+  expect(camera.map.top).toBeGreaterThanOrEqual(camera.safe.top - 1);
+  expect(camera.map.bottom).toBeLessThanOrEqual(camera.safe.bottom + 1);
+  expect(camera.map.bottom - camera.map.top).toBeGreaterThan(920);
+  expect(camera.maxScale).toBeCloseTo(camera.minScale, 6);
+  await page.screenshot({ path: 'deliverables/v121-qa/desktop-1920x952-fixed-map.png', fullPage: true });
+  await context.close();
+});
+
+test('live visitors expose real movement and render state while staying outside the main hall', async ({ page }) => {
   const shop = { ...makeBuilding(0, 'danpu'), sellRecipe: 'juling' };
   await continueGame(page, { ...schemaSevenSave([shop], 0), pills: { juling: 30, bigu: 0 } });
   await page.waitForTimeout(3600);
   const samples: Array<{
     mapX: number; mapY: number; directionX: number; directionY: number;
-    facingBack: boolean; movingRight: boolean; visualFacingRight: boolean;
+    facingBack: boolean; movingRight: boolean; textureKey: string; flipX: boolean;
     displayWidth: number; displayHeight: number;
   }> = [];
   let buyingBeforeArrival = false;
@@ -234,16 +243,16 @@ test('live visitors keep full size, face each route segment and stay outside the
   expect(samples.every(sample => sample.displayWidth === 18 && sample.displayHeight === 26)).toBe(true);
   expect(samples.filter(sample => sample.directionY !== 0).every(sample => (
     sample.facingBack === (sample.directionY < 0)
+    && sample.facingBack === sample.textureKey.endsWith('-back')
   ))).toBe(true);
   expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
     sample.movingRight === (sample.directionX > 0)
-    && sample.visualFacingRight === (sample.directionX > 0)
   ))).toBe(true);
   expect(buyingBeforeArrival).toBe(false);
   await page.screenshot({ path: 'deliverables/v121-qa/visitor-route.png', fullPage: true });
 });
 
-test('visitors keep correct facing across pill and artifact shops in all six regions', async ({ page }) => {
+test('visitors expose movement direction across pill and artifact shops in all six regions', async ({ page }) => {
   const chosenSlots = ['zone-01', 'zone-02', 'zone-03', 'zone-04', 'zone-05', 'zone-06']
     .map(zone => V12_BUILD_SLOTS.find(slot => slot.zone === zone)!);
   const shops = chosenSlots.map((slot, index) => ({
@@ -258,7 +267,7 @@ test('visitors keep correct facing across pill and artifact shops in all six reg
   await page.waitForTimeout(4000);
   const samples: Array<{
     directionX: number; directionY: number; movingRight: boolean;
-    visualFacingRight: boolean; facingBack: boolean; displayWidth: number; displayHeight: number;
+    textureKey: string; flipX: boolean; facingBack: boolean; displayWidth: number; displayHeight: number;
   }> = [];
   const targets = new Set<number>();
   for (let index = 0; index < 36; index++) {
@@ -272,7 +281,6 @@ test('visitors keep correct facing across pill and artifact shops in all six reg
   expect(samples.every(sample => sample.displayWidth === 18 && sample.displayHeight === 26)).toBe(true);
   expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
     sample.movingRight === (sample.directionX > 0)
-    && sample.visualFacingRight === (sample.directionX > 0)
   ))).toBe(true);
   expect(samples.filter(sample => sample.directionY !== 0).every(sample => (
     sample.facingBack === (sample.directionY < 0)
@@ -305,7 +313,7 @@ test('old and new building families use the calibrated runtime size band', async
   await page.screenshot({ path: 'deliverables/v121-qa/building-scale-band.png', fullPage: true });
 });
 
-test('building selection remains accurate after zooming and panning', async ({ page }) => {
+test('building selection remains accurate after ignored wheel and map drag gestures', async ({ page }) => {
   await continueGame(page, schemaSevenSave([makeBuilding(0, 'danfang')], 0));
   const clickBuilding = async () => {
     const visual = await page.locator('canvas').evaluate(canvas => (
@@ -319,11 +327,16 @@ test('building selection remains accurate after zooming and panning', async ({ p
 
   await clickBuilding();
   await page.mouse.click(1880, 700);
+  const before = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12Camera || '{}'));
   await page.mouse.move(960, 520);
   for (let index = 0; index < 4; index++) await page.mouse.wheel(0, -100);
   await page.mouse.down();
   await page.mouse.move(1060, 575, { steps: 6 });
   await page.mouse.up();
+  const after = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12Camera || '{}'));
+  expect(after.scale).toBeCloseTo(before.scale, 6);
+  expect(after.map.left).toBeCloseTo(before.map.left, 6);
+  expect(after.map.top).toBeCloseTo(before.map.top, 6);
   await clickBuilding();
 });
 
@@ -334,6 +347,10 @@ test('visitors turn around from their current position when a shop is demolished
     const visuals = JSON.parse(canvas.dataset.v12State || '{}').visitorVisuals as Array<{ mapY: number }>;
     return visuals.some(visual => visual.mapY < 760);
   }), { timeout: 15000 }).toBe(true);
+  const debugButton = await page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').npcDebug.button
+  ));
+  await page.mouse.click(debugButton.x, debugButton.y);
   const visual = await page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').buildingVisuals[0]
   ));
@@ -346,16 +363,24 @@ test('visitors turn around from their current position when a shop is demolished
     JSON.parse(canvas.dataset.v12State || '{}').buildingCount
   ))).toBe(0);
 
-  const samples: Array<{ directionX: number; directionY: number; movingRight: boolean; visualFacingRight: boolean; facingBack: boolean }> = [];
+  const samples: Array<{
+    directionX: number; directionY: number; movingRight: boolean; facingBack: boolean;
+    targetName: string; debugVisible: boolean; debugLabel: string; debugPath: unknown[];
+  }> = [];
   for (let index = 0; index < 30; index++) {
     const live = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
     samples.push(...live.visitorVisuals);
+    if (index === 2) {
+      await page.screenshot({ path: 'deliverables/v121-qa/npc-debug-demolish-exit.png', fullPage: true });
+    }
     await page.waitForTimeout(100);
   }
   expect(samples.length).toBeGreaterThan(5);
+  expect(samples.some(sample => sample.targetName === '离场→山门')).toBe(true);
+  expect(samples.every(sample => sample.debugVisible && sample.debugLabel.includes('离场→山门'))).toBe(true);
+  expect(samples.some(sample => sample.debugPath.length >= 2)).toBe(true);
   expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
     sample.movingRight === (sample.directionX > 0)
-    && sample.visualFacingRight === (sample.directionX > 0)
   ))).toBe(true);
   expect(samples.filter(sample => sample.directionY !== 0).every(sample => (
     sample.facingBack === (sample.directionY < 0)
@@ -480,6 +505,8 @@ test('mobile landscape opens migrated save without page or console errors', asyn
   expect(camera.map.right).toBeLessThanOrEqual(camera.safe.right + 1);
   expect(camera.map.top).toBeGreaterThanOrEqual(camera.safe.top - 1);
   expect(camera.map.bottom).toBeLessThanOrEqual(camera.safe.bottom + 1);
+  expect(camera.map.bottom - camera.map.top).toBeGreaterThan(370);
+  expect(camera.maxScale).toBeCloseTo(camera.minScale, 6);
   expect(errors).toEqual([]);
   await page.screenshot({ path: 'deliverables/v12-runtime/mobile-landscape.png', fullPage: true });
   await context.close();
