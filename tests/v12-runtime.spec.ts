@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 import {
   V12_BRIDGES,
   V12_BUILD_SLOTS,
+  V12_GATE_COLLISIONS,
+  V12_GATE_PORTAL,
   V12_MAIN_HALL_COLLISION,
   V12_MAP_STAGES,
   V12_ROAD_NODES,
@@ -105,6 +107,24 @@ test('every gate route avoids the full main-hall collision area', () => {
   expect(v12RoadPath('gate', 'zone-01')!.map(node => node.id)).toContain('hall-west');
 });
 
+test('gate route uses only the open portal and never crosses the gate base sides', () => {
+  const path = v12RoadPath('gate', 'zone-05')!;
+  const from = path[0];
+  const to = path[1];
+  for (let index = 0; index <= 30; index++) {
+    const t = index / 30;
+    const x = from.mapX + (to.mapX - from.mapX) * t;
+    const y = from.mapY + (to.mapY - from.mapY) * t;
+    if (y >= V12_GATE_PORTAL.northY && y <= V12_GATE_PORTAL.southY) {
+      expect(Math.abs(x - V12_GATE_PORTAL.x)).toBeLessThanOrEqual(V12_GATE_PORTAL.halfWidth);
+    }
+    expect(V12_GATE_COLLISIONS.some(obstacle => (
+      Math.abs(x - obstacle.x) <= obstacle.halfWidth
+      && Math.abs(y - obstacle.y) <= obstacle.halfHeight
+    ))).toBe(false);
+  }
+});
+
 test('schema-seven save migrates to schema eight without changing old resources or buildings', async ({ page }) => {
   const old = schemaSevenSave([makeBuilding(0, 'lingtian'), makeBuilding(1, 'danfang')]);
   await continueGame(page, old);
@@ -125,8 +145,8 @@ test('schema-seven save migrates to schema eight without changing old resources 
 test('continuing an old save clears stale visitor models and rebuilds shop queues safely', async ({ page }) => {
   const old = {
     ...schemaSevenSave([
-      { ...makeBuilding(0, 'danpu'), queue: 3, progress: 0.75 },
-      { ...makeBuilding(1, 'faqipu'), queue: 2, progress: 0.5 },
+      { ...makeBuilding(0, 'danpu'), queue: 3, progress: 0.75, assigned: ['old-shopkeeper-a'] },
+      { ...makeBuilding(1, 'faqipu'), queue: 2, progress: 0.5, assigned: ['old-shopkeeper-b'] },
     ]),
     schemaVersion: 8,
     spiritOre: 4,
@@ -144,6 +164,19 @@ test('continuing an old save clears stale visitor models and rebuilds shop queue
   expect(saved.spiritOre).toBe(old.spiritOre);
   expect(saved.azureEdgeSwords).toBe(old.azureEdgeSwords);
   expect(live.visitors).toEqual([]);
+  expect(live.visitorVisuals).toEqual([]);
+  expect(live.buildingVisuals.every((building: { workerVisible: boolean }) => !building.workerVisible)).toBe(true);
+
+  await page.reload();
+  await expect(page.locator('canvas')).toBeVisible();
+  await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 886 }, force: true });
+  await page.waitForTimeout(400);
+  const repeated = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  expect(repeated.visitors).toEqual([]);
+  expect(repeated.visitorVisuals).toEqual([]);
+  expect(repeated.buildingVisuals.every((building: { workerVisible: boolean }) => !building.workerVisible)).toBe(true);
+  await page.screenshot({ path: 'deliverables/v121-qa/old-save-clean.png', fullPage: true });
 });
 
 test('default desktop camera keeps all four map corners inside the HUD-safe viewport', async ({ page }) => {
@@ -210,6 +243,43 @@ test('live visitors keep full size, face each route segment and stay outside the
   await page.screenshot({ path: 'deliverables/v121-qa/visitor-route.png', fullPage: true });
 });
 
+test('visitors keep correct facing across pill and artifact shops in all six regions', async ({ page }) => {
+  const chosenSlots = ['zone-01', 'zone-02', 'zone-03', 'zone-04', 'zone-05', 'zone-06']
+    .map(zone => V12_BUILD_SLOTS.find(slot => slot.zone === zone)!);
+  const shops = chosenSlots.map((slot, index) => ({
+    ...makeBuilding(V12_BUILD_SLOTS.indexOf(slot), index % 2 === 0 ? 'danpu' : 'faqipu'),
+    sellRecipe: index % 2 === 0 ? 'juling' : null,
+  }));
+  await continueGame(page, {
+    ...schemaSevenSave(shops, 2),
+    pills: { juling: 60, bigu: 0 },
+    azureEdgeSwords: 60,
+  });
+  await page.waitForTimeout(4000);
+  const samples: Array<{
+    directionX: number; directionY: number; movingRight: boolean;
+    visualFacingRight: boolean; facingBack: boolean; displayWidth: number; displayHeight: number;
+  }> = [];
+  const targets = new Set<number>();
+  for (let index = 0; index < 36; index++) {
+    const live = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    samples.push(...live.visitorVisuals);
+    for (const visitor of live.visitors) targets.add(visitor.targetUid);
+    await page.waitForTimeout(180);
+  }
+  expect(targets.size).toBeGreaterThanOrEqual(4);
+  expect(samples.length).toBeGreaterThan(20);
+  expect(samples.every(sample => sample.displayWidth === 18 && sample.displayHeight === 26)).toBe(true);
+  expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
+    sample.movingRight === (sample.directionX > 0)
+    && sample.visualFacingRight === (sample.directionX > 0)
+  ))).toBe(true);
+  expect(samples.filter(sample => sample.directionY !== 0).every(sample => (
+    sample.facingBack === (sample.directionY < 0)
+  ))).toBe(true);
+  await page.screenshot({ path: 'deliverables/v121-qa/multi-shop-directions.png', fullPage: true });
+});
+
 test('old and new building families use the calibrated runtime size band', async ({ page }) => {
   const ids = ['lingtian', 'danfang', 'danpu', 'liangong', 'xiangfang', 'lingkuang', 'lianqi', 'faqipu'];
   await continueGame(page, schemaSevenSave(ids.map((id, index) => makeBuilding(index, id)), 0));
@@ -222,8 +292,79 @@ test('old and new building families use the calibrated runtime size band', async
   const newWidths = visuals.filter(visual => ['lingkuang', 'lianqi', 'faqipu'].includes(visual.id)).map(visual => visual.displayWidth);
   expect(Math.max(...newWidths)).toBeLessThanOrEqual(Math.max(...oldWidths) * 1.02);
   expect(Math.min(...newWidths)).toBeGreaterThanOrEqual(Math.min(...oldWidths) * 0.85);
+  expect(Math.min(...oldWidths)).toBeGreaterThanOrEqual(89);
+  expect(Math.min(...newWidths)).toBeGreaterThanOrEqual(79);
   await page.waitForTimeout(1600);
   await page.screenshot({ path: 'deliverables/v121-qa/building-scale-band.png', fullPage: true });
+});
+
+test('building selection remains accurate after zooming and panning', async ({ page }) => {
+  await continueGame(page, schemaSevenSave([makeBuilding(0, 'danfang')], 0));
+  const clickBuilding = async () => {
+    const visual = await page.locator('canvas').evaluate(canvas => (
+      JSON.parse(canvas.dataset.v12State || '{}').buildingVisuals[0]
+    ));
+    await page.mouse.click(visual.clickX, visual.clickY);
+    await expect.poll(async () => page.locator('canvas').evaluate(canvas => (
+      JSON.parse(canvas.dataset.v12State || '{}').selectedBuildingUid
+    ))).toBe(12000);
+  };
+
+  await clickBuilding();
+  await page.mouse.click(1880, 700);
+  await page.mouse.move(960, 520);
+  for (let index = 0; index < 4; index++) await page.mouse.wheel(0, -100);
+  await page.mouse.down();
+  await page.mouse.move(1060, 575, { steps: 6 });
+  await page.mouse.up();
+  await clickBuilding();
+});
+
+test('visitors turn around from their current position when a shop is demolished', async ({ page }) => {
+  const shop = { ...makeBuilding(0, 'danpu'), sellRecipe: 'juling' };
+  await continueGame(page, { ...schemaSevenSave([shop], 0), pills: { juling: 30, bigu: 0 } });
+  await expect.poll(async () => page.locator('canvas').evaluate(canvas => {
+    const visuals = JSON.parse(canvas.dataset.v12State || '{}').visitorVisuals as Array<{ mapY: number }>;
+    return visuals.some(visual => visual.mapY < 760);
+  }), { timeout: 15000 }).toBe(true);
+  const visual = await page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').buildingVisuals[0]
+  ));
+  await page.mouse.click(visual.clickX, visual.clickY);
+  const button = await page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').demolishButton
+  ));
+  await page.mouse.click(button.x, button.y);
+  await expect.poll(async () => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').buildingCount
+  ))).toBe(0);
+
+  const samples: Array<{ directionX: number; directionY: number; movingRight: boolean; visualFacingRight: boolean; facingBack: boolean }> = [];
+  for (let index = 0; index < 30; index++) {
+    const live = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    samples.push(...live.visitorVisuals);
+    await page.waitForTimeout(100);
+  }
+  expect(samples.length).toBeGreaterThan(5);
+  expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
+    sample.movingRight === (sample.directionX > 0)
+    && sample.visualFacingRight === (sample.directionX > 0)
+  ))).toBe(true);
+  expect(samples.filter(sample => sample.directionY !== 0).every(sample => (
+    sample.facingBack === (sample.directionY < 0)
+  ))).toBe(true);
+});
+
+test('full 48-slot mixed layout stays inside the approved map', async ({ page }) => {
+  const ids = ['lingtian', 'danfang', 'danpu', 'liangong', 'xiangfang', 'lingkuang', 'lianqi', 'faqipu'];
+  const buildings = Array.from({ length: 48 }, (_, index) => makeBuilding(index, ids[index % ids.length]));
+  await continueGame(page, schemaSevenSave(buildings, 2));
+  const live = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  expect(live.buildingVisuals).toHaveLength(48);
+  expect(live.buildingVisuals.every((visual: { clickX: number; clickY: number }) => (
+    visual.clickX >= 0 && visual.clickX <= 1920 && visual.clickY >= 0 && visual.clickY <= 1080
+  ))).toBe(true);
+  await page.screenshot({ path: 'deliverables/v121-qa/full-48-buildings.png', fullPage: true });
 });
 
 for (const [occupied, stage, expected] of [[0, 0, 20], [20, 1, 12], [32, 2, 16]] as const) {

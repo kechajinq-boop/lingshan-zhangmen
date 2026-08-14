@@ -91,6 +91,21 @@ export const V12_BUILD_SLOTS: V12BuildSlot[] = spatialSlots
 
 export const V12_GATE_POINT = { mapX: 835, mapY: 912 } as const;
 
+// Visitors enter through the open centre of the gate. The two side blocks are
+// navigation obstacles; the centre corridor is the only legal crossing.
+export const V12_GATE_PORTAL = {
+  x: 835,
+  halfWidth: 28,
+  northY: 800,
+  southY: 925,
+  depthY: 805,
+} as const;
+
+export const V12_GATE_COLLISIONS = [
+  { x: 785, y: 862, halfWidth: 22, halfHeight: 63 },
+  { x: 885, y: 862, halfWidth: 22, halfHeight: 63 },
+] as const;
+
 export const V12_FIXED_OBJECTS: V12FixedObject[] = [
   {
     id: 'main-hall',

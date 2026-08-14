@@ -9,6 +9,8 @@ import {
   V12_WALKABLE_POLYGONS as V10_WALKABLE_POLYGONS,
   V12_WATER_POLYGON as V10_WATER_POLYGON,
   V12_MAIN_HALL_COLLISION,
+  V12_GATE_COLLISIONS,
+  V12_GATE_PORTAL,
   V12_ROAD_NODES,
   v12RoadPath,
   V12BuildSlot as V10BuildSlot,
@@ -33,7 +35,7 @@ type VisitorVariant = 'a' | 'b' | 'c' | 'd';
 const FONT = '"Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif';
 const FACILITY_DEPTH_LAYER = 20;
 const NPC_DEPTH_LAYER = 30;
-const DEFAULT_BUILDING_SCALE = 1;
+const DEFAULT_BUILDING_SCALE = 1.2;
 const VISITOR_SPEED = 220;
 const GATE_GRID_X = 16;
 const FIXED_MAP_ART = {
@@ -59,14 +61,14 @@ const DEFAULT_BUILDING_RENDER: BuildingRenderConfig = {
   collisionOffsetY: 8,
 };
 const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
-  lingtian: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 44, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
-  danfang: { width: 108, height: 101, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
-  danpu: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
-  liangong: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
-  xiangfang: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
-  lingkuang: { width: 108, height: 108, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
-  lianqi: { width: 104, height: 104, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 44, collisionHalfHeight: 34, collisionOffsetY: 8 },
-  faqipu: { width: 94, height: 94, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 42, collisionHalfHeight: 32, collisionOffsetY: 8 },
+  lingtian: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 44, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
+  danfang: { width: 108, height: 101, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
+  danpu: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
+  liangong: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
+  xiangfang: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
+  lingkuang: { width: 108, height: 108, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
+  lianqi: { width: 104, height: 104, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 53, collisionHalfHeight: 41, collisionOffsetY: 8 },
+  faqipu: { width: 94, height: 94, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 50, collisionHalfHeight: 38, collisionOffsetY: 8 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: true, back: true },
@@ -138,6 +140,7 @@ export class GameScene extends Phaser.Scene {
   constructor() { super('Game'); }
 
   create(data: { faction?: string; load?: boolean }): void {
+    this.purgeVisitorVisuals();
     const raw: any = this.cache.json.get('gamedata');
     let restored = null;
     if (data.load) {
@@ -227,10 +230,19 @@ export class GameScene extends Phaser.Scene {
 
     this.scale.on('resize', this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.purgeVisitorVisuals();
       this.scale.off('resize', this.handleResize, this);
       this.game.canvas.removeEventListener('pointercancel', cancelPointerInteraction);
       window.removeEventListener('blur', cancelPointerInteraction);
     });
+  }
+
+  purgeVisitorVisuals(): void {
+    for (const sprite of this.visitorSprites.values()) {
+      this.tweens?.killTweensOf(sprite);
+      if (sprite.scene) sprite.destroy();
+    }
+    this.visitorSprites.clear();
   }
 
   // ---------- Grid & buildings ----------
@@ -335,6 +347,7 @@ export class GameScene extends Phaser.Scene {
           halfHeight,
         };
       });
+    fixed.push(...V12_GATE_COLLISIONS.map(obstacle => ({ ...obstacle })));
     if (buildingHalfWidth <= 0 || buildingHalfHeight <= 0) return fixed;
     const buildings = this.gs.data.buildings
       .filter(building => building.uid !== excludeBuildingUid)
@@ -590,7 +603,8 @@ export class GameScene extends Phaser.Scene {
       backgroundColor: '#2b1d13cc', padding: { x: 4, y: 2 },
     }).setOrigin(0.5);
     gate.add([gateArt, gt]);
-    gate.setDepth(this.visualDepth(gateFoot.y, FACILITY_DEPTH_LAYER));
+    const gateDepthPoint = this.fixedMapPoint(V10_GATE_POINT.mapX, V12_GATE_PORTAL.depthY);
+    gate.setDepth(this.visualDepth(gateDepthPoint.y, FACILITY_DEPTH_LAYER));
     this.entityLayer.add(gate);
     this.drawStageDecor();
     this.sortBoard();
@@ -987,29 +1001,28 @@ export class GameScene extends Phaser.Scene {
     c.setData('art', art);
     c.setData('hoverFrame', hoverFrame);
     c.setData('productionFx', productionFx);
-    const hitW = Math.max(50, displayW + 12);
-    const hitH = Math.max(50, displayH + 16);
-    c.setSize(hitW, hitH);
-    c.setInteractive(
-      new Phaser.Geom.Rectangle(artX - hitW / 2, artY - hitH + 8, hitW, hitH),
-      Phaser.Geom.Rectangle.Contains,
-      true,
-    );
-    c.input!.cursor = 'pointer';
-    c.on('pointerdown', (_ptr: Phaser.Input.Pointer, _lx: number, _ly: number, ev: any) => {
+    const hitW = Math.max(58, displayW + 14);
+    const hitH = Math.max(58, displayH + 18);
+    const selectionTarget = this.add.rectangle(artX, artY - hitH / 2 + 8, hitW, hitH, 0xffffff, 0.001)
+      .setInteractive({ useHandCursor: true });
+    c.addAt(selectionTarget, 0);
+    c.setData('selectionTarget', selectionTarget);
+    c.setData('selectionLocalX', selectionTarget.x);
+    c.setData('selectionLocalY', selectionTarget.y);
+    selectionTarget.on('pointerdown', (_ptr: Phaser.Input.Pointer, _lx: number, _ly: number, ev: any) => {
       if (this.selectedBuild) return;
       ev.stopPropagation();
       this.selectBuilding(b);
     });
-    c.on('pointerover', () => {
+    selectionTarget.on('pointerover', () => {
       c.setData('hovering', true);
       if (!this.selectedBuild) hoverFrame.setVisible(true);
     });
-    c.on('pointerout', () => {
+    selectionTarget.on('pointerout', () => {
       c.setData('hovering', false);
       hoverFrame.setVisible(false);
     });
-    worker.setVisible(b.assigned.length > 0);
+    worker.setVisible(b.assigned.length > 0 && def.type !== 'sell' && def.type !== 'artifactSell');
     b.sprite = c;
     c.setDepth(slotPoint
       ? this.visualDepth(foot.y + artY, FACILITY_DEPTH_LAYER)
@@ -1064,7 +1077,7 @@ export class GameScene extends Phaser.Scene {
     bar.setVisible(showBar);
     fill.setVisible(showBar);
     worker.setTexture(this.discipleTexture(b));
-    worker.setVisible(b.assigned.length > 0);
+    worker.setVisible(b.assigned.length > 0 && def.type !== 'sell' && def.type !== 'artifactSell');
     const label = b.sprite.getData('label') as Phaser.GameObjects.Text;
     const productionFx = b.sprite.getData('productionFx') as Phaser.GameObjects.GameObject | null;
     if (productionFx && 'setVisible' in productionFx) (productionFx as Phaser.GameObjects.Sprite).setVisible(b.progress > 0);
@@ -1299,6 +1312,8 @@ export class GameScene extends Phaser.Scene {
     const shadow = c.getData('shadow') as Phaser.GameObjects.Ellipse;
     const baseY = 2;
     this.updateNPCAnimation(c, x - c.x, y - c.y);
+    let previousX = c.x;
+    let previousY = c.y;
     this.tweens.add({
       targets: c,
       x,
@@ -1306,6 +1321,9 @@ export class GameScene extends Phaser.Scene {
       duration,
       ease: 'Linear',
       onUpdate: (tween: Phaser.Tweens.Tween) => {
+        this.updateNPCAnimation(c, c.x - previousX, c.y - previousY);
+        previousX = c.x;
+        previousY = c.y;
         const phase = tween.progress * Math.PI * 10;
         const lift = Math.abs(Math.sin(phase)) * 1.5;
         person.setY(baseY - lift).setAngle(Math.sin(phase) * 2.2);
@@ -1368,15 +1386,20 @@ export class GameScene extends Phaser.Scene {
   removeVisitorSprite(v: Visitor): void {
     const c = this.visitorSprites.get(v.id);
     if (!c) return;
-    this.visitorSprites.delete(v.id);
+    const finish = () => {
+      this.visitorSprites.delete(v.id);
+      c.destroy();
+    };
     const gateGrid = this.gateGridPosition();
     const path = c.getData('returnPath') as V10MapPoint[] | undefined;
     if (!path) {
       this.tweens.killTweensOf(c);
-      this.tweens.add({ targets: c, alpha: 0, duration: 240, onComplete: () => c.destroy() });
+      this.tweens.add({ targets: c, alpha: 0, duration: 240, onComplete: finish });
       return;
     }
-    this.walkVisitorPath(c, path, gateGrid.gx, gateGrid.gy, () => c.destroy());
+    const current = this.fixedMapSourcePoint(c.x, c.y);
+    const exitPath = [current, ...path.slice(1)];
+    this.walkVisitorPath(c, exitPath, gateGrid.gx, gateGrid.gy, finish);
   }
 
   runVisitorDirectionCheck(): void {
@@ -2212,6 +2235,8 @@ export class GameScene extends Phaser.Scene {
       this.demolish(b);
     });
     this.infoPanel.add([sellBtn, sellTxt]);
+    this.infoPanel.setData('demolishLocalX', panelWidth / 2);
+    this.infoPanel.setData('demolishLocalY', y + 19);
 
     const panelHeight = y + 44;
     bg.setDisplaySize(panelWidth, panelHeight);
@@ -2779,12 +2804,24 @@ export class GameScene extends Phaser.Scene {
       buildingIds: d.buildings.map(building => building.defId),
       buildingVisuals: d.buildings.map(building => {
         const art = building.sprite?.getData('art') as Phaser.GameObjects.Image | undefined;
+        const selectionLocalX = Number(building.sprite?.getData('selectionLocalX') || 0);
+        const selectionLocalY = Number(building.sprite?.getData('selectionLocalY') || 0);
+        const worker = building.sprite?.getData('worker') as Phaser.GameObjects.Image | undefined;
         return {
+          uid: building.uid,
           id: building.defId,
           displayWidth: art?.displayWidth || 0,
           displayHeight: art?.displayHeight || 0,
+          clickX: this.board.x + ((building.sprite?.x || 0) + selectionLocalX) * this.board.scaleX,
+          clickY: this.board.y + ((building.sprite?.y || 0) + selectionLocalY) * this.board.scaleY,
+          workerVisible: worker?.visible || false,
         };
       }),
+      selectedBuildingUid: this.selectedBuilding?.uid || null,
+      demolishButton: this.selectedBuilding ? {
+        x: this.infoPanel.x + Number(this.infoPanel.getData('demolishLocalX') || 0) * this.infoPanel.scaleX,
+        y: this.infoPanel.y + Number(this.infoPanel.getData('demolishLocalY') || 0) * this.infoPanel.scaleY,
+      } : null,
       herbs: d.herbs,
       pills: d.pills,
       visitors: d.visitors.map(visitor => ({
