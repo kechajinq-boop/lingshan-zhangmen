@@ -8,6 +8,7 @@ import {
   V12_MAP_STAGES as V10_MAP_STAGES,
   V12_WALKABLE_POLYGONS as V10_WALKABLE_POLYGONS,
   V12_WATER_POLYGON as V10_WATER_POLYGON,
+  V12_MAIN_HALL_COLLISION,
   V12_ROAD_NODES,
   v12RoadPath,
   V12BuildSlot as V10BuildSlot,
@@ -15,7 +16,7 @@ import {
   v12StageForBuildingCount as v10StageForBuildingCount,
 } from '../data/v12Map';
 import { TILE_W, TILE_H } from '../systems/IsoGrid';
-import { findVisitorPath, VisitorObstacle } from '../systems/VisitorPath';
+import { VisitorObstacle } from '../systems/VisitorPath';
 
 interface BuildGhost { gx: number; gy: number; ok: boolean; gfx?: Phaser.GameObjects.Container; }
 interface BuildingRenderConfig {
@@ -23,6 +24,9 @@ interface BuildingRenderConfig {
   height: number;
   offsetX: number;
   anchorOffsetY: number;
+  collisionHalfWidth: number;
+  collisionHalfHeight: number;
+  collisionOffsetY: number;
 }
 type VisitorVariant = 'a' | 'b' | 'c' | 'd';
 
@@ -50,16 +54,19 @@ const DEFAULT_BUILDING_RENDER: BuildingRenderConfig = {
   height: 105,
   offsetX: 0,
   anchorOffsetY: 36,
+  collisionHalfWidth: 48,
+  collisionHalfHeight: 34,
+  collisionOffsetY: 8,
 };
 const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
-  lingtian: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 44 },
-  danfang: { width: 108, height: 101, offsetX: 0, anchorOffsetY: 36 },
-  danpu: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36 },
-  liangong: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36 },
-  xiangfang: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 36 },
-  lingkuang: { width: 116, height: 116, offsetX: 0, anchorOffsetY: 36 },
-  lianqi: { width: 116, height: 116, offsetX: 0, anchorOffsetY: 36 },
-  faqipu: { width: 116, height: 116, offsetX: 0, anchorOffsetY: 36 },
+  lingtian: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 44, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
+  danfang: { width: 108, height: 101, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
+  danpu: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
+  liangong: { width: 107, height: 107, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
+  xiangfang: { width: 105, height: 105, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
+  lingkuang: { width: 108, height: 108, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 48, collisionHalfHeight: 34, collisionOffsetY: 8 },
+  lianqi: { width: 104, height: 104, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 44, collisionHalfHeight: 34, collisionOffsetY: 8 },
+  faqipu: { width: 94, height: 94, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 42, collisionHalfHeight: 32, collisionOffsetY: 8 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: true, back: true },
@@ -319,6 +326,7 @@ export class GameScene extends Phaser.Scene {
     const fixed = V10_FIXED_OBJECTS
       .filter(object => object.id !== 'pond-lotus')
       .map(object => {
+        if (object.id === 'main-hall') return { ...V12_MAIN_HALL_COLLISION };
         const halfHeight = Math.max(12, object.height * 0.34);
         return {
           x: object.mapX,
@@ -330,15 +338,39 @@ export class GameScene extends Phaser.Scene {
     if (buildingHalfWidth <= 0 || buildingHalfHeight <= 0) return fixed;
     const buildings = this.gs.data.buildings
       .filter(building => building.uid !== excludeBuildingUid)
-      .map(building => this.buildingMapPoint(building))
-      .filter((point): point is V10MapPoint => !!point)
-      .map(point => ({
-        x: point.mapX,
-        y: point.mapY + 8,
-        halfWidth: buildingHalfWidth,
-        halfHeight: buildingHalfHeight,
-      }));
+      .map(building => {
+        const point = this.buildingMapPoint(building);
+        if (!point) return null;
+        const def = this.gs.buildingDef(building.defId);
+        const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
+        return {
+          x: point.mapX + render.offsetX,
+          y: point.mapY + render.collisionOffsetY,
+          halfWidth: render.collisionHalfWidth || buildingHalfWidth,
+          halfHeight: render.collisionHalfHeight || buildingHalfHeight,
+        };
+      })
+      .filter((obstacle): obstacle is VisitorObstacle => !!obstacle);
     return [...fixed, ...buildings];
+  }
+
+  visitorPathIsClear(path: ReadonlyArray<V10MapPoint>, excludeBuildingUid?: number): boolean {
+    const obstacles = this.visitorObstacles(excludeBuildingUid);
+    for (let index = 1; index < path.length; index++) {
+      const from = path[index - 1];
+      const to = path[index];
+      const samples = Math.max(1, Math.ceil(Math.hypot(to.mapX - from.mapX, to.mapY - from.mapY) / 8));
+      for (let sample = 0; sample <= samples; sample++) {
+        const t = sample / samples;
+        const x = from.mapX + (to.mapX - from.mapX) * t;
+        const y = from.mapY + (to.mapY - from.mapY) * t;
+        if (obstacles.some(obstacle => (
+          Math.abs(x - obstacle.x) <= obstacle.halfWidth
+          && Math.abs(y - obstacle.y) <= obstacle.halfHeight
+        ))) return false;
+      }
+    }
+    return true;
   }
 
   planVisitorPath(start: V10MapPoint, target: V10MapPoint, excludeBuildingUid?: number): V10MapPoint[] | null {
@@ -356,14 +388,15 @@ export class GameScene extends Phaser.Scene {
       // Each 4x2 region has a clear centre aisle. Walk along that aisle first,
       // then approach the selected south-facing building entrance.
       const zoneCenterX = REGION_CENTER_BY_ID[targetSlot.zone]?.mapX ?? targetSlot.mapX;
-      const entranceY = targetSlot.mapY + 44;
+      const entranceY = target.mapY;
       path.push({ mapX: zoneCenterX, mapY: entranceY });
-      path.push({ mapX: targetSlot.mapX, mapY: entranceY });
+      path.push(target);
     } else {
       path.push(target);
     }
-    return path.filter((point, index) => index === 0
+    const compactPath = path.filter((point, index) => index === 0
       || Math.hypot(point.mapX - path[index - 1].mapX, point.mapY - path[index - 1].mapY) > 1);
+    return this.visitorPathIsClear(compactPath, excludeBuildingUid) ? compactPath : null;
   }
 
   nearestRoadNode(point: V10MapPoint) {
@@ -393,6 +426,7 @@ export class GameScene extends Phaser.Scene {
     finalGX: number,
     finalGY: number,
     onComplete?: () => void,
+    trackReturnPath = false,
   ): void {
     let index = 1;
     const walkSegment = (): void => {
@@ -401,6 +435,7 @@ export class GameScene extends Phaser.Scene {
         return;
       }
       const mapPoint = path[index++];
+      if (trackReturnPath) container.setData('returnPath', path.slice(0, index).reverse());
       const target = this.fixedMapPoint(mapPoint.mapX, mapPoint.mapY);
       const distance = Math.hypot(target.x - container.x, target.y - container.y);
       const duration = Math.max(140, distance / VISITOR_SPEED * 1000);
@@ -654,14 +689,18 @@ export class GameScene extends Phaser.Scene {
 
   buildingEntrance(b: PlacedBuilding): { x: number; y: number; gx: number; gy: number } {
     const def = this.gs.buildingDef(b.defId);
-    const slot = this.slotVisualPosition(b.gx, b.gy);
+    const mapPoint = this.buildingMapPoint(b);
     const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
-    const foot = slot
-      ? { x: slot.x + render.offsetX * MAP_ART_SCALE_X, y: slot.y + render.anchorOffsetY * MAP_ART_SCALE_Y }
+    const entranceMapPoint = mapPoint ? {
+      mapX: mapPoint.mapX + render.offsetX,
+      mapY: mapPoint.mapY + render.anchorOffsetY + 8,
+    } : null;
+    const foot = entranceMapPoint
+      ? this.fixedMapPoint(entranceMapPoint.mapX, entranceMapPoint.mapY)
       : this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
     return {
       x: foot.x,
-      y: foot.y + 2,
+      y: foot.y,
       gx: b.gx + def.w - 1,
       gy: b.gy + def.h - 1,
     };
@@ -722,16 +761,25 @@ export class GameScene extends Phaser.Scene {
     return this.scale.width < 900 ? 56 : 68;
   }
 
+  boardSafeViewport(): { left: number; right: number; top: number; bottom: number } {
+    const compact = this.scale.width < 900;
+    return {
+      left: compact ? 10 : 16,
+      right: this.scale.width - (compact ? 10 : 16),
+      top: (compact ? 10 : 16) + this.topBarHeight() + (compact ? 8 : 12),
+      bottom: this.scale.height - this.buildMenuHeight() - (compact ? 14 : 20),
+    };
+  }
+
   layoutBoard(): void {
     const g = this.gs.grid;
-    const w = this.scale.width;
-    const h = this.scale.height;
-    const topSafe = (w < 900 ? 10 : 16) + this.topBarHeight() + (w < 900 ? 8 : 12);
-    const bottomSafe = h - this.buildMenuHeight() - (w < 900 ? 14 : 20);
-    const scale = Math.max(
-      w / FIXED_MAP_ART.width,
-      h / FIXED_MAP_ART.height,
-    ) * 1.01;
+    const safe = this.boardSafeViewport();
+    const safeWidth = Math.max(160, safe.right - safe.left);
+    const safeHeight = Math.max(120, safe.bottom - safe.top);
+    const scale = Math.min(
+      safeWidth / FIXED_MAP_ART.width,
+      safeHeight / FIXED_MAP_ART.height,
+    ) * 0.98;
     let focusX = (g.w - g.h) * TILE_W / 4;
     let focusY = (g.w + g.h - 2) * TILE_H / 4;
     if (this.gs.data.buildings.length > 0) {
@@ -751,14 +799,13 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.minBoardScale = scale;
-    this.maxBoardScale = scale * 2.0;
+    this.maxBoardScale = Math.max(scale * 2.4, 1.05);
     if (this.gs.data.buildings.length > 0) {
-      const hudSafeOffsetX = w >= 900 ? 20 : 0;
-      this.originX = w / 2 + hudSafeOffsetX - focusX * scale;
-      this.originY = (topSafe + bottomSafe) / 2 - focusY * scale;
+      this.originX = (safe.left + safe.right) / 2 - focusX * scale;
+      this.originY = (safe.top + safe.bottom) / 2 - focusY * scale;
     } else {
-      this.originX = w / 2 - FIXED_MAP_ART.x * scale;
-      this.originY = (topSafe + bottomSafe) / 2 - FIXED_MAP_ART.y * scale;
+      this.originX = (safe.left + safe.right) / 2 - FIXED_MAP_ART.x * scale;
+      this.originY = (safe.top + safe.bottom) / 2 - FIXED_MAP_ART.y * scale;
     }
     this.board.setScale(scale).setPosition(this.originX, this.originY);
     this.clampBoardPosition();
@@ -766,7 +813,7 @@ export class GameScene extends Phaser.Scene {
 
   clampBoardPosition(): void {
     const scale = this.board.scaleX;
-    const edge = 0;
+    const safe = this.boardSafeViewport();
     const minLocalX = FIXED_MAP_ART.x - FIXED_MAP_ART.width / 2;
     const maxLocalX = FIXED_MAP_ART.x + FIXED_MAP_ART.width / 2;
     const minLocalY = FIXED_MAP_ART.y - FIXED_MAP_ART.height / 2;
@@ -774,45 +821,38 @@ export class GameScene extends Phaser.Scene {
     const mapWidth = (maxLocalX - minLocalX) * scale;
     const mapHeight = (maxLocalY - minLocalY) * scale;
 
-    if (mapWidth <= this.scale.width - edge * 2) {
-      const halfWidth = mapWidth / 2;
-      const safeCenterX = Phaser.Math.Clamp(
-        this.scale.width / 2 + (this.scale.width >= 900 ? 40 : 0),
-        edge + halfWidth,
-        this.scale.width - edge - halfWidth,
-      );
-      this.board.x = safeCenterX - (minLocalX + maxLocalX) * scale / 2;
+    if (mapWidth <= safe.right - safe.left) {
+      this.board.x = (safe.left + safe.right) / 2 - (minLocalX + maxLocalX) * scale / 2;
     } else {
       this.board.x = Phaser.Math.Clamp(
         this.board.x,
-        this.scale.width - edge - maxLocalX * scale,
-        edge - minLocalX * scale,
+        safe.right - maxLocalX * scale,
+        safe.left - minLocalX * scale,
       );
     }
-    if (this.scale.width < 900) {
-      const topSafe = 10 + this.topBarHeight() + 8;
-      const bottomSafe = this.scale.height - this.buildMenuHeight() - 14;
-      const safeHeight = Math.max(140, bottomSafe - topSafe);
-      if (mapHeight <= safeHeight) {
-        this.board.y = (topSafe + bottomSafe) / 2 - (minLocalY + maxLocalY) * scale / 2;
-      } else {
-        this.board.y = Phaser.Math.Clamp(
-          this.board.y,
-          bottomSafe - maxLocalY * scale,
-          topSafe - minLocalY * scale,
-        );
-      }
-    } else if (mapHeight <= this.scale.height - edge * 2) {
-      this.board.y = this.scale.height / 2 - (minLocalY + maxLocalY) * scale / 2;
+    if (mapHeight <= safe.bottom - safe.top) {
+      this.board.y = (safe.top + safe.bottom) / 2 - (minLocalY + maxLocalY) * scale / 2;
     } else {
       this.board.y = Phaser.Math.Clamp(
         this.board.y,
-        this.scale.height - edge - maxLocalY * scale,
-        edge - minLocalY * scale,
+        safe.bottom - maxLocalY * scale,
+        safe.top - minLocalY * scale,
       );
     }
     this.originX = this.board.x;
     this.originY = this.board.y;
+    this.game.canvas.dataset.v12Camera = JSON.stringify({
+      scale,
+      minScale: this.minBoardScale,
+      maxScale: this.maxBoardScale,
+      safe,
+      map: {
+        left: this.board.x + minLocalX * scale,
+        right: this.board.x + maxLocalX * scale,
+        top: this.board.y + minLocalY * scale,
+        bottom: this.board.y + maxLocalY * scale,
+      },
+    });
   }
 
   onWheel(p: Phaser.Input.Pointer, deltaY: number): void {
@@ -1247,6 +1287,8 @@ export class GameScene extends Phaser.Scene {
     const facing = facingBack ? 'back' : 'front';
     c.setData('movingRight', movingRight);
     c.setData('facingBack', facingBack);
+    c.setData('directionX', Math.sign(screenDX));
+    c.setData('directionY', Math.sign(screenDY));
     person.setTexture('character-visitor-' + variant + (facingBack ? '-back' : ''));
     person.setFlipX(VISITOR_NATIVE_RIGHT[variant][facing] !== movingRight);
   }
@@ -1304,7 +1346,12 @@ export class GameScene extends Phaser.Scene {
     this.visitorSprites.set(v.id, c);
     const shopPoint = this.buildingMapPoint(shop);
     const target = this.buildingEntrance(shop);
-    const targetMap = shopPoint ? { mapX: shopPoint.mapX, mapY: shopPoint.mapY + 44 } : null;
+    const shopDef = this.gs.buildingDef(shop.defId);
+    const render = BUILDING_RENDER[shopDef.id] || DEFAULT_BUILDING_RENDER;
+    const targetMap = shopPoint ? {
+      mapX: shopPoint.mapX + render.offsetX,
+      mapY: shopPoint.mapY + render.anchorOffsetY + 8,
+    } : null;
     const path = targetMap ? this.planVisitorPath(V10_GATE_POINT, targetMap, shop.uid) : null;
     if (!path) {
       this.visitorSprites.delete(v.id);
@@ -1314,8 +1361,8 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     v.walkTimer = this.visitorRouteDuration(path) / 1000 + 0.08;
-    c.setData('returnPath', [...path].reverse());
-    this.walkVisitorPath(c, path, target.gx, target.gy);
+    c.setData('returnPath', [path[0]]);
+    this.walkVisitorPath(c, path, target.gx, target.gy, undefined, true);
   }
 
   removeVisitorSprite(v: Visitor): void {
@@ -2730,8 +2777,42 @@ export class GameScene extends Phaser.Scene {
       spirit: d.spirit,
       buildingCount: d.buildings.length,
       buildingIds: d.buildings.map(building => building.defId),
+      buildingVisuals: d.buildings.map(building => {
+        const art = building.sprite?.getData('art') as Phaser.GameObjects.Image | undefined;
+        return {
+          id: building.defId,
+          displayWidth: art?.displayWidth || 0,
+          displayHeight: art?.displayHeight || 0,
+        };
+      }),
       herbs: d.herbs,
       pills: d.pills,
+      visitors: d.visitors.map(visitor => ({
+        id: visitor.id,
+        state: visitor.state,
+        targetUid: visitor.targetUid,
+        walkTimer: visitor.walkTimer || 0,
+        hasSprite: this.visitorSprites.has(visitor.id),
+      })),
+      visitorVisuals: [...this.visitorSprites.entries()].map(([id, sprite]) => {
+        const point = this.fixedMapSourcePoint(sprite.x, sprite.y);
+        const variant = sprite.getData('variant') as VisitorVariant;
+        const facingBack = !!sprite.getData('facingBack');
+        const movingRight = !!sprite.getData('movingRight');
+        const person = sprite.getData('person') as Phaser.GameObjects.Image;
+        return {
+          id,
+          mapX: point.mapX,
+          mapY: point.mapY,
+          directionX: Number(sprite.getData('directionX') || 0),
+          directionY: Number(sprite.getData('directionY') || 0),
+          facingBack,
+          movingRight,
+          visualFacingRight: VISITOR_NATIVE_RIGHT[variant][facingBack ? 'back' : 'front'] !== person.flipX,
+          displayWidth: person.displayWidth,
+          displayHeight: person.displayHeight,
+        };
+      }),
     });
     const cap = this.gs.discipleCap();
     const pillTotal = Object.values(d.pills).reduce((sum, count) => sum + count, 0);

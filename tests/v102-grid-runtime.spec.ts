@@ -70,12 +70,15 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await page.evaluate(([key, value]) => localStorage.setItem(key, JSON.stringify(value)), [SAVE_KEY, state]);
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
+  ))).toBe(8);
 }
 
 async function selectFirstBuilding(page: import('@playwright/test').Page) {
-  await page.mouse.click(570, 1033);
+  await page.mouse.click(472, 1033);
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.buildableSlotIds || '[]') as string[]
   ).length)).toBeGreaterThan(0);
@@ -146,13 +149,13 @@ for (const [buildingCount, expansionsUnlocked, expectedFree] of [
   });
 }
 
-test('schema-seven save keeps stable building identity and production fields', async ({ page }) => {
+test('schema-seven save migrates to eight while keeping stable building identity and production fields', async ({ page }) => {
   const original = makeSave(32, 2);
   await continueGame(page, original);
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(200);
   const loaded = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
-  expect(loaded.schemaVersion).toBe(7);
+  expect(loaded.schemaVersion).toBe(8);
   expect(loaded.expansionsUnlocked).toBe(2);
   expect(loaded.buildings.map((item: Record<string, unknown>) => ({
     uid: item.uid,

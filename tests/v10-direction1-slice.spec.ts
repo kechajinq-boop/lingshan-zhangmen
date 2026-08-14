@@ -26,16 +26,17 @@ test('v0.10 direction-one visual slice', async ({ page }) => {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
+  await page.waitForTimeout(900);
   await page.locator('canvas').click({ position: { x: 960, y: 410 } });
-  await page.waitForTimeout(1200);
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => !!canvas.dataset.v12State)).toBe(true);
   await page.screenshot({
     path: 'deliverables/v10-direction1-slice/01-empty-map.png',
     fullPage: true,
   });
 
-  await placeSelectedBuilding(page, 570, 'slot-01');
-  await placeSelectedBuilding(page, 635, 'slot-02');
-  await placeSelectedBuilding(page, 700, 'slot-03');
+  await placeSelectedBuilding(page, 472, 'slot-01');
+  await placeSelectedBuilding(page, 537, 'slot-02');
+  await placeSelectedBuilding(page, 602, 'slot-03');
   await page.screenshot({
     path: 'deliverables/v10-direction1-slice/02-core-buildings.png',
     fullPage: true,
@@ -50,7 +51,9 @@ test('v0.10 direction-one visual slice', async ({ page }) => {
   await page.reload();
   await page.waitForTimeout(700);
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
-  await page.waitForTimeout(1000);
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
+  ))).toBe(8);
   await page.screenshot({
     path: 'deliverables/v10-direction1-slice/03-continued-save.png',
     fullPage: true,

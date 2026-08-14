@@ -1,4 +1,4 @@
-# 灵山大掌门 · 修仙门派经营原型 v0.12.0
+# 灵山大掌门 · 修仙门派经营原型 v0.12.1
 
 > 后续模型或开发者接手前，请先阅读 [PROJECT_HANDOFF.md](./PROJECT_HANDOFF.md)。
 > 每个版本开工前必须先整理版更明细给用户确认，明细见 [VERSION_PLANS.md](./VERSION_PLANS.md)，用户确认后才允许写代码。

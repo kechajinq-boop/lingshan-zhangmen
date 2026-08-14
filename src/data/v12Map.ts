@@ -102,6 +102,17 @@ export const V12_FIXED_OBJECTS: V12FixedObject[] = [
   },
 ];
 
+// The main hall sprite is bottom-anchored at mapY=517. Visitors may pass
+// behind its roof, but must never cut through the lower body or front steps.
+// Keep this separate from the art bounds so navigation has an explicit,
+// testable contract.
+export const V12_MAIN_HALL_COLLISION = {
+  x: 827,
+  y: 454,
+  halfWidth: 132,
+  halfHeight: 75,
+} as const;
+
 // Conservative island outline used by QA and as a final navigation guard.
 export const V12_WALKABLE_POLYGONS: ReadonlyArray<ReadonlyArray<V12MapPoint>> = [0, 1, 2].map(() => [
   { mapX: 260, mapY: 110 }, { mapX: 760, mapY: 70 }, { mapX: 900, mapY: 95 },
@@ -131,8 +142,11 @@ export const V12_ROAD_NODES: V12RoadNode[] = [
   { id: 'gate', mapX: 835, mapY: 900, links: ['south-junction'] },
   { id: 'south-junction', mapX: 835, mapY: 805, links: ['gate', 'middle-junction', 'south-west', 'bridge-south'] },
   { id: 'middle-junction', mapX: 835, mapY: 570, links: ['south-junction', 'hall-south', 'middle-west', 'bridge-middle'] },
-  { id: 'hall-south', mapX: 835, mapY: 535, links: ['middle-junction', 'hall-north'] },
-  { id: 'hall-north', mapX: 835, mapY: 390, links: ['hall-south', 'north-junction'] },
+  { id: 'hall-south', mapX: 835, mapY: 545, links: ['middle-junction', 'hall-south-west'] },
+  { id: 'hall-south-west', mapX: 675, mapY: 545, links: ['hall-south', 'hall-west'] },
+  { id: 'hall-west', mapX: 660, mapY: 454, links: ['hall-south-west', 'hall-north-west'] },
+  { id: 'hall-north-west', mapX: 675, mapY: 365, links: ['hall-west', 'hall-north'] },
+  { id: 'hall-north', mapX: 835, mapY: 355, links: ['hall-north-west', 'north-junction'] },
   { id: 'north-junction', mapX: 835, mapY: 320, links: ['hall-north', 'north-west', 'bridge-north', 'north-end'] },
   { id: 'north-end', mapX: 835, mapY: 115, links: ['north-junction'] },
   { id: 'north-west', mapX: 465, mapY: 320, links: ['north-junction', 'zone-01'] },

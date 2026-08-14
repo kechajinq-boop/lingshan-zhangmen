@@ -223,11 +223,21 @@ export class Economy {
         v.walkTimer = (v.walkTimer ?? 0) - dt;
         if (v.walkTimer <= 0) {
           const buying = d.visitors.some(x => x.targetUid === shop.uid && x.state === 'buying');
-          v.state = buying ? 'walking' : 'buying';
+          v.state = buying ? 'queuing' : 'buying';
           if (v.state === 'buying') { v.walkTimer = 0; this.gs.events.emit('visitor-update', v); }
-          else v.walkTimer = 0.5;
+          else this.gs.events.emit('visitor-update', v);
         }
         if (v.state === 'walking') {
+          v.patience -= dt;
+          if (v.patience <= 0) this.visitorLeave(v, shop, false, i);
+        }
+      } else if (v.state === 'queuing') {
+        const buying = d.visitors.some(x => x.targetUid === shop.uid && x.state === 'buying');
+        if (!buying) {
+          v.state = 'buying';
+          v.walkTimer = 0;
+          this.gs.events.emit('visitor-update', v);
+        } else {
           v.patience -= dt;
           if (v.patience <= 0) this.visitorLeave(v, shop, false, i);
         }
@@ -289,7 +299,7 @@ export class Economy {
     }
     shop.queue = Math.max(0, shop.queue - 1);
     // promote next queued visitor at this shop to buying
-    const next = this.gs.data.visitors.find(x => x.targetUid === shop.uid && x.state === 'walking');
+    const next = this.gs.data.visitors.find(x => x.targetUid === shop.uid && x.state === 'queuing');
     this.gs.data.visitors.splice(index, 1);
     v.state = 'leaving';
     this.gs.events.emit('visitor-leave', v);

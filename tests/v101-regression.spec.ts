@@ -49,8 +49,11 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await page.evaluate(([key, value]) => localStorage.setItem(key, JSON.stringify(value)), [SAVE_KEY, state]);
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
+  await page.waitForTimeout(900);
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
-  await page.waitForTimeout(1000);
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
+  ))).toBe(8);
 }
 
 async function buildablePoint(page: import('@playwright/test').Page, slotId: string) {
@@ -67,7 +70,7 @@ test('stage one exposes and accepts the twentieth remaining slot', async ({ page
   const firstNineteen = Array.from({ length: 19 }, (_, index) => building(5000 + index, 'lingtian', index));
   await continueGame(page, saveWith(firstNineteen));
 
-  await page.mouse.click(570, 1033);
+  await page.mouse.click(472, 1033);
   await page.waitForTimeout(300);
   await page.screenshot({ path: 'deliverables/v101-qa/01-stage-one-last-green-slot.png', fullPage: true });
 

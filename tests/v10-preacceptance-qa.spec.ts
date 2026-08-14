@@ -31,8 +31,9 @@ async function enterNewGame(page: import('@playwright/test').Page) {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.locator('canvas').click({ position: { x: 960, y: 410 } });
   await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 410 } });
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => !!canvas.dataset.v12State)).toBe(true);
 }
 
 async function continueGame(page: import('@playwright/test').Page, state: unknown) {
@@ -40,8 +41,11 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await page.evaluate(([key, value]) => localStorage.setItem(key, JSON.stringify(value)), [SAVE_KEY, state]);
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
+  ))).toBe(8);
 }
 
 async function readSave(page: import('@playwright/test').Page) {
@@ -65,7 +69,7 @@ async function buildablePoint(page: import('@playwright/test').Page, slotId: str
 }
 
 async function dragFirstBuilding(page: import('@playwright/test').Page, slotId: string) {
-  await page.mouse.move(570, 1033);
+  await page.mouse.move(472, 1033);
   await page.mouse.down();
   const point = await buildablePoint(page, slotId);
   await page.mouse.move(point.x, point.y, { steps: 12 });
@@ -75,35 +79,34 @@ async function dragFirstBuilding(page: import('@playwright/test').Page, slotId: 
 
 test('stage-two and stage-three slots unlock only after their matching expansion', async ({ page }) => {
   const failed: string[] = [];
-  const mapResponses = new Map<string, number>();
+  let mapResponse = 0;
   page.on('response', response => {
     if (response.status() >= 400) failed.push(`${response.status()} ${response.url()}`);
-    const match = response.url().match(/map_stage_(0[123])_base\.png/);
-    if (match) mapResponses.set(match[1], response.status());
+    if (response.url().endsWith('/assets/v12/map/map_base.png')) mapResponse = response.status();
   });
   await continueGame(page, makeSave([], { schemaVersion: 7, spirit: 5000, reputation: 500 }));
 
-  await page.mouse.click(570, 1033);
+  await page.mouse.click(472, 1033);
   expect(await buildableIds(page)).not.toContain('slot-21');
   let state = await readSave(page);
   expect(state.buildings).toHaveLength(0);
   expect(state.spirit).toBe(5000);
 
-  await page.mouse.click(1025, 1033);
+  await page.mouse.click(1122, 1033);
   await page.waitForTimeout(500);
   await dragFirstBuilding(page, 'slot-21');
   state = await readSave(page);
   expect(state.expansionsUnlocked).toBe(1);
   expect(state.buildings[0].slotId).toBe('slot-21');
 
-  await page.mouse.click(1025, 1033);
+  await page.mouse.click(1122, 1033);
   await page.waitForTimeout(500);
   await dragFirstBuilding(page, 'slot-33');
   state = await readSave(page);
   expect(state.expansionsUnlocked).toBe(2);
   expect(state.buildings.map((building: { slotId: string }) => building.slotId)).toEqual(['slot-21', 'slot-33']);
   expect(failed).toEqual([]);
-  expect(Object.fromEntries(mapResponses)).toEqual({ '01': 200, '02': 200, '03': 200 });
+  expect(mapResponse).toBe(200);
 });
 
 for (const count of [20, 32, 48]) {
@@ -149,15 +152,14 @@ test('corrupt save is preserved before a fresh session can overwrite it', async 
   await page.goto(URL);
   await page.evaluate(key => localStorage.setItem(key, '{broken-save'), SAVE_KEY);
   await page.reload();
-  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await page.waitForTimeout(900);
-  const backup = await page.evaluate(() => localStorage.getItem('lingshan_save_backup_corrupt'));
-  expect(backup).toBe('{broken-save');
+  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('lingshan_save_backup_corrupt'))).toBe('{broken-save');
 });
 
 test('a cancelled touch-style pointer cannot place a building after interruption', async ({ page }) => {
   await enterNewGame(page);
-  await page.mouse.move(570, 1033);
+  await page.mouse.move(472, 1033);
   await page.mouse.down();
   await page.mouse.move(800, 600, { steps: 6 });
   await page.locator('canvas').dispatchEvent('pointercancel', { pointerId: 1, pointerType: 'touch' });
@@ -179,7 +181,7 @@ test('production, alchemy and visitor purchase continue as one playable loop', a
   ], {
     spirit: 300, herbs: 5, pills: { juling: 2, bigu: 0 }, reputation: 500,
   }));
-  await page.mouse.click(1350, 1033);
+  await page.mouse.click(1447, 1033);
   await page.waitForTimeout(12_000);
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(300);
@@ -197,7 +199,7 @@ test('pause freezes production and two-times speed resumes it', async ({ page })
   await continueGame(page, makeSave([
     makeBuilding(21, 'lingtian', 0, { progress: 0.2 }),
   ], { schemaVersion: 7 }));
-  await page.mouse.click(1220, 1033);
+  await page.mouse.click(1317, 1033);
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(200);
   const pausedStart = await readSave(page);
@@ -208,7 +210,7 @@ test('pause freezes production and two-times speed resumes it', async ({ page })
   expect(pausedEnd.dayTime).toBeCloseTo(pausedStart.dayTime, 2);
   expect(pausedEnd.buildings[0].progress).toBeCloseTo(pausedStart.buildings[0].progress, 2);
 
-  await page.mouse.click(1350, 1033);
+  await page.mouse.click(1447, 1033);
   await page.waitForTimeout(4_000);
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(200);

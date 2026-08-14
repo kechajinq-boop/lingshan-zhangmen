@@ -1,0 +1,55 @@
+{
+  "version": "0.12.1",
+  "generatedAt": "2026-08-14",
+  "provenance": "Assets inherited from the approved v0.12.0 handoff. Original external source details were not present; no pixels were regenerated or replaced in v0.12.1.",
+  "map": {
+    "path": "public/assets/v12/map/map_base.png",
+    "sha256": "0F4205435D430A43C84C6ECE900E8B092B44C79D8EAFF6ECEDC41DA7F8AD6449",
+    "canvas": [1672, 941],
+    "runtimeDisplay": [1184, 666],
+    "anchor": [0.5, 0.5],
+    "status": "approved-handoff-unchanged"
+  },
+  "fixedObjects": [
+    {
+      "id": "main-hall",
+      "path": "public/assets/v10/fixed/bldg_main_hall.png",
+      "sha256": "72B42F12653FA497D1B6C11280D70C107A87199528F0EB822A58BB0B2CA52E68",
+      "canvas": [1173, 921],
+      "alphaBounds": [16, 16, 1157, 905],
+      "runtimeSourceSize": [238, 186],
+      "anchor": [0.5, 1.0],
+      "collision": { "x": 827, "y": 454, "halfWidth": 132, "halfHeight": 75 },
+      "status": "approved-handoff-unchanged-navigation-calibrated"
+    }
+  ],
+  "buildings": [
+    { "id": "lingtian", "path": "public/assets/v10/buildings/building-lingtian.png", "sha256": "593D6768F1540655796C801C3D861F8C9B3EE59BFB882AED3A5FB72D2791395A", "canvas": [512, 512], "alphaBounds": [38, 174, 474, 498], "runtimeSize": [105, 105], "anchorOffsetY": 44 },
+    { "id": "danfang", "path": "public/assets/v10/buildings/building-danfang.png", "sha256": "469666C179123510AA93637E1BE7FD71DADDF587E306C829C26AC7BC5F1B86FC", "canvas": [512, 512], "alphaBounds": [35, 100, 452, 497], "runtimeSize": [108, 101], "anchorOffsetY": 36 },
+    { "id": "danpu", "path": "public/assets/v10/buildings/building-danpu.png", "sha256": "94605D3A9363A71462CDC35835950EE9AE98AC6883B0BCAC62A6E63CBCDB828B", "canvas": [512, 512], "alphaBounds": [51, 135, 476, 497], "runtimeSize": [107, 107], "anchorOffsetY": 36 },
+    { "id": "liangong", "path": "public/assets/v10/buildings/building-liangong.png", "sha256": "109A133CC81FAE6EEFB1A6DB43E01FDF9FBAEAB81E75F5C0224DB8E742768408", "canvas": [512, 512], "alphaBounds": [38, 158, 458, 497], "runtimeSize": [107, 107], "anchorOffsetY": 36 },
+    { "id": "xiangfang", "path": "public/assets/v10/buildings/building-xiangfang.png", "sha256": "4A1FBD6D306D18F47469008B0EECB09D5292105F8E0795DFCD5D302A8F6DEE17", "canvas": [512, 512], "alphaBounds": [39, 147, 471, 497], "runtimeSize": [105, 105], "anchorOffsetY": 36 },
+    { "id": "lingkuang", "path": "public/assets/v12/buildings/building-lingkuang.png", "sha256": "CA9174400FCCA499170A275CC571F2181E732FFBE149BB1F85E26E1CF00F0485", "canvas": [512, 512], "alphaBounds": [45, 124, 466, 474], "runtimeSize": [108, 108], "anchorOffsetY": 40 },
+    { "id": "lianqi", "path": "public/assets/v12/buildings/building-lianqi.png", "sha256": "62A05E1926AB5FC5B7E1331D27D077949A56EE4D9A50B38B4852F07FE69F2EB2", "canvas": [512, 512], "alphaBounds": [81, 44, 433, 473], "runtimeSize": [104, 104], "anchorOffsetY": 40 },
+    { "id": "faqipu", "path": "public/assets/v12/buildings/building-faqipu.png", "sha256": "05DFB8620ED03F1476F49577BF8538CC07BB8B011825EA157D307BA937B82340", "canvas": [512, 512], "alphaBounds": [45, 55, 465, 476], "runtimeSize": [94, 94], "anchorOffsetY": 40 }
+  ],
+  "visitors": {
+    "directory": "public/assets/v03",
+    "variants": ["a", "b", "c", "d"],
+    "files": {
+      "a-front": "40A5E9A54295C1EB8374DB4D93B4D3BF9FC1BA5F14F8AEFC847C6D189E85100E",
+      "a-back": "E2D95AFFF1866C2C9AB8F2C726D0FCA607258C9DE1AA1874CA714778D03DE148",
+      "b-front": "FC945DB3C2143970B6D8F7DB33B99F6F8A7EE4BEFF5AF6CBABBE568EE3698860",
+      "b-back": "0DC794EE2D560D11FCF63A4CE4F224826B92797B9DAA82C73963AC7365D72F35",
+      "c-front": "301D62B1D8090F1208169ADBC81E882FEDDD8024861E59656D69C304FA204005",
+      "c-back": "CB29516C15ECF96D437AF1B2C35AF016BD3196B1F94BEEAAD1D4DF0157C92638",
+      "d-front": "58CC93223176814CC2DD0252420CB819BF143594535D2D7ACAE5B9498CB64AAE",
+      "d-back": "B060D70286C2574C0A299797E6C1F66284B0E11006733B01FF1CE2769A139E8A"
+    },
+    "canvas": [48, 64],
+    "runtimeSize": [18, 26],
+    "anchor": [0.5, 1.0],
+    "frontBackPairs": true,
+    "status": "approved-handoff-unchanged-runtime-size-locked"
+  }
+}

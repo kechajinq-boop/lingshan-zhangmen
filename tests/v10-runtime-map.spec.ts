@@ -9,8 +9,9 @@ async function enterNewGame(page: import('@playwright/test').Page) {
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.locator('canvas').click({ position: { x: 960, y: 410 } });
   await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 410 } });
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => !!canvas.dataset.v12State)).toBe(true);
 }
 
 async function savedState(page: import('@playwright/test').Page) {
@@ -33,7 +34,7 @@ async function buildablePoint(page: import('@playwright/test').Page, slotId: str
 async function dragFirstBuildingToSlot(
   page: import('@playwright/test').Page,
   slotId: string,
-  button = { x: 570, y: 1033 },
+  button = { x: 472, y: 1033 },
 ) {
   await page.mouse.move(button.x, button.y);
   await page.mouse.down();
@@ -49,7 +50,7 @@ test('dragging a building highlights slots and places only on an eligible slot',
   page.on('pageerror', error => errors.push(error.message));
   await enterNewGame(page);
 
-  await page.mouse.move(570, 1033);
+  await page.mouse.move(472, 1033);
   await page.mouse.down();
   const slotOne = await buildablePoint(page, 'slot-01');
   await page.mouse.move(slotOne.x, slotOne.y, { steps: 12 });
@@ -66,7 +67,7 @@ test('dragging a building highlights slots and places only on an eligible slot',
   expect(state.buildings[0].slotId).toBe('slot-01');
   expect(state.spirit).toBe(250);
 
-  await page.mouse.move(570, 1033);
+  await page.mouse.move(472, 1033);
   await page.mouse.down();
   await page.mouse.move(1760, 520, { steps: 12 });
   await page.mouse.up();
@@ -91,10 +92,13 @@ test('two expansions switch stages and preserve existing building slots', async 
   }, SAVE_KEY);
   await page.reload();
   await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
-  await page.waitForTimeout(800);
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
+  ))).toBe(8);
 
-  await page.mouse.click(1025, 1033);
+  await page.mouse.click(1122, 1033);
   await page.waitForTimeout(500);
   let state = await savedState(page);
   expect(state.expansionsUnlocked).toBe(1);
@@ -102,7 +106,7 @@ test('two expansions switch stages and preserve existing building slots', async 
   expect(state.buildings[0].slotId).toBe(before.buildings[0].slotId);
   await page.screenshot({ path: 'deliverables/v10-runtime-map/02-stage-two.png', fullPage: true });
 
-  await page.mouse.click(1025, 1033);
+  await page.mouse.click(1122, 1033);
   await page.waitForTimeout(500);
   state = await savedState(page);
   expect(state.expansionsUnlocked).toBe(2);
@@ -132,8 +136,11 @@ test('schema 6 save migrates to slots without losing buildings', async ({ page }
   }, SAVE_KEY);
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
+  ))).toBe(8);
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(2);
   expect(state.buildings.every((building: { slotId?: string }) => !!building.slotId)).toBe(true);
@@ -164,8 +171,11 @@ test('all twenty stage-one slots remain usable together', async ({ page }) => {
     localStorage.setItem(key, JSON.stringify(state));
   }, SAVE_KEY);
   await page.reload();
-  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 886 } });
+  await expect.poll(() => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
+  ))).toBe(8);
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(20);
   expect(new Set(state.buildings.map((building: { slotId: string }) => building.slotId)).size).toBe(20);
@@ -185,7 +195,7 @@ test('mobile landscape can drag a building onto a green slot', async ({ page }) 
   await page.locator('canvas').click({ position: { x: 422, y: 148 } });
   await page.waitForTimeout(1400);
 
-  await page.mouse.move(31, 335);
+  await page.mouse.move(64, 335);
   await page.mouse.down();
   const mobileSlot = await buildablePoint(page, 'slot-03');
   await page.mouse.move(mobileSlot.x, mobileSlot.y, { steps: 12 });
@@ -197,6 +207,7 @@ test('mobile landscape can drag a building onto a green slot', async ({ page }) 
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(1);
   expect(state.buildings[0].slotId).toBe('slot-03');
-  expect(state.spirit).toBe(250);
+  expect(state.buildings[0].defId).toBe('danpu');
+  expect(state.spirit).toBe(200);
   expect(errors).toEqual([]);
 });
