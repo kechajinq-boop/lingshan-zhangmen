@@ -780,36 +780,51 @@ export class GameScene extends Phaser.Scene {
     return this.scale.width < 900 ? 56 : 68;
   }
 
-  boardSafeViewport(): { left: number; right: number; top: number; bottom: number } {
-    const compact = this.scale.width < 900;
-    const margin = compact ? 6 : 10;
-    return {
-      left: margin,
-      right: this.scale.width - margin,
-      top: margin,
-      bottom: this.scale.height - margin,
-    };
-  }
-
   layoutBoard(): void {
-    const safe = this.boardSafeViewport();
-    const safeWidth = Math.max(160, safe.right - safe.left);
-    const safeHeight = Math.max(120, safe.bottom - safe.top);
-    const scale = Math.min(
-      safeWidth / FIXED_MAP_ART.width,
-      safeHeight / FIXED_MAP_ART.height,
-    );
+    const g = this.gs.grid;
+    const w = this.scale.width;
+    const h = this.scale.height;
+    const topSafe = (w < 900 ? 10 : 16) + this.topBarHeight() + (w < 900 ? 8 : 12);
+    const bottomSafe = h - this.buildMenuHeight() - (w < 900 ? 14 : 20);
+    const scale = Math.max(
+      w / FIXED_MAP_ART.width,
+      h / FIXED_MAP_ART.height,
+    ) * 1.01;
+    let focusX = (g.w - g.h) * TILE_W / 4;
+    let focusY = (g.w + g.h - 2) * TILE_H / 4;
+    if (this.gs.data.buildings.length > 0) {
+      let totalX = 0;
+      let totalY = 0;
+      for (const b of this.gs.data.buildings) {
+        const def = this.gs.buildingDef(b.defId);
+        const point = this.slotVisualPosition(b.gx, b.gy) || this.gs.grid.toScreen(
+          b.gx + (def.w - 1) / 2,
+          b.gy + (def.h - 1) / 2,
+        );
+        totalX += point.x;
+        totalY += point.y;
+      }
+      focusX = totalX / this.gs.data.buildings.length;
+      focusY = totalY / this.gs.data.buildings.length;
+    }
+
     this.minBoardScale = scale;
-    this.maxBoardScale = scale;
-    this.originX = (safe.left + safe.right) / 2 - FIXED_MAP_ART.x * scale;
-    this.originY = (safe.top + safe.bottom) / 2 - FIXED_MAP_ART.y * scale;
+    this.maxBoardScale = scale * 2.0;
+    if (this.gs.data.buildings.length > 0) {
+      const hudSafeOffsetX = w >= 900 ? 20 : 0;
+      this.originX = w / 2 + hudSafeOffsetX - focusX * scale;
+      this.originY = (topSafe + bottomSafe) / 2 - focusY * scale;
+    } else {
+      this.originX = w / 2 - FIXED_MAP_ART.x * scale;
+      this.originY = (topSafe + bottomSafe) / 2 - FIXED_MAP_ART.y * scale;
+    }
     this.board.setScale(scale).setPosition(this.originX, this.originY);
     this.clampBoardPosition();
   }
 
   clampBoardPosition(): void {
     const scale = this.board.scaleX;
-    const safe = this.boardSafeViewport();
+    const edge = 0;
     const minLocalX = FIXED_MAP_ART.x - FIXED_MAP_ART.width / 2;
     const maxLocalX = FIXED_MAP_ART.x + FIXED_MAP_ART.width / 2;
     const minLocalY = FIXED_MAP_ART.y - FIXED_MAP_ART.height / 2;
@@ -817,22 +832,41 @@ export class GameScene extends Phaser.Scene {
     const mapWidth = (maxLocalX - minLocalX) * scale;
     const mapHeight = (maxLocalY - minLocalY) * scale;
 
-    if (mapWidth <= safe.right - safe.left) {
-      this.board.x = (safe.left + safe.right) / 2 - (minLocalX + maxLocalX) * scale / 2;
+    if (mapWidth <= this.scale.width - edge * 2) {
+      const halfWidth = mapWidth / 2;
+      const safeCenterX = Phaser.Math.Clamp(
+        this.scale.width / 2 + (this.scale.width >= 900 ? 40 : 0),
+        edge + halfWidth,
+        this.scale.width - edge - halfWidth,
+      );
+      this.board.x = safeCenterX - (minLocalX + maxLocalX) * scale / 2;
     } else {
       this.board.x = Phaser.Math.Clamp(
         this.board.x,
-        safe.right - maxLocalX * scale,
-        safe.left - minLocalX * scale,
+        this.scale.width - edge - maxLocalX * scale,
+        edge - minLocalX * scale,
       );
     }
-    if (mapHeight <= safe.bottom - safe.top) {
-      this.board.y = (safe.top + safe.bottom) / 2 - (minLocalY + maxLocalY) * scale / 2;
+    if (this.scale.width < 900) {
+      const topSafe = 10 + this.topBarHeight() + 8;
+      const bottomSafe = this.scale.height - this.buildMenuHeight() - 14;
+      const safeHeight = Math.max(140, bottomSafe - topSafe);
+      if (mapHeight <= safeHeight) {
+        this.board.y = (topSafe + bottomSafe) / 2 - (minLocalY + maxLocalY) * scale / 2;
+      } else {
+        this.board.y = Phaser.Math.Clamp(
+          this.board.y,
+          bottomSafe - maxLocalY * scale,
+          topSafe - minLocalY * scale,
+        );
+      }
+    } else if (mapHeight <= this.scale.height - edge * 2) {
+      this.board.y = this.scale.height / 2 - (minLocalY + maxLocalY) * scale / 2;
     } else {
       this.board.y = Phaser.Math.Clamp(
         this.board.y,
-        safe.bottom - maxLocalY * scale,
-        safe.top - minLocalY * scale,
+        this.scale.height - edge - maxLocalY * scale,
+        edge - minLocalY * scale,
       );
     }
     this.originX = this.board.x;
@@ -841,7 +875,6 @@ export class GameScene extends Phaser.Scene {
       scale,
       minScale: this.minBoardScale,
       maxScale: this.maxBoardScale,
-      safe,
       map: {
         left: this.board.x + minLocalX * scale,
         right: this.board.x + maxLocalX * scale,
@@ -852,8 +885,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   onWheel(p: Phaser.Input.Pointer, deltaY: number): void {
-    void p;
-    void deltaY;
+    if (this.selectedBuild || this.researchOpen || this.elderOpen || this.recruitOpen || this.commissionOpen || this.isPointerOverHUD(p)) return;
+    const oldScale = this.board.scaleX;
+    const factor = deltaY > 0 ? 0.9 : 1.1;
+    const nextScale = Phaser.Math.Clamp(oldScale * factor, this.minBoardScale, this.maxBoardScale);
+    if (Math.abs(nextScale - oldScale) < 0.001) return;
+    const localX = (p.x - this.board.x) / oldScale;
+    const localY = (p.y - this.board.y) / oldScale;
+    this.board.setScale(nextScale);
+    this.board.setPosition(p.x - localX * nextScale, p.y - localY * nextScale);
+    this.clampBoardPosition();
   }
 
   isPointerOverHUD(p: Phaser.Input.Pointer): boolean {
@@ -1127,6 +1168,16 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.clearGhost();
+    if (this.panPointerId !== p.id || !p.isDown) return;
+    const dx = p.x - this.panLastX;
+    const dy = p.y - this.panLastY;
+    this.panLastX = p.x;
+    this.panLastY = p.y;
+    this.panDistance += Math.hypot(dx, dy);
+    if (this.panDistance < 3) return;
+    this.board.x += dx;
+    this.board.y += dy;
+    this.clampBoardPosition();
   }
 
   onDown(p: Phaser.Input.Pointer): void {
@@ -1153,6 +1204,10 @@ export class GameScene extends Phaser.Scene {
       }
     } else {
       this.selectBuilding(null);
+      this.panPointerId = p.id;
+      this.panLastX = p.x;
+      this.panLastY = p.y;
+      this.panDistance = 0;
     }
   }
 

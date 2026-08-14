@@ -8,6 +8,7 @@ export class Economy {
   visitorSeq = 0;
   nextShopCursor = 0;
   lastShopStockNoticeDay = 0;
+  lastSoldOutVisitorNoticeDay = 0;
   gatherCount = 0; craftCount = 0; oreCount = 0; forgeCount = 0;
 
   constructor(gs: GameState) { this.gs = gs; }
@@ -169,10 +170,15 @@ export class Economy {
   }
 
   desiredVisitorCount(): number {
-    const shops = this.sellBuildings().filter(shop => this.shopCanSell(shop));
+    const shops = this.sellBuildings();
     if (shops.length === 0) return 0;
-    const capacity = shops.reduce((sum, shop) => sum + this.gs.shopCapacity(shop), 0);
-    return Math.max(1, Math.min(this.totalShopStock(shops), shops.length * 2, capacity));
+    const sellable = shops.filter(shop => this.shopCanSell(shop));
+    const stockedCapacity = sellable.reduce((sum, shop) => sum + this.gs.shopCapacity(shop), 0);
+    const stockedVisitors = sellable.length > 0
+      ? Math.max(1, Math.min(this.totalShopStock(sellable), sellable.length * 2, stockedCapacity))
+      : 0;
+    const soldOutVisitors = shops.filter(shop => !this.shopCanSell(shop) && this.shopLoad(shop) === 0).length;
+    return stockedVisitors + soldOutVisitors;
   }
 
   trySpawnVisitors(): void {
@@ -182,8 +188,7 @@ export class Economy {
     this.syncSellShopQueues(shops);
     const sellable = shops.filter(shop => this.shopCanSell(shop));
     this.notifyShopStockShortage(shops, sellable);
-    if (sellable.length === 0) return;
-    const shopUids = new Set(sellable.map(shop => shop.uid));
+    const shopUids = new Set(shops.map(shop => shop.uid));
     const activeVisitors = d.visitors.filter(visitor => shopUids.has(visitor.targetUid)).length;
     const missing = this.desiredVisitorCount() - activeVisitors;
     for (let i = 0; i < missing; i++) {
@@ -193,11 +198,15 @@ export class Economy {
 
   trySpawnVisitor(): boolean {
     const d = this.gs.data;
-    const shops = this.sellBuildings().filter(shop => this.shopCanSell(shop));
+    const shops = this.sellBuildings();
     if (shops.length === 0) return false;
     this.syncSellShopQueues(shops);
     // choose shop with lowest real load; rotate equal-load shops so visitors do not stick to the first shop
-    const open = shops.filter(s => this.shopLoad(s) < this.gs.shopCapacity(s));
+    const open = shops.filter(shop => {
+      const load = this.shopLoad(shop);
+      const capacity = this.shopCanSell(shop) ? this.gs.shopCapacity(shop) : 1;
+      return load < capacity;
+    });
     if (open.length === 0) return false;
     const minLoad = Math.min(...open.map(s => this.shopLoad(s)));
     const candidates = open.filter(s => this.shopLoad(s) === minLoad);
@@ -222,6 +231,11 @@ export class Economy {
       if (v.state === 'walking') {
         v.walkTimer = (v.walkTimer ?? 0) - dt;
         if (v.walkTimer <= 0) {
+          if (!this.shopCanSell(shop)) {
+            const reason = shop.defId === 'faqipu' ? '青锋剑已经售罄，改日再来' : '丹药已经售罄，改日再来';
+            this.visitorLeave(v, shop, false, i, reason, false);
+            continue;
+          }
           const buying = d.visitors.some(x => x.targetUid === shop.uid && x.state === 'buying');
           v.state = buying ? 'queuing' : 'buying';
           if (v.state === 'buying') { v.walkTimer = 0; this.gs.events.emit('visitor-update', v); }
@@ -266,7 +280,7 @@ export class Economy {
             this.gs.logEvent('visitor-buy', 'highlight', (v.name || '访客') + (artifactShop ? ' 购器' : ' 购丹'), visitorName + ' 在' + this.gs.buildingDef(shop.defId).name + '购得' + productName + '，付 ' + (price + tip) + ' 灵石', '#ffe08a');
             this.visitorLeave(v, shop, true, i);
           } else {
-            this.visitorLeave(v, shop, false, i, artifactShop ? '青锋剑售罄，未能购得法器' : '丹药售罄，未能购得所需丹药');
+            this.visitorLeave(v, shop, false, i, artifactShop ? '青锋剑售罄，未能购得法器' : '丹药售罄，未能购得所需丹药', false);
           }
         }
       }
@@ -289,13 +303,17 @@ export class Economy {
     return best;
   }
 
-  visitorLeave(v: any, shop: PlacedBuilding, served: boolean, index: number, reason = '久候不至，拂袖而去'): void {
-    if (!served) {
+  visitorLeave(v: any, shop: PlacedBuilding, served: boolean, index: number, reason = '久候不至，拂袖而去', penalize = !served): void {
+    if (!served && penalize) {
       this.gs.data.reputation = Math.max(0, this.gs.data.reputation - 2);
       this.gs.data.visitorsLost++;
       this.gs.events.emit('float', shop, '访客流失…', 0xff8a8a);
       const visitorName = [v.identity, v.name || '访客'].filter(Boolean).join('·');
       this.gs.logEvent('visitor-leave', 'info', (v.name || '访客') + ' 离去', visitorName + '：' + reason, '#ff9b8c');
+    } else if (!served && this.gs.data.day !== this.lastSoldOutVisitorNoticeDay) {
+      this.lastSoldOutVisitorNoticeDay = this.gs.data.day;
+      const visitorName = [v.identity, v.name || '访客'].filter(Boolean).join('·');
+      this.gs.logEvent('visitor-leave', 'info', '商铺暂时售罄', visitorName + ' 到店后发现' + reason + '，未扣声望', '#ffcf7a');
     }
     shop.queue = Math.max(0, shop.queue - 1);
     // promote next queued visitor at this shop to buying

@@ -197,8 +197,16 @@ test('mobile landscape can drag a building onto a green slot', async ({ page }) 
 
   await page.mouse.move(64, 335);
   await page.mouse.down();
-  const mobileSlot = await buildablePoint(page, 'slot-03');
-  await page.mouse.move(mobileSlot.x, mobileSlot.y, { steps: 12 });
+  const mobileSlot = await expect.poll(async () => page.locator('canvas').evaluate(canvas => {
+    const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;
+    return points.find(point => point.x >= 120 && point.x <= 724 && point.y >= 112 && point.y <= 286) || null;
+  })).not.toBeNull();
+  void mobileSlot;
+  const visibleSlot = await page.locator('canvas').evaluate(canvas => {
+    const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;
+    return points.find(point => point.x >= 120 && point.x <= 724 && point.y >= 112 && point.y <= 286)!;
+  });
+  await page.mouse.move(visibleSlot.x, visibleSlot.y, { steps: 12 });
   await page.waitForTimeout(250);
   await page.screenshot({ path: 'deliverables/v10-runtime-map/05-mobile-drag-green-slots.png', fullPage: true });
   await page.mouse.up();
@@ -206,7 +214,7 @@ test('mobile landscape can drag a building onto a green slot', async ({ page }) 
 
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(1);
-  expect(state.buildings[0].slotId).toBe('slot-03');
+  expect(state.buildings[0].slotId).toBe(visibleSlot.id);
   expect(state.buildings[0].defId).toBe('danpu');
   expect(state.spirit).toBe(200);
   expect(errors).toEqual([]);
