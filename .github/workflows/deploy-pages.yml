@@ -3,7 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches:
-      - main
+      - codex/v0.12.1
   workflow_dispatch:
 
 permissions:
