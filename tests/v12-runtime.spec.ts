@@ -1,4 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
   V12_BRIDGES,
   V12_BUILD_SLOTS,
@@ -13,6 +16,13 @@ import {
 
 const URL = 'http://127.0.0.1:4173/';
 const SAVE_KEY = 'lingshan_save_v1';
+const VISITOR_ASSET_MANIFEST = JSON.parse(readFileSync(
+  resolve(process.cwd(), 'tests', 'fixtures', 'v121-visitor-asset-manifest.json'),
+  'utf8',
+)) as {
+  nativeFacingRight: Record<string, { front: boolean; back: boolean }>;
+  assets: Array<{ id: string; path: string; sha256: string }>;
+};
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -80,6 +90,18 @@ test('single approved map exposes cumulative 20/32/48 stable slots', () => {
   expect(v12RoadPath('gate', 'zone-02')!.some(node => node.id === 'bridge-north')).toBe(true);
   expect(v12RoadPath('gate', 'zone-04')!.some(node => node.id === 'bridge-middle')).toBe(true);
   expect(v12RoadPath('gate', 'zone-06')!.some(node => node.id === 'bridge-south')).toBe(true);
+});
+
+test('visitor sprite files and runtime use the approved native-facing contract', async ({ page }) => {
+  for (const asset of VISITOR_ASSET_MANIFEST.assets) {
+    const hash = createHash('sha256').update(readFileSync(resolve(asset.path))).digest('hex').toUpperCase();
+    expect(hash, asset.id).toBe(asset.sha256);
+  }
+  await continueGame(page, schemaSevenSave());
+  const contract = await page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').visitorDirectionContract
+  ));
+  expect(contract).toEqual(VISITOR_ASSET_MANIFEST.nativeFacingRight);
 });
 
 test('every gate route avoids the full main-hall collision area', () => {
@@ -218,7 +240,7 @@ test('live visitors expose real movement and render state while staying outside 
   const samples: Array<{
     mapX: number; mapY: number; directionX: number; directionY: number;
     facingBack: boolean; movingRight: boolean; textureKey: string; flipX: boolean;
-    displayWidth: number; displayHeight: number;
+    visualFacingRight: boolean; displayWidth: number; displayHeight: number;
   }> = [];
   let buyingBeforeArrival = false;
   for (let index = 0; index < 32; index++) {
@@ -241,6 +263,7 @@ test('live visitors expose real movement and render state while staying outside 
   ))).toBe(true);
   expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
     sample.movingRight === (sample.directionX > 0)
+    && sample.visualFacingRight === (sample.directionX > 0)
   ))).toBe(true);
   expect(buyingBeforeArrival).toBe(false);
   await page.screenshot({ path: 'deliverables/v121-qa/visitor-route.png', fullPage: true });
@@ -261,7 +284,7 @@ test('visitors expose movement direction across pill and artifact shops in all s
   await page.waitForTimeout(4000);
   const samples: Array<{
     directionX: number; directionY: number; movingRight: boolean;
-    textureKey: string; flipX: boolean; facingBack: boolean; displayWidth: number; displayHeight: number;
+    visualFacingRight: boolean; textureKey: string; flipX: boolean; facingBack: boolean; displayWidth: number; displayHeight: number;
   }> = [];
   const targets = new Set<number>();
   for (let index = 0; index < 36; index++) {
@@ -275,6 +298,7 @@ test('visitors expose movement direction across pill and artifact shops in all s
   expect(samples.every(sample => sample.displayWidth === 18 && sample.displayHeight === 26)).toBe(true);
   expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
     sample.movingRight === (sample.directionX > 0)
+    && sample.visualFacingRight === (sample.directionX > 0)
   ))).toBe(true);
   expect(samples.filter(sample => sample.directionY !== 0).every(sample => (
     sample.facingBack === (sample.directionY < 0)
@@ -385,7 +409,7 @@ test('visitors turn around from their current position when a shop is demolished
   ))).toBe(0);
 
   const samples: Array<{
-    directionX: number; directionY: number; movingRight: boolean; facingBack: boolean;
+    directionX: number; directionY: number; movingRight: boolean; facingBack: boolean; visualFacingRight: boolean;
     targetName: string; debugVisible: boolean; debugLabel: string; debugPath: unknown[];
   }> = [];
   for (let index = 0; index < 30; index++) {
@@ -402,6 +426,7 @@ test('visitors turn around from their current position when a shop is demolished
   expect(samples.some(sample => sample.debugPath.length >= 2)).toBe(true);
   expect(samples.filter(sample => sample.directionX !== 0).every(sample => (
     sample.movingRight === (sample.directionX > 0)
+    && sample.visualFacingRight === (sample.directionX > 0)
   ))).toBe(true);
   expect(samples.filter(sample => sample.directionY !== 0).every(sample => (
     sample.facingBack === (sample.directionY < 0)

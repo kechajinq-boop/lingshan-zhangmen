@@ -1,0 +1,27 @@
+{
+  "schema": "lingshan.visitor-asset-direction.v1",
+  "reviewedAt": "2026-08-14",
+  "reviewEvidence": "R4 NPC diagnostic recording and native-scale sprite contact sheet",
+  "provenance": "Approved v0.12 handoff assets inherited unchanged; no sprite pixels were regenerated or edited in R5.",
+  "runtime": {
+    "canvas": [48, 64],
+    "displaySize": [18, 26],
+    "anchor": [0.5, 1.0]
+  },
+  "nativeFacingRight": {
+    "a": { "front": false, "back": true },
+    "b": { "front": false, "back": true },
+    "c": { "front": false, "back": true },
+    "d": { "front": false, "back": true }
+  },
+  "assets": [
+    { "id": "a-front", "path": "public/assets/v03/character-visitor-a.png", "sha256": "40A5E9A54295C1EB8374DB4D93B4D3BF9FC1BA5F14F8AEFC847C6D189E85100E", "view": "front", "nativeFacing": "left", "status": "approved-unchanged" },
+    { "id": "a-back", "path": "public/assets/v03/character-visitor-a-back.png", "sha256": "E2D95AFFF1866C2C9AB8F2C726D0FCA607258C9DE1AA1874CA714778D03DE148", "view": "back", "nativeFacing": "right", "status": "approved-unchanged" },
+    { "id": "b-front", "path": "public/assets/v03/character-visitor-b.png", "sha256": "FC945DB3C2143970B6D8F7DB33B99F6F8A7EE4BEFF5AF6CBABBE568EE3698860", "view": "front", "nativeFacing": "left", "status": "approved-unchanged" },
+    { "id": "b-back", "path": "public/assets/v03/character-visitor-b-back.png", "sha256": "0DC794EE2D560D11FCF63A4CE4F224826B92797B9DAA82C73963AC7365D72F35", "view": "back", "nativeFacing": "right", "status": "approved-unchanged" },
+    { "id": "c-front", "path": "public/assets/v03/character-visitor-c.png", "sha256": "301D62B1D8090F1208169ADBC81E882FEDDD8024861E59656D69C304FA204005", "view": "front", "nativeFacing": "left", "status": "approved-unchanged" },
+    { "id": "c-back", "path": "public/assets/v03/character-visitor-c-back.png", "sha256": "CB29516C15ECF96D437AF1B2C35AF016BD3196B1F94BEEAAD1D4DF0157C92638", "view": "back", "nativeFacing": "right", "status": "approved-unchanged" },
+    { "id": "d-front", "path": "public/assets/v03/character-visitor-d.png", "sha256": "58CC93223176814CC2DD0252420CB819BF143594535D2D7ACAE5B9498CB64AAE", "view": "front", "nativeFacing": "left", "status": "approved-unchanged" },
+    { "id": "d-back", "path": "public/assets/v03/character-visitor-d-back.png", "sha256": "B060D70286C2574C0A299797E6C1F66284B0E11006733B01FF1CE2769A139E8A", "view": "back", "nativeFacing": "right", "status": "approved-unchanged" }
+  ]
+}

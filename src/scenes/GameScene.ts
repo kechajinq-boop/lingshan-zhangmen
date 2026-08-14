@@ -71,10 +71,10 @@ const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
   faqipu: { width: 94, height: 94, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 50, collisionHalfHeight: 38, collisionOffsetY: 8 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
-  a: { front: true, back: true },
+  a: { front: false, back: true },
   b: { front: false, back: true },
   c: { front: false, back: true },
-  d: { front: true, back: true },
+  d: { front: false, back: true },
 };
 
 export class GameScene extends Phaser.Scene {
@@ -2967,6 +2967,7 @@ export class GameScene extends Phaser.Scene {
           displayHeight: person.displayHeight,
         };
       }),
+      visitorDirectionContract: VISITOR_NATIVE_RIGHT,
       npcDebug: {
         enabled: this.npcDebugEnabled,
         button: this.npcDebugButton ? { x: this.npcDebugButton.x, y: this.npcDebugButton.y } : null,
