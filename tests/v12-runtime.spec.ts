@@ -282,12 +282,19 @@ test('visitors keep correct facing across pill and artifact shops in all six reg
 
 test('old and new building families use the calibrated runtime size band', async ({ page }) => {
   const ids = ['lingtian', 'danfang', 'danpu', 'liangong', 'xiangfang', 'lingkuang', 'lianqi', 'faqipu'];
-  await continueGame(page, schemaSevenSave(ids.map((id, index) => makeBuilding(index, id)), 0));
+  const assignedBuildings = ids.map((id, index) => ({
+    ...makeBuilding(index, id),
+    assigned: [`restored-worker-${index}`],
+  }));
+  await continueGame(page, schemaSevenSave(assignedBuildings, 0));
   const visuals = await page.locator('canvas').evaluate(canvas => (
-    JSON.parse(canvas.dataset.v12State || '{}').buildingVisuals as Array<{ id: string; displayWidth: number; displayHeight: number }>
+    JSON.parse(canvas.dataset.v12State || '{}').buildingVisuals as Array<{
+      id: string; displayWidth: number; displayHeight: number; workerVisible: boolean;
+    }>
   ));
   expect(visuals).toHaveLength(ids.length);
   expect(visuals.every(visual => visual.displayWidth > 0 && visual.displayHeight > 0)).toBe(true);
+  expect(visuals.every(visual => !visual.workerVisible)).toBe(true);
   const oldWidths = visuals.filter(visual => !['lingkuang', 'lianqi', 'faqipu'].includes(visual.id)).map(visual => visual.displayWidth);
   const newWidths = visuals.filter(visual => ['lingkuang', 'lianqi', 'faqipu'].includes(visual.id)).map(visual => visual.displayWidth);
   expect(Math.max(...newWidths)).toBeLessThanOrEqual(Math.max(...oldWidths) * 1.02);

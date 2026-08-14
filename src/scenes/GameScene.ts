@@ -1022,7 +1022,7 @@ export class GameScene extends Phaser.Scene {
       c.setData('hovering', false);
       hoverFrame.setVisible(false);
     });
-    worker.setVisible(b.assigned.length > 0 && def.type !== 'sell' && def.type !== 'artifactSell');
+    worker.setVisible(false);
     b.sprite = c;
     c.setDepth(slotPoint
       ? this.visualDepth(foot.y + artY, FACILITY_DEPTH_LAYER)
@@ -1077,7 +1077,7 @@ export class GameScene extends Phaser.Scene {
     bar.setVisible(showBar);
     fill.setVisible(showBar);
     worker.setTexture(this.discipleTexture(b));
-    worker.setVisible(b.assigned.length > 0 && def.type !== 'sell' && def.type !== 'artifactSell');
+    worker.setVisible(false);
     const label = b.sprite.getData('label') as Phaser.GameObjects.Text;
     const productionFx = b.sprite.getData('productionFx') as Phaser.GameObjects.GameObject | null;
     if (productionFx && 'setVisible' in productionFx) (productionFx as Phaser.GameObjects.Sprite).setVisible(b.progress > 0);
