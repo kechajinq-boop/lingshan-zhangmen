@@ -214,13 +214,47 @@ export class Economy {
     const candidates = open.filter(s => this.shopLoad(s) === minLoad);
     const target = candidates[this.nextShopCursor % candidates.length];
     this.nextShopCursor++;
-    const v: any = { id: Date.now() + (++this.visitorSeq), state: 'walking' as const, targetUid: target.uid, patience: this.gs.defs.visitor.patience, happy: false, walkTimer: 1.6 };
+    return this.spawnVisitorAt(target);
+  }
+
+  debugSpawnVisitor(): boolean {
+    const shops = this.sellBuildings();
+    if (shops.length === 0) return false;
+    this.syncSellShopQueues(shops);
+    const minLoad = Math.min(...shops.map(shop => this.shopLoad(shop)));
+    const candidates = shops.filter(shop => this.shopLoad(shop) === minLoad);
+    const target = candidates[this.nextShopCursor % candidates.length];
+    this.nextShopCursor++;
+    return this.spawnVisitorAt(target);
+  }
+
+  markVisitorArrived(visitorId: number): void {
+    const visitor = this.gs.data.visitors.find(item => item.id === visitorId);
+    if (!visitor || visitor.state !== 'walking') return;
+    visitor.arrivedAtShop = true;
+    visitor.arrivalWait = 0.45;
+    visitor.walkTimer = 0;
+    this.gs.events.emit('visitor-update', visitor);
+  }
+
+  spawnVisitorAt(target: PlacedBuilding): boolean {
+    const d = this.gs.data;
+    const v: any = {
+      id: Date.now() + (++this.visitorSeq),
+      state: 'walking' as const,
+      targetUid: target.uid,
+      patience: this.gs.defs.visitor.patience,
+      happy: false,
+      walkTimer: 0,
+      arrivedAtShop: false,
+      arrivalWait: 0,
+    };
     const pool = this.gs.defs.visitorNames || [];
     if (pool.length) { const p = pool[Math.floor(Math.random() * pool.length)]; v.identity = p.identity; v.name = p.name; } else { v.identity = '访客'; v.name = '访客' + v.id % 100; }
     d.visitors.push(v);
     target.queue++;
     this.gs.events.emit('visitor-spawn', v, target);
-    return true;
+    return d.visitors.includes(v);
   }
 
   tickVisitors(dt: number): void {
@@ -231,9 +265,11 @@ export class Economy {
       if (!shop) { d.visitors.splice(i, 1); continue; }
       const shopDef = this.gs.buildingDef(shop.defId);
       if (v.state === 'walking') {
-        v.walkTimer = (v.walkTimer ?? 0) - dt;
-        if (v.walkTimer <= 0) {
+        v.walkTimer = Math.max(0, (v.walkTimer ?? 0) - dt);
+        if (v.arrivedAtShop) {
           if (!this.shopCanSell(shop)) {
+            v.arrivalWait = (v.arrivalWait ?? 0.45) - dt;
+            if (v.arrivalWait > 0) continue;
             const reason = shop.defId === 'faqipu' ? '青锋剑已经售罄，改日再来' : '丹药已经售罄，改日再来';
             this.visitorLeave(v, shop, false, i, reason, false);
             continue;
@@ -242,10 +278,6 @@ export class Economy {
           v.state = buying ? 'queuing' : 'buying';
           if (v.state === 'buying') { v.walkTimer = 0; this.gs.events.emit('visitor-update', v); }
           else this.gs.events.emit('visitor-update', v);
-        }
-        if (v.state === 'walking') {
-          v.patience -= dt;
-          if (v.patience <= 0) this.visitorLeave(v, shop, false, i);
         }
       } else if (v.state === 'queuing') {
         const buying = d.visitors.some(x => x.targetUid === shop.uid && x.state === 'buying');

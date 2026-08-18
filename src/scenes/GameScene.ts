@@ -69,11 +69,22 @@ const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
   lingkuang: { width: 108, height: 108, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
   lianqi: { width: 104, height: 104, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 53, collisionHalfHeight: 41, collisionOffsetY: 8 },
   faqipu: { width: 94, height: 94, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 50, collisionHalfHeight: 38, collisionOffsetY: 8 },
-  'decor-sakura': { width: 50, height: 55, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
-  'decor-pine': { width: 50, height: 54, offsetX: 3, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
-  'decor-flower': { width: 54, height: 50, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 13, collisionOffsetY: 3 },
-  'decor-lantern': { width: 45, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
-  'decor-lotus': { width: 60, height: 45, offsetX: -3, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 10, collisionOffsetY: 2 },
+  'decor-sakura': { width: 73, height: 73, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-sakura-large': { width: 57, height: 57, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-pine': { width: 66, height: 66, offsetX: 2, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-pine-large': { width: 56, height: 56, offsetX: 2, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-flower': { width: 56, height: 56, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-spirit-blue': { width: 62, height: 62, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-bamboo': { width: 47, height: 63, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 15, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-bush': { width: 62, height: 62, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-rock-small': { width: 78, height: 78, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-rock-large': { width: 60, height: 60, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 19, collisionHalfHeight: 14, collisionOffsetY: 3 },
+  'decor-lantern': { width: 50, height: 67, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-lantern-2': { width: 51, height: 69, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-incense': { width: 50, height: 67, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-crystal-lamp': { width: 59, height: 80, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-lotus': { width: 68, height: 51, offsetX: -3, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 10, collisionOffsetY: 2 },
+  'decor-reeds': { width: 61, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 11, collisionOffsetY: 2 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: false, back: true },
@@ -131,6 +142,9 @@ export class GameScene extends Phaser.Scene {
   directionCheckRunning = false;
   npcDebugEnabled = false;
   npcDebugButton?: Phaser.GameObjects.Rectangle;
+  acceptanceToolsOpen = false;
+  acceptanceToolsPanel?: Phaser.GameObjects.Container;
+  acceptanceToolsButton?: Phaser.GameObjects.Rectangle;
   keysBound = false;
   saveTimer = 0;
   minBoardScale = 1;
@@ -1539,7 +1553,7 @@ export class GameScene extends Phaser.Scene {
     }
     v.walkTimer = this.visitorRouteDuration(path) / 1000 + 0.08;
     c.setData('returnPath', [path[0]]);
-    this.walkVisitorPath(c, path, target.gx, target.gy, undefined, true);
+    this.walkVisitorPath(c, path, target.gx, target.gy, () => this.gs.economy.markVisitorArrived(v.id), true);
   }
 
   removeVisitorSprite(v: Visitor): void {
@@ -1754,7 +1768,7 @@ export class GameScene extends Phaser.Scene {
 
     const brandWidth = compact ? 104 : 190;
     const timeWidth = compact ? 82 : 142;
-    const systemWidth = compact ? 160 : 220;
+    const systemWidth = compact ? 196 : 300;
     const brandRight = margin + brandWidth;
     const timeRight = brandRight + timeWidth;
     const systemLeft = w - margin - systemWidth;
@@ -1798,7 +1812,13 @@ export class GameScene extends Phaser.Scene {
 
     const systemButtons = [
       {
-        label: this.npcDebugEnabled ? '关闭诊断' : 'NPC诊断',
+        label: compact ? '验收' : '验收工具',
+        color: this.acceptanceToolsOpen ? 0xc67a2d : 0x8a623d,
+        run: () => this.toggleAcceptanceTools(),
+        acceptance: true,
+      },
+      {
+        label: this.npcDebugEnabled ? (compact ? '关诊断' : '关闭诊断') : (compact ? '诊断' : 'NPC诊断'),
         color: this.npcDebugEnabled ? 0xc84335 : 0x704c35,
         run: () => this.toggleNPCDebug(),
         debug: true,
@@ -1824,8 +1844,152 @@ export class GameScene extends Phaser.Scene {
         action.run();
       });
       if (action.debug) this.npcDebugButton = btn;
+      if (action.acceptance) this.acceptanceToolsButton = btn;
       this.hudLayer.add([btn, text]);
     });
+  }
+
+  toggleAcceptanceTools(): void {
+    if (this.acceptanceToolsOpen) {
+      this.closeAcceptanceTools();
+      return;
+    }
+    this.acceptanceToolsOpen = true;
+    this.renderAcceptanceTools();
+    this.layoutHUD();
+  }
+
+  closeAcceptanceTools(): void {
+    this.acceptanceToolsOpen = false;
+    if (this.acceptanceToolsPanel) {
+      this.acceptanceToolsPanel.destroy();
+      this.acceptanceToolsPanel = undefined;
+    }
+    this.layoutHUD();
+  }
+
+  renderAcceptanceTools(): void {
+    if (!this.acceptanceToolsOpen) return;
+    if (!this.acceptanceToolsPanel) this.acceptanceToolsPanel = this.add.container(0, 0).setDepth(130);
+    const panel = this.acceptanceToolsPanel;
+    panel.removeAll(true);
+    const screenW = this.scale.width;
+    const screenH = this.scale.height;
+    const width = Math.min(500, screenW - 20);
+    const height = Math.min(370, screenH - 20);
+    const left = (screenW - width) / 2;
+    const top = (screenH - height) / 2;
+    const blocker = this.add.rectangle(0, 0, screenW, screenH, 0x17120e, 0.58)
+      .setOrigin(0, 0)
+      .setInteractive();
+    blocker.on('pointerdown', () => this.closeAcceptanceTools());
+    const bg = this.add.rectangle(left, top, width, height, 0xffefc1, 0.99)
+      .setOrigin(0, 0)
+      .setStrokeStyle(2, 0xf08b3e, 0.98)
+      .setInteractive();
+    bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
+    const title = this.add.text(left + 18, top + 20, '验收工具', {
+      fontSize: '20px', color: '#5a331d', fontFamily: FONT, fontStyle: 'bold',
+    }).setOrigin(0, 0.5);
+    const note = this.add.text(left + 18, top + 49, '仅用于快速验收；每次操作会自动保存，不改变存档结构。', {
+      fontSize: '12px', color: '#7a634b', fontFamily: FONT,
+    }).setOrigin(0, 0.5);
+    const close = this.add.text(left + width - 18, top + 20, '✕', {
+      fontSize: '20px', color: '#7a4b25', fontFamily: FONT, fontStyle: 'bold',
+    }).setOrigin(1, 0.5).setInteractive({ useHandCursor: true });
+    close.on('pointerdown', () => this.closeAcceptanceTools());
+    panel.add([blocker, bg, title, note, close]);
+
+    const section = this.add.text(left + 18, top + 76, '资源补充', {
+      fontSize: '13px', color: '#6a361c', fontFamily: FONT, fontStyle: 'bold',
+    }).setOrigin(0, 0.5);
+    panel.add(section);
+    const gap = 10;
+    const buttonWidth = (width - 46) / 2;
+    const buttonHeight = 38;
+    const addButton = (column: number, rowY: number, label: string, action: string, run: () => void, color = 0xb87932): void => {
+      const x = left + 18 + buttonWidth / 2 + column * (buttonWidth + gap);
+      const button = this.add.rectangle(x, rowY, buttonWidth, buttonHeight, color, 0.98)
+        .setStrokeStyle(1, 0xffffff, 0.72)
+        .setInteractive({ useHandCursor: true })
+        .setData('acceptanceAction', action);
+      const text = this.add.text(x, rowY, label, {
+        fontSize: screenW < 900 ? '12px' : '13px', color: '#fffdf0', fontFamily: FONT, fontStyle: 'bold',
+      }).setOrigin(0.5);
+      button.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
+        ev.stopPropagation();
+        run();
+      });
+      panel.add([button, text]);
+    };
+    const firstRow = top + 108;
+    addButton(0, firstRow, '+50000 灵石', 'spirit', () => this.grantAcceptanceResource('spirit'));
+    addButton(1, firstRow, '+1000 声望', 'reputation', () => this.grantAcceptanceResource('reputation'));
+    addButton(0, firstRow + 46, '+200 药草', 'herbs', () => this.grantAcceptanceResource('herbs'));
+    addButton(1, firstRow + 46, '+200 灵矿', 'spiritOre', () => this.grantAcceptanceResource('spiritOre'));
+    addButton(0, firstRow + 92, '各类丹药 +50', 'pills', () => this.grantAcceptanceResource('pills'));
+    addButton(1, firstRow + 92, '+50 青锋剑', 'azureEdgeSwords', () => this.grantAcceptanceResource('azureEdgeSwords'));
+
+    const visitorHeaderY = firstRow + 126;
+    panel.add(this.add.text(left + 18, visitorHeaderY, '访客测试', {
+      fontSize: '13px', color: '#6a361c', fontFamily: FONT, fontStyle: 'bold',
+    }).setOrigin(0, 0.5));
+    addButton(0, visitorHeaderY + 32, '立即召来1名访客', 'spawnVisitor', () => this.spawnAcceptanceVisitor(), 0x4f8a63);
+    addButton(1, visitorHeaderY + 32, '清理当前访客', 'clearVisitors', () => this.clearAcceptanceVisitors(), 0x9b654d);
+    const diagnosisLabel = this.npcDebugEnabled ? '关闭NPC路线诊断' : '开启NPC路线诊断';
+    const diagnosisX = left + width / 2;
+    const diagnosisY = visitorHeaderY + 78;
+    const diagnosis = this.add.rectangle(diagnosisX, diagnosisY, width - 36, 34, this.npcDebugEnabled ? 0xc84335 : 0x704c35, 0.98)
+      .setStrokeStyle(1, 0xffffff, 0.72)
+      .setInteractive({ useHandCursor: true })
+      .setData('acceptanceAction', 'npcDebug');
+    const diagnosisText = this.add.text(diagnosisX, diagnosisY, diagnosisLabel, {
+      fontSize: '12px', color: '#fffdf0', fontFamily: FONT, fontStyle: 'bold',
+    }).setOrigin(0.5);
+    diagnosis.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
+      ev.stopPropagation();
+      this.toggleNPCDebug();
+      this.renderAcceptanceTools();
+    });
+    panel.add([diagnosis, diagnosisText]);
+  }
+
+  grantAcceptanceResource(kind: 'spirit' | 'reputation' | 'herbs' | 'spiritOre' | 'pills' | 'azureEdgeSwords'): void {
+    const d = this.gs.data;
+    let message = '';
+    if (kind === 'spirit') { d.spirit += 50000; message = '已补充50000灵石'; }
+    if (kind === 'reputation') { d.reputation = Math.min(999, d.reputation + 1000); message = '声望已补充至' + d.reputation; }
+    if (kind === 'herbs') { d.herbs += 200; message = '已补充200药草'; }
+    if (kind === 'spiritOre') { d.spiritOre += 200; message = '已补充200灵矿'; }
+    if (kind === 'pills') {
+      for (const recipeId of d.unlockedRecipes) d.pills[recipeId] = (d.pills[recipeId] || 0) + 50;
+      message = '已为每种已解锁丹药补充50枚';
+    }
+    if (kind === 'azureEdgeSwords') { d.azureEdgeSwords += 50; message = '已补充50柄青锋剑'; }
+    this.gs.save.save();
+    this.toast(message);
+  }
+
+  spawnAcceptanceVisitor(): void {
+    if (this.gs.economy.sellBuildings().length === 0) {
+      this.toast('暂无丹药铺或法器铺，请先建造商铺');
+      return;
+    }
+    const spawned = this.gs.economy.debugSpawnVisitor();
+    if (!spawned) {
+      this.toast('访客无法抵达商铺，请检查商铺入口或先清理当前访客');
+      return;
+    }
+    this.gs.save.save();
+    this.toast('已从山门召来1名访客');
+  }
+
+  clearAcceptanceVisitors(): void {
+    this.purgeVisitorVisuals();
+    this.gs.data.visitors = [];
+    for (const shop of this.gs.economy.sellBuildings()) shop.queue = 0;
+    this.gs.save.save();
+    this.toast('当前访客与商铺队列已清理');
   }
 
   createEventFeed(): void {
@@ -2158,22 +2322,29 @@ export class GameScene extends Phaser.Scene {
       '景',
     );
     if (this.decorMenuOpen) {
-      const paletteW = decorDefs.length * buttonW + (decorDefs.length - 1) * gap;
-      const paletteY = firstRowY - buttonH - gap - 8;
-      const palette = this.add.rectangle(0, paletteY, paletteW + 16, buttonH + 12, 0xffefc1, 0.98)
+      const decorColumns = Math.min(8, decorDefs.length);
+      const decorRows = Math.ceil(decorDefs.length / decorColumns);
+      const paletteW = decorColumns * buttonW + (decorColumns - 1) * gap;
+      const paletteH = decorRows * buttonH + (decorRows - 1) * gap;
+      const paletteBottomY = firstRowY - buttonH / 2 - gap - 8;
+      const paletteCenterY = paletteBottomY - paletteH / 2;
+      const palette = this.add.rectangle(0, paletteCenterY, paletteW + 16, paletteH + 12, 0xffefc1, 0.98)
         .setStrokeStyle(2, 0xd8993a, 0.95)
         .setInteractive();
       palette.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
       this.buildMenu.add(palette);
       const paletteStartX = -paletteW / 2 + buttonW / 2;
       decorDefs.forEach((def, index) => {
-        const bx = paletteStartX + index * (buttonW + gap);
-        addButton(bx, paletteY, def.name, 0xcde0a1, pointer => {
+        const column = index % decorColumns;
+        const row = Math.floor(index / decorColumns);
+        const bx = paletteStartX + column * (buttonW + gap);
+        const by = paletteBottomY - buttonH / 2 - row * (buttonH + gap);
+        addButton(bx, by, def.name, 0xcde0a1, pointer => {
           this.beginBuildPointer(def.id, pointer);
         }, { key: 'defId', value: def.id });
-        const icon = this.add.image(bx, paletteY - 8, 'building-' + def.id)
+        const icon = this.add.image(bx, by - 8, 'building-' + def.id)
           .setDisplaySize(compact ? 30 : 38, compact ? 27 : 34);
-        const cost = this.add.text(bx, paletteY + buttonH / 2 - 20, String(def.cost), {
+        const cost = this.add.text(bx, by + buttonH / 2 - 20, String(def.cost), {
           fontSize: '11px', color: '#7b241c', fontFamily: FONT, fontStyle: 'bold',
           stroke: '#fff1bd', strokeThickness: 2,
         }).setOrigin(0.5);
@@ -3022,6 +3193,7 @@ export class GameScene extends Phaser.Scene {
     this.layoutHUD();
     this.renderEventFeed();
     if (this.eventHistoryOpen) this.renderEventHistory();
+    if (this.acceptanceToolsOpen) this.renderAcceptanceTools();
     this.layoutUI();
     if (this.selectedBuilding) this.selectBuilding(this.selectedBuilding);
   }
@@ -3067,6 +3239,7 @@ export class GameScene extends Phaser.Scene {
       completedResearch: d.completedResearch,
       totalEarned: d.totalEarned,
       spirit: d.spirit,
+      reputation: d.reputation,
       artifactSellPrice: this.gs.artifactSellPrice(),
       buildingCount: d.buildings.length,
       progressionBuildingCount: this.gs.progressionBuildingCount(),
@@ -3109,6 +3282,8 @@ export class GameScene extends Phaser.Scene {
         state: visitor.state,
         targetUid: visitor.targetUid,
         walkTimer: visitor.walkTimer || 0,
+        arrivedAtShop: !!visitor.arrivedAtShop,
+        arrivalWait: visitor.arrivalWait || 0,
         hasSprite: this.visitorSprites.has(visitor.id),
       })),
       visitorVisuals: [...this.visitorSprites.entries()].map(([id, sprite]) => {
@@ -3138,9 +3313,33 @@ export class GameScene extends Phaser.Scene {
         };
       }),
       visitorDirectionContract: VISITOR_NATIVE_RIGHT,
+      visitorFlow: {
+        spawnTimer: this.gs.economy.spawnTimer,
+        spawnInterval: this.gs.economy.spawnInterval(),
+        desiredCount: this.gs.economy.desiredVisitorCount(),
+        shops: this.gs.economy.sellBuildings().map(shop => ({
+          uid: shop.uid,
+          defId: shop.defId,
+          load: this.gs.economy.shopLoad(shop),
+          capacity: this.gs.shopCapacity(shop),
+          canSell: this.gs.economy.shopCanSell(shop),
+          queue: shop.queue,
+        })),
+      },
       npcDebug: {
         enabled: this.npcDebugEnabled,
         button: this.npcDebugButton ? { x: this.npcDebugButton.x, y: this.npcDebugButton.y } : null,
+      },
+      acceptanceTools: {
+        open: this.acceptanceToolsOpen,
+        button: this.acceptanceToolsButton ? { x: this.acceptanceToolsButton.x, y: this.acceptanceToolsButton.y } : null,
+        actions: this.acceptanceToolsPanel?.list
+          .filter((child: any) => child.getData?.('acceptanceAction'))
+          .map((child: any) => ({
+            action: child.getData('acceptanceAction'),
+            x: Number(child.x),
+            y: Number(child.y),
+          })) || [],
       },
       uiButtons: this.buildMenu.list.filter((child: any) => child.getData?.('action') || child.getData?.('defId') || child.getData?.('speed') !== undefined).map((child: any) => ({
         action: child.getData('action') || null,
@@ -3192,6 +3391,7 @@ export class GameScene extends Phaser.Scene {
       this.input.keyboard.on('keydown-ESC', () => {
         this.cancelBuild();
         this.selectBuilding(null);
+        if (this.acceptanceToolsOpen) this.closeAcceptanceTools();
         if (this.researchOpen) this.toggleResearch();
         if (this.elderOpen) this.toggleElder();
         if (this.recruitOpen) this.toggleRecruit();

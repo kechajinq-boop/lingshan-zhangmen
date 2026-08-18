@@ -77,6 +77,8 @@ export interface Visitor {
   targetUid: number; patience: number; happy: boolean;
   name?: string; identity?: string;
   walkTimer?: number;
+  arrivedAtShop?: boolean;
+  arrivalWait?: number;
   sprite?: Phaser.GameObjects.Container;
 }
 
