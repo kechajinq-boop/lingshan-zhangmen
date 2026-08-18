@@ -1,0 +1,18 @@
+{
+  "runs": 2000,
+  "daysPerRun": 365,
+  "sampledDays": 730000,
+  "alchemyValuePerHerb": 15,
+  "directSaleAveragePerHerb": 12.565,
+  "alchemyAdvantageVsAlwaysSelling": 19.4,
+  "normalMarketAverageExcludingCrazy": 11.448,
+  "crazyAverageVsAlchemyPercent": 143.3,
+  "maxObservedRisingStreak": 8,
+  "stages": {
+    "crash": { "label": "崩盘", "frequencyPercent": 5.16, "averagePrice": 4.499 },
+    "low": { "label": "低迷", "frequencyPercent": 13.55, "averagePrice": 8.003 },
+    "stable": { "label": "平稳", "frequencyPercent": 37.65, "averagePrice": 11.002 },
+    "hot": { "label": "火热", "frequencyPercent": 32.54, "averagePrice": 14.501 },
+    "crazy": { "label": "狂热", "frequencyPercent": 11.11, "averagePrice": 21.495 }
+  }
+}

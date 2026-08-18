@@ -1553,7 +1553,7 @@ export class GameScene extends Phaser.Scene {
     }
     v.walkTimer = this.visitorRouteDuration(path) / 1000 + 0.08;
     c.setData('returnPath', [path[0]]);
-    this.walkVisitorPath(c, path, target.gx, target.gy, undefined, true);
+    this.walkVisitorPath(c, path, target.gx, target.gy, () => this.gs.economy.markVisitorArrived(v.id), true);
   }
 
   removeVisitorSprite(v: Visitor): void {
@@ -3282,6 +3282,8 @@ export class GameScene extends Phaser.Scene {
         state: visitor.state,
         targetUid: visitor.targetUid,
         walkTimer: visitor.walkTimer || 0,
+        arrivedAtShop: !!visitor.arrivedAtShop,
+        arrivalWait: visitor.arrivalWait || 0,
         hasSprite: this.visitorSprites.has(visitor.id),
       })),
       visitorVisuals: [...this.visitorSprites.entries()].map(([id, sprite]) => {
@@ -3311,6 +3313,19 @@ export class GameScene extends Phaser.Scene {
         };
       }),
       visitorDirectionContract: VISITOR_NATIVE_RIGHT,
+      visitorFlow: {
+        spawnTimer: this.gs.economy.spawnTimer,
+        spawnInterval: this.gs.economy.spawnInterval(),
+        desiredCount: this.gs.economy.desiredVisitorCount(),
+        shops: this.gs.economy.sellBuildings().map(shop => ({
+          uid: shop.uid,
+          defId: shop.defId,
+          load: this.gs.economy.shopLoad(shop),
+          capacity: this.gs.shopCapacity(shop),
+          canSell: this.gs.economy.shopCanSell(shop),
+          queue: shop.queue,
+        })),
+      },
       npcDebug: {
         enabled: this.npcDebugEnabled,
         button: this.npcDebugButton ? { x: this.npcDebugButton.x, y: this.npcDebugButton.y } : null,

@@ -374,6 +374,9 @@ test('sold-out shops still receive a neutral visitor without reputation loss', a
     JSON.parse(canvas.dataset.v12State || '{}').visitorVisuals.length
   )), { timeout: 10000 }).toBeGreaterThan(0);
   await expect.poll(async () => page.locator('canvas').evaluate(canvas => (
+    JSON.parse(canvas.dataset.v12State || '{}').visitors.some((visitor: { arrivedAtShop: boolean }) => visitor.arrivedAtShop)
+  )), { timeout: 15000 }).toBe(true);
+  await expect.poll(async () => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').visitors.length
   )), { timeout: 15000 }).toBe(0);
   await page.mouse.click(1793, 50);
@@ -383,6 +386,38 @@ test('sold-out shops still receive a neutral visitor without reputation loss', a
   expect(saved.reputation).toBe(old.reputation);
   expect(saved.visitorsLost).toBe(old.visitorsLost);
   expect(saved.eventLog.some((event: { title: string }) => event.title === '商铺暂时售罄')).toBe(true);
+});
+
+test('sold-out visitor flow remains active after day 18', async ({ page }) => {
+  test.setTimeout(60_000);
+  const shop = { ...makeBuilding(0, 'danpu'), sellRecipe: 'juling' };
+  await continueGame(page, {
+    ...schemaSevenSave([shop], 0),
+    day: 17,
+    dayTime: 59,
+    pills: { juling: 0, bigu: 0 },
+    reputation: 999,
+  });
+  const state = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  const speedButton = state.uiButtons.find((button: { speed?: number }) => button.speed === 2);
+  expect(speedButton).toBeTruthy();
+  await page.locator('canvas').click({ position: { x: speedButton.x, y: speedButton.y }, force: true });
+
+  const postDay18Visitors = new Set<number>();
+  await expect.poll(async () => {
+    const live = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    if (live.day >= 18) {
+      for (const visitor of live.visitors) postDay18Visitors.add(visitor.id);
+    }
+    return live.day;
+  }, { timeout: 45_000, intervals: [250, 500, 1000] }).toBeGreaterThanOrEqual(19);
+
+  const live = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  expect(postDay18Visitors.size).toBeGreaterThan(1);
+  expect(Number.isFinite(live.visitorFlow.spawnTimer)).toBe(true);
+  expect(live.visitorFlow.spawnInterval).toBeGreaterThan(0);
+  expect(live.visitorFlow.desiredCount + live.visitorFlow.shops[0].load).toBeGreaterThan(0);
+  expect(live.visitorFlow.shops[0].load).toBeLessThanOrEqual(live.visitorFlow.shops[0].capacity);
 });
 
 test('visitors turn around from their current position when a shop is demolished', async ({ page }) => {
