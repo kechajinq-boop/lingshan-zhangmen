@@ -11,7 +11,7 @@ import {
 } from '../src/data/v10Map';
 import { findVisitorPath } from '../src/systems/VisitorPath';
 
-const URL = 'http://127.0.0.1:4173/';
+const URL = process.env.TEST_URL || 'http://127.0.0.1:4173/';
 const SAVE_KEY = 'lingshan_save_v1';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
@@ -74,7 +74,7 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(8);
+  ))).toBe(9);
 }
 
 async function selectFirstBuilding(page: import('@playwright/test').Page) {
@@ -155,7 +155,7 @@ test('schema-seven save migrates to eight while keeping stable building identity
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(200);
   const loaded = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
-  expect(loaded.schemaVersion).toBe(8);
+  expect(loaded.schemaVersion).toBe(9);
   expect(loaded.expansionsUnlocked).toBe(2);
   expect(loaded.buildings.map((item: Record<string, unknown>) => ({
     uid: item.uid,

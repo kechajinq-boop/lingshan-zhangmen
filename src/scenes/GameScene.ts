@@ -69,6 +69,11 @@ const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
   lingkuang: { width: 108, height: 108, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
   lianqi: { width: 104, height: 104, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 53, collisionHalfHeight: 41, collisionOffsetY: 8 },
   faqipu: { width: 94, height: 94, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 50, collisionHalfHeight: 38, collisionOffsetY: 8 },
+  'decor-sakura': { width: 50, height: 55, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-pine': { width: 50, height: 54, offsetX: 3, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-flower': { width: 54, height: 50, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-lantern': { width: 45, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-lotus': { width: 60, height: 45, offsetX: -3, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 10, collisionOffsetY: 2 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: false, back: true },
@@ -112,6 +117,7 @@ export class GameScene extends Phaser.Scene {
   commissionPanel!: Phaser.GameObjects.Container;
   commissionOpen = false;
   selectedBuild: string | null = null;
+  decorMenuOpen = false;
   ghost: BuildGhost | null = null;
   selectedBuilding: PlacedBuilding | null = null;
   visitorSprites = new Map<number, Phaser.GameObjects.Container>();
@@ -154,7 +160,7 @@ export class GameScene extends Phaser.Scene {
     if (restored) {
       this.gs.data.expansionsUnlocked = Math.max(
         this.gs.data.expansionsUnlocked,
-        v10StageForBuildingCount(this.gs.data.buildings.length),
+        v10StageForBuildingCount(this.gs.progressionBuildingCount()),
       );
       this.alignRestoredBuildingsToSlots();
       this.gs.save.save();
@@ -773,7 +779,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   buildMenuHeight(): number {
-    return this.scale.width < 760 ? 126 : 86;
+    return this.scale.width < 900 ? 126 : 86;
   }
 
   topBarHeight(): number {
@@ -792,10 +798,11 @@ export class GameScene extends Phaser.Scene {
     ) * 1.01;
     let focusX = (g.w - g.h) * TILE_W / 4;
     let focusY = (g.w + g.h - 2) * TILE_H / 4;
-    if (this.gs.data.buildings.length > 0) {
+    const focusBuildings = this.gs.data.buildings.filter(building => this.gs.buildingDef(building.defId).type !== 'decor');
+    if (focusBuildings.length > 0) {
       let totalX = 0;
       let totalY = 0;
-      for (const b of this.gs.data.buildings) {
+      for (const b of focusBuildings) {
         const def = this.gs.buildingDef(b.defId);
         const point = this.slotVisualPosition(b.gx, b.gy) || this.gs.grid.toScreen(
           b.gx + (def.w - 1) / 2,
@@ -804,13 +811,13 @@ export class GameScene extends Phaser.Scene {
         totalX += point.x;
         totalY += point.y;
       }
-      focusX = totalX / this.gs.data.buildings.length;
-      focusY = totalY / this.gs.data.buildings.length;
+      focusX = totalX / focusBuildings.length;
+      focusY = totalY / focusBuildings.length;
     }
 
     this.minBoardScale = scale;
     this.maxBoardScale = scale * 2.0;
-    if (this.gs.data.buildings.length > 0) {
+    if (focusBuildings.length > 0) {
       const hudSafeOffsetX = w >= 900 ? 20 : 0;
       this.originX = w / 2 + hudSafeOffsetX - focusX * scale;
       this.originY = (topSafe + bottomSafe) / 2 - focusY * scale;
@@ -937,6 +944,56 @@ export class GameScene extends Phaser.Scene {
     return 'character-disciple-' + (disciple?.appearance || 'a');
   }
 
+  createLegacyProductionFx(defId: string, artX: number, artY: number, displayW: number, displayH: number): Phaser.GameObjects.Container | null {
+    if (!['lingtian', 'danfang', 'danpu'].includes(defId)) return null;
+    const fx = this.add.container(0, 0).setVisible(false);
+    if (defId === 'lingtian') {
+      const motes = [-0.22, 0, 0.22].map((offset, index) => {
+        const mote = this.add.circle(artX + displayW * offset, artY - displayH * (0.22 + index * 0.04), 2.2, 0x9df072, 0.85);
+        fx.add(mote);
+        this.tweens.add({
+          targets: mote,
+          y: mote.y - displayH * 0.22,
+          alpha: 0.1,
+          scale: 0.65,
+          duration: 850 + index * 130,
+          delay: index * 220,
+          repeat: -1,
+        });
+        return mote;
+      });
+      fx.setData('fxParts', motes);
+    } else if (defId === 'danfang') {
+      const glow = this.add.ellipse(artX - displayW * 0.05, artY - displayH * 0.2, displayW * 0.3, displayH * 0.16, 0xff9c3d, 0.3);
+      const flame = this.add.circle(artX - displayW * 0.05, artY - displayH * 0.24, Math.max(3, displayW * 0.045), 0xffcf5a, 0.9);
+      const smoke = this.add.circle(artX + displayW * 0.03, artY - displayH * 0.42, Math.max(3, displayW * 0.035), 0xd8d1bd, 0.45);
+      fx.add([glow, flame, smoke]);
+      this.tweens.add({ targets: [glow, flame], alpha: { from: 0.35, to: 0.9 }, scale: { from: 0.85, to: 1.12 }, duration: 520, yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: smoke, y: smoke.y - displayH * 0.18, x: smoke.x + displayW * 0.08, alpha: 0.05, scale: 1.45, duration: 1200, repeat: -1 });
+    } else {
+      const glow = this.add.ellipse(artX + displayW * 0.03, artY - displayH * 0.23, displayW * 0.46, displayH * 0.24, 0xffd36a, 0.18);
+      const aromas = [-0.12, 0.02, 0.15].map((offset, index) => {
+        const aroma = this.add.circle(artX + displayW * offset, artY - displayH * (0.28 + index * 0.03), 2, 0xb9efc4, 0.7);
+        fx.add(aroma);
+        this.tweens.add({
+          targets: aroma,
+          y: aroma.y - displayH * 0.24,
+          x: aroma.x + (index % 2 === 0 ? -1 : 1) * displayW * 0.08,
+          alpha: 0.05,
+          scale: 1.3,
+          duration: 1050 + index * 150,
+          delay: index * 180,
+          repeat: -1,
+        });
+        return aroma;
+      });
+      fx.addAt(glow, 0);
+      this.tweens.add({ targets: glow, alpha: { from: 0.12, to: 0.3 }, scale: { from: 0.92, to: 1.06 }, duration: 780, yoyo: true, repeat: -1 });
+      fx.setData('fxParts', aromas);
+    }
+    return fx;
+  }
+
   drawBuilding(b: PlacedBuilding, animateConstruction = false): void {
     const def = this.gs.buildingDef(b.defId);
     this.drawCourtyard(b, def);
@@ -952,7 +1009,7 @@ export class GameScene extends Phaser.Scene {
     const art = this.add.image(artX, artY, 'building-' + def.id)
       .setDisplaySize(displayW, displayH)
       .setOrigin(0.5, 1.0);
-    let productionFx: Phaser.GameObjects.Sprite | Phaser.GameObjects.Image | null = null;
+    let productionFx: Phaser.GameObjects.GameObject | null = null;
     if (def.id === 'lingkuang') {
       productionFx = this.add.sprite(artX, artY - displayH * 0.23, 'fx-mine-glow')
         .setDisplaySize(displayW * 0.76, displayH * 0.76)
@@ -969,6 +1026,8 @@ export class GameScene extends Phaser.Scene {
       productionFx = sparks;
       c.add([art, array, sparks]);
       c.setData('productionFxArray', array);
+    } else {
+      productionFx = this.createLegacyProductionFx(def.id, artX, artY, displayW, displayH);
     }
     const worker = this.add.image(artX + displayW * 0.38, artY + 2, this.discipleTexture(b)).setDisplaySize(10, 15).setOrigin(0.5, 1);
     const label = this.add.text(artX, artY - displayH - 8, def.name, {
@@ -1006,7 +1065,7 @@ export class GameScene extends Phaser.Scene {
       artY - scaffoldH + 9,
     );
     if (def.id !== 'lianqi') c.add(art);
-    if (productionFx && def.id === 'lingkuang') c.add(productionFx);
+    if (productionFx && def.id !== 'lianqi') c.add(productionFx);
     c.add([worker, label, bar, fill, scaffold, hoverFrame]);
     c.setData('bar', bar);
     c.setData('fill', fill);
@@ -1086,7 +1145,7 @@ export class GameScene extends Phaser.Scene {
     const fill = b.sprite.getData('fill') as Phaser.GameObjects.Rectangle;
     const worker = b.sprite.getData('worker') as Phaser.GameObjects.Image;
     const def = this.gs.buildingDef(b.defId);
-    const showBar = b.progress > 0 || b.queue > 0 || this.selectedBuilding?.uid === b.uid;
+    const showBar = !!def.baseTime && (b.progress > 0 || b.queue > 0 || this.selectedBuilding?.uid === b.uid);
     const progressBarWidth = (b.sprite.getData('progressBarWidth') as number) || 54;
     fill.width = progressBarWidth * Phaser.Math.Clamp(b.progress, 0, 1);
     bar.setVisible(showBar);
@@ -1095,7 +1154,8 @@ export class GameScene extends Phaser.Scene {
     worker.setVisible(false);
     const label = b.sprite.getData('label') as Phaser.GameObjects.Text;
     const productionFx = b.sprite.getData('productionFx') as Phaser.GameObjects.GameObject | null;
-    if (productionFx && 'setVisible' in productionFx) (productionFx as Phaser.GameObjects.Sprite).setVisible(b.progress > 0);
+    const fxActive = def.id === 'danpu' ? b.queue > 0 : b.progress > 0;
+    if (productionFx && 'setVisible' in productionFx) (productionFx as Phaser.GameObjects.Container).setVisible(fxActive);
     const productionFxArray = b.sprite.getData('productionFxArray') as Phaser.GameObjects.Image | null;
     if (productionFxArray) productionFxArray.setVisible(b.progress > 0);
     const scale = this.board ? this.board.scaleX : 1;
@@ -1958,8 +2018,9 @@ export class GameScene extends Phaser.Scene {
   layoutUI(): void {
     this.buildMenu.removeAll(true);
     const w = this.scale.width, h = this.scale.height;
-    const defs = this.gs.defs.buildings;
-    const compact = w < 760;
+    const defs = this.gs.defs.buildings.filter(def => def.type !== 'decor');
+    const decorDefs = this.gs.defs.buildings.filter(def => def.type === 'decor');
+    const compact = w < 900;
     const menuHeight = this.buildMenuHeight();
     const buttonW = compact ? 50 : 60;
     const buttonH = compact ? 52 : 64;
@@ -1981,7 +2042,8 @@ export class GameScene extends Phaser.Scene {
       ? Math.max(defs.length * buttonW + (defs.length - 1) * gap, (actions.length + speeds.length) * buttonW + (actions.length + speeds.length - 1) * gap)
       : totalButtons * buttonW + (totalButtons - 1) * gap;
     this.buildMenu.setPosition(w / 2, h - 12);
-    const bar = this.add.rectangle(0, -menuHeight / 2, totalW + 20, menuHeight - 4, 0xffefc1, 0.96)
+    const toggleExtension = buttonW + gap;
+    const bar = this.add.rectangle(toggleExtension / 2, -menuHeight / 2, totalW + toggleExtension + 20, menuHeight - 4, 0xffefc1, 0.96)
       .setStrokeStyle(2, 0xf08b3e, 0.95)
       .setInteractive();
     bar.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
@@ -2053,7 +2115,7 @@ export class GameScene extends Phaser.Scene {
         label: action.label,
         color: action.color,
         run: action.run,
-        data: undefined as { key: string; value: string | number } | undefined,
+        data: { key: 'action', value: action.label },
         icon: action.icon,
         glyph: action.glyph,
       })),
@@ -2081,6 +2143,43 @@ export class GameScene extends Phaser.Scene {
         control.glyph,
       );
     });
+    const decorToggleX = totalW / 2 + gap + buttonW / 2;
+    addButton(
+      decorToggleX,
+      compact ? secondRowY : firstRowY,
+      '装饰',
+      this.decorMenuOpen ? 0xf3b85f : 0xd9b37a,
+      () => {
+        this.decorMenuOpen = !this.decorMenuOpen;
+        this.layoutUI();
+      },
+      { key: 'action', value: '装饰' },
+      undefined,
+      '景',
+    );
+    if (this.decorMenuOpen) {
+      const paletteW = decorDefs.length * buttonW + (decorDefs.length - 1) * gap;
+      const paletteY = firstRowY - buttonH - gap - 8;
+      const palette = this.add.rectangle(0, paletteY, paletteW + 16, buttonH + 12, 0xffefc1, 0.98)
+        .setStrokeStyle(2, 0xd8993a, 0.95)
+        .setInteractive();
+      palette.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
+      this.buildMenu.add(palette);
+      const paletteStartX = -paletteW / 2 + buttonW / 2;
+      decorDefs.forEach((def, index) => {
+        const bx = paletteStartX + index * (buttonW + gap);
+        addButton(bx, paletteY, def.name, 0xcde0a1, pointer => {
+          this.beginBuildPointer(def.id, pointer);
+        }, { key: 'defId', value: def.id });
+        const icon = this.add.image(bx, paletteY - 8, 'building-' + def.id)
+          .setDisplaySize(compact ? 30 : 38, compact ? 27 : 34);
+        const cost = this.add.text(bx, paletteY + buttonH / 2 - 20, String(def.cost), {
+          fontSize: '11px', color: '#7b241c', fontFamily: FONT, fontStyle: 'bold',
+          stroke: '#fff1bd', strokeThickness: 2,
+        }).setOrigin(0.5);
+        this.buildMenu.add([icon, cost]);
+      });
+    }
     this.refreshBuildMenu();
     if (this.infoPanel) this.layoutInfoPanel();
     if (this.researchPanel) this.researchPanel.setPosition(w / 2, h / 2);
@@ -2131,6 +2230,7 @@ export class GameScene extends Phaser.Scene {
     this.infoPanel.setData('panelHeight', 300);
     if (!b) return;
     const def = this.gs.buildingDef(b.defId);
+    const isDecoration = def.type === 'decor';
     const panelWidth = 360;
     const contentWidth = 340;
     const columnWidth = 166;
@@ -2140,7 +2240,7 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0, 0)
       .setInteractive();
     bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
-    const title = this.add.text(10, 8, def.name + ' Lv' + (b.level || 1), {
+    const title = this.add.text(10, 8, def.name + (isDecoration ? '' : ' Lv' + (b.level || 1)), {
       fontSize: '16px', color: '#6a361c', fontFamily: FONT, fontStyle: 'bold',
     });
     const desc = this.add.text(10, 31, def.desc, {
@@ -2152,9 +2252,11 @@ export class GameScene extends Phaser.Scene {
     const combo = this.add.text(10, 72, b.comboBonus > 0 ? '相性加成 +' + Math.round(b.comboBonus * 100) + '%' : '无相性', {
       fontSize: '12px', color: b.comboBonus > 0 ? '#3f8d3c' : '#8a6b4d', fontFamily: FONT,
     });
+    speed.setVisible(!isDecoration);
+    combo.setVisible(!isDecoration);
     this.infoPanel.add([bg, title, desc, speed, combo]);
 
-    let y = 94;
+    let y = isDecoration ? 60 : 94;
     const addSectionHeader = (label: string): void => {
       const band = this.add.rectangle(10, y, contentWidth, 18, 0xf3d69b, 0.88)
         .setStrokeStyle(1, 0xd9a04d, 0.45)
@@ -2265,38 +2367,51 @@ export class GameScene extends Phaser.Scene {
       this.infoPanel.add(stock);
       y += 26;
     }
-    // 升级按钮
-    addSectionHeader('设施成长');
-    const next = this.gs.nextUpgrade(b);
-    if (next) {
-      const affordable = this.gs.data.spirit >= next.cost;
-      const upBtn = this.add.rectangle(10, y, contentWidth, 26, affordable ? 0x79cbd5 : 0xe2d3b7)
-        .setStrokeStyle(1, affordable ? 0x3b91a0 : 0xb9a789)
-        .setOrigin(0, 0)
-        .setInteractive({ useHandCursor: true });
-      let upDesc = '升级 Lv' + ((b.level || 1) + 1) + '（' + next.cost + '灵石）';
-      if (next.speed) upDesc += ' 速度+' + Math.round(next.speed * 100) + '%';
-      if (next.capacity) upDesc += ' 队列+' + next.capacity;
-      if (next.beds) upDesc += ' 床位+' + next.beds;
-      const upTxt = this.add.text(panelWidth / 2, y + 13, upDesc, {
-        fontSize: '12px', color: affordable ? '#174f5c' : '#88735d', fontFamily: FONT,
-      }).setOrigin(0.5);
-      upBtn.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
-        ev.stopPropagation();
-        this.upgradeBuilding(b);
+    if (def.type === 'train') {
+      addSectionHeader('练功房容量');
+      const capacity = this.gs.trainingCapacity(b);
+      const waiting = Math.max(0, b.assigned.length - capacity);
+      const capacityText = this.add.text(10, y + 2, '同时培养：' + Math.min(b.assigned.length, capacity) + '/' + capacity + (waiting > 0 ? '　等待空位：' + waiting + '人' : ''), {
+        fontSize: '12px', color: waiting > 0 ? '#a05b32' : '#26776a', fontFamily: FONT,
       });
-      this.infoPanel.add([upBtn, upTxt]);
-      y += 32;
-    } else {
-      const maxTxt = this.add.text(10, y + 4, '已满级', {
-        fontSize: '12px', color: '#8a6b4d', fontFamily: FONT,
-      });
-      this.infoPanel.add(maxTxt);
-      y += 24;
+      this.infoPanel.add(capacityText);
+      y += 26;
+    }
+    // 装饰物没有升级；生产建筑沿用原设施成长规则。
+    if (!isDecoration) {
+      addSectionHeader('设施成长');
+      const next = this.gs.nextUpgrade(b);
+      if (next) {
+        const affordable = this.gs.data.spirit >= next.cost;
+        const upBtn = this.add.rectangle(10, y, contentWidth, 26, affordable ? 0x79cbd5 : 0xe2d3b7)
+          .setStrokeStyle(1, affordable ? 0x3b91a0 : 0xb9a789)
+          .setOrigin(0, 0)
+          .setInteractive({ useHandCursor: true });
+        let upDesc = '升级 Lv' + ((b.level || 1) + 1) + '（' + next.cost + '灵石）';
+        if (next.speed) upDesc += ' 速度+' + Math.round(next.speed * 100) + '%';
+        if (next.capacity) upDesc += ' 队列+' + next.capacity;
+        if (next.beds) upDesc += ' 床位+' + next.beds;
+        if (def.type === 'train') upDesc += ' 修炼位+1';
+        const upTxt = this.add.text(panelWidth / 2, y + 13, upDesc, {
+          fontSize: '12px', color: affordable ? '#174f5c' : '#88735d', fontFamily: FONT,
+        }).setOrigin(0.5);
+        upBtn.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => {
+          ev.stopPropagation();
+          this.upgradeBuilding(b);
+        });
+        this.infoPanel.add([upBtn, upTxt]);
+        y += 32;
+      } else {
+        const maxTxt = this.add.text(10, y + 4, '已满级', {
+          fontSize: '12px', color: '#8a6b4d', fontFamily: FONT,
+        });
+        this.infoPanel.add(maxTxt);
+        y += 24;
+      }
     }
 
     // 弟子分配
-    if (def.type !== 'house') {
+    if (def.type !== 'house' && def.type !== 'decor') {
       const roleLabel = def.type === 'gather' || def.type === 'mine'
         ? (def.id === 'lingkuang' ? '开采' : '灵植')
         : def.type === 'craft' || def.type === 'forge'
@@ -2317,7 +2432,12 @@ export class GameScene extends Phaser.Scene {
           .setOrigin(0, 0)
           .setInteractive({ useHandCursor: true });
         let detail = rootName + ' · ' + roleLabel + attribute + ' · Lv' + dis.level + '/' + dis.maxLevel;
-        if (def.type === 'train') detail += ' · ' + Math.round(dis.trainingProgress * 100) + '%';
+        if (def.type === 'train') {
+          const assignedIndex = b.assigned.indexOf(dis.id);
+          detail += assigned && assignedIndex >= this.gs.trainingCapacity(b)
+            ? ' · 等待空位'
+            : ' · ' + Math.round(dis.trainingProgress * 100) + '%';
+        }
         const txt = this.add.text(bx + 7, by + 5, (assigned ? '✓ ' : '') + dis.name, {
           fontSize: '11px', color: assigned ? '#28582c' : '#70421f', fontFamily: FONT, fontStyle: 'bold',
         });
@@ -2370,7 +2490,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   toggleAssign(discipleId: string, b: PlacedBuilding): void {
-    if (this.gs.buildingDef(b.defId).type === 'house') return;
+    const type = this.gs.buildingDef(b.defId).type;
+    if (type === 'house' || type === 'decor') return;
     const dis = this.gs.data.disciples.find(d => d.id === discipleId)!;
     if (dis.assignedTo === b.uid) {
       dis.assignedTo = null;
@@ -2456,22 +2577,44 @@ export class GameScene extends Phaser.Scene {
   renderResearch(): void {
     this.researchPanel.removeAll(true);
     if (!this.researchOpen) return;
-    const list = this.gs.researchableRecipes();
-    const h = 60 + Math.max(1, list.length) * 46;
+    const recipes = this.gs.researchableRecipes();
+    const projects = this.gs.researchableProjects();
+    const rowCount = recipes.length + projects.length;
+    const sectionCount = (recipes.length > 0 ? 1 : 0) + (projects.length > 0 ? 1 : 0);
+    const h = 66 + Math.max(1, rowCount) * 46 + sectionCount * 20;
     const bg = this.add.rectangle(0, 0, 320, h, 0xfff0c9, 0.99).setStrokeStyle(2, 0xf08b3e).setInteractive();
     bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
-    const title = this.add.text(0, -h / 2 + 18, '丹方研发', { fontSize: '17px', color: '#6a361c', fontFamily: FONT }).setOrigin(0.5);
+    const title = this.add.text(0, -h / 2 + 18, '宗门研发', { fontSize: '17px', color: '#6a361c', fontFamily: FONT }).setOrigin(0.5);
     this.researchPanel.add([bg, title]);
     let y = -h / 2 + 50;
-    if (list.length === 0) {
-      this.researchPanel.add(this.add.text(0, y, '暂无可研发丹方', { fontSize: '12px', color: '#7b6a55' }).setOrigin(0.5));
+    if (rowCount === 0) {
+      this.researchPanel.add(this.add.text(0, y, '当前研发已全部完成', { fontSize: '12px', color: '#7b6a55' }).setOrigin(0.5));
     }
-    for (const r of list) {
+    if (recipes.length > 0) {
+      this.researchPanel.add(this.add.text(-138, y, '丹方研发', { fontSize: '12px', color: '#8d4d20', fontFamily: FONT, fontStyle: 'bold' }).setOrigin(0, 0.5));
+      y += 20;
+    }
+    for (const r of recipes) {
       const check = this.gs.canResearch(r);
       const row = this.add.rectangle(0, y, 290, 38, check.ok ? 0xffd77b : 0xe9ddc5).setStrokeStyle(1, check.ok ? 0xd99a39 : 0xb9aa90).setInteractive({ useHandCursor: true });
+      row.setData('researchRecipeId', r.id);
       const name = this.add.text(-138, y - 10, r.name + '  售' + r.price + '  耗草' + r.input, { fontSize: '12px', color: '#6a361c', fontFamily: FONT }).setOrigin(0, 0.5);
       const cost = this.add.text(-138, y + 8, '研发：' + r.research!.spirit + '灵石 ' + r.research!.rep + '声望' + (check.ok ? '' : '（' + check.reason + '）'), { fontSize: '12px', color: check.ok ? '#26776a' : '#887869', fontFamily: FONT }).setOrigin(0, 0.5);
       if (check.ok) row.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => { ev.stopPropagation(); this.doResearch(r.id); });
+      this.researchPanel.add([row, name, cost]);
+      y += 46;
+    }
+    if (projects.length > 0) {
+      this.researchPanel.add(this.add.text(-138, y, '炼器研发', { fontSize: '12px', color: '#426f83', fontFamily: FONT, fontStyle: 'bold' }).setOrigin(0, 0.5));
+      y += 20;
+    }
+    for (const project of projects) {
+      const check = this.gs.canResearchProject(project);
+      const row = this.add.rectangle(0, y, 290, 38, check.ok ? 0xffd77b : 0xe9ddc5).setStrokeStyle(1, check.ok ? 0xd99a39 : 0xb9aa90).setInteractive({ useHandCursor: true });
+      row.setData('researchProjectId', project.id);
+      const name = this.add.text(-138, y - 10, project.name + '　' + project.desc, { fontSize: '12px', color: '#426f83', fontFamily: FONT }).setOrigin(0, 0.5);
+      const cost = this.add.text(-138, y + 8, '研发：' + project.cost + '灵石 ' + project.rep + '声望' + (check.ok ? '' : '（' + check.reason + '）'), { fontSize: '12px', color: check.ok ? '#26776a' : '#887869', fontFamily: FONT }).setOrigin(0, 0.5);
+      if (check.ok) row.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => { ev.stopPropagation(); this.doProjectResearch(project.id); });
       this.researchPanel.add([row, name, cost]);
       y += 46;
     }
@@ -2482,6 +2625,17 @@ export class GameScene extends Phaser.Scene {
     if (this.gs.research(r)) {
       this.toast('研发成功：' + r.name);
       this.gs.logEvent('research', 'highlight', '研得新方', '研发成功：' + r.name + '（-' + r.research!.spirit + '灵石）', '#8bd5ff');
+      this.renderResearch();
+      this.gs.save.save();
+    }
+  }
+
+  doProjectResearch(id: string): void {
+    const project = this.gs.defs.researches.find(item => item.id === id);
+    if (!project) return;
+    if (this.gs.completeResearchProject(id)) {
+      this.toast('研发成功：' + project.name);
+      this.gs.logEvent('research', 'highlight', '炼器研发完成', project.name + '完成（-' + project.cost + '灵石）', '#78c9ef');
       this.renderResearch();
       this.gs.save.save();
     }
@@ -2546,6 +2700,7 @@ export class GameScene extends Phaser.Scene {
     for (const e of list) {
       const can = this.gs.data.spirit >= e.cost && this.gs.data.reputation >= e.rep;
       const row = this.add.rectangle(0, y + 10, 290, 36, can ? 0xffd77b : 0xe9ddc5).setStrokeStyle(1, can ? 0xd99a39 : 0xb9aa90).setInteractive({ useHandCursor: true });
+      row.setData('elderId', e.id);
       const name = this.add.text(-138, y + 2, e.name + '：' + e.desc, { fontSize: '12px', color: '#6a361c', fontFamily: FONT }).setOrigin(0, 0.5);
       const cost = this.add.text(-138, y + 17, e.cost + '灵石 ' + e.rep + '声望' + (can ? '' : '（条件不足）'), { fontSize: '12px', color: can ? '#26776a' : '#887869', fontFamily: FONT }).setOrigin(0, 0.5);
       if (can) row.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => { ev.stopPropagation(); this.hireElder(e.id); });
@@ -2905,12 +3060,16 @@ export class GameScene extends Phaser.Scene {
     const d = this.gs.data;
     this.game.canvas.dataset.v12State = JSON.stringify({
       schemaVersion: d.schemaVersion,
+      day: d.day,
       spiritOre: d.spiritOre,
       azureEdgeSwords: d.azureEdgeSwords,
       totalForged: d.totalForged,
+      completedResearch: d.completedResearch,
       totalEarned: d.totalEarned,
       spirit: d.spirit,
+      artifactSellPrice: this.gs.artifactSellPrice(),
       buildingCount: d.buildings.length,
+      progressionBuildingCount: this.gs.progressionBuildingCount(),
       buildingIds: d.buildings.map(building => building.defId),
       buildingVisuals: d.buildings.map(building => {
         const art = building.sprite?.getData('art') as Phaser.GameObjects.Image | undefined;
@@ -2925,6 +3084,8 @@ export class GameScene extends Phaser.Scene {
           clickX: this.board.x + ((building.sprite?.x || 0) + selectionLocalX) * this.board.scaleX,
           clickY: this.board.y + ((building.sprite?.y || 0) + selectionLocalY) * this.board.scaleY,
           workerVisible: worker?.visible || false,
+          productionFxVisible: !!(building.sprite?.getData('productionFx') as any)?.visible,
+          efficiency: this.gs.speedOf(building),
         };
       }),
       selectedBuildingUid: this.selectedBuilding?.uid || null,
@@ -2933,6 +3094,15 @@ export class GameScene extends Phaser.Scene {
         y: this.infoPanel.y + Number(this.infoPanel.getData('demolishLocalY') || 0) * this.infoPanel.scaleY,
       } : null,
       herbs: d.herbs,
+      flavorEventsToday: d.eventLog.filter(event => event.day === d.day && event.type === 'flavor').length,
+      training: d.buildings.filter(building => this.gs.buildingDef(building.defId).type === 'train').map(building => ({
+        uid: building.uid,
+        level: building.level,
+        capacity: this.gs.trainingCapacity(building),
+        assigned: building.assigned.length,
+        waiting: Math.max(0, building.assigned.length - this.gs.trainingCapacity(building)),
+      })),
+      disciples: d.disciples.map(disciple => ({ id: disciple.id, level: disciple.level, assignedTo: disciple.assignedTo, trainingProgress: disciple.trainingProgress })),
       pills: d.pills,
       visitors: d.visitors.map(visitor => ({
         id: visitor.id,
@@ -2972,6 +3142,24 @@ export class GameScene extends Phaser.Scene {
         enabled: this.npcDebugEnabled,
         button: this.npcDebugButton ? { x: this.npcDebugButton.x, y: this.npcDebugButton.y } : null,
       },
+      uiButtons: this.buildMenu.list.filter((child: any) => child.getData?.('action') || child.getData?.('defId') || child.getData?.('speed') !== undefined).map((child: any) => ({
+        action: child.getData('action') || null,
+        defId: child.getData('defId') || null,
+        speed: child.getData('speed'),
+        x: this.buildMenu.x + child.x,
+        y: this.buildMenu.y + child.y,
+      })),
+      researchRows: this.researchPanel.list.filter((child: any) => child.getData?.('researchRecipeId') || child.getData?.('researchProjectId')).map((child: any) => ({
+        recipeId: child.getData('researchRecipeId') || null,
+        projectId: child.getData('researchProjectId') || null,
+        x: this.researchPanel.x + child.x,
+        y: this.researchPanel.y + child.y,
+      })),
+      elderRows: this.elderPanel.list.filter((child: any) => child.getData?.('elderId')).map((child: any) => ({
+        id: child.getData('elderId'),
+        x: this.elderPanel.x + child.x,
+        y: this.elderPanel.y + child.y,
+      })),
     });
     const cap = this.gs.discipleCap();
     const pillTotal = Object.values(d.pills).reduce((sum, count) => sum + count, 0);

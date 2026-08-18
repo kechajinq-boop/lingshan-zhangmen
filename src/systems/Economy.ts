@@ -26,6 +26,7 @@ export class Economy {
       d.dayEarned = 0;
       d.dayVisitorsServed = 0;
       d.day++;
+      this.gs.triggerDailyFlavorEvents();
       this.gs.events.emit('day', d.day);
     }
     for (const b of d.buildings) this.tickBuilding(b, dt);
@@ -82,7 +83,8 @@ export class Economy {
     } else if (def.type === 'train') {
       let totalProgress = 0;
       let activeCount = 0;
-      for (const did of b.assigned) {
+      const trainingIds = b.assigned.slice(0, this.gs.trainingCapacity(b));
+      for (const did of trainingIds) {
         const dis = d.disciples.find(x => x.id === did);
         if (!dis) continue;
         if (dis.level >= dis.maxLevel) {

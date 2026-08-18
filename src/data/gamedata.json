@@ -11,15 +11,20 @@
     { "id": "xiangfang", "name": "厢房", "cost": 80, "w": 2, "h": 2, "color": "0x8c6b4a", "type": "house", "beds": 2, "desc": "每间+2弟子上限", "upgrades": [ { "cost": 100, "beds": 1 }, { "cost": 150, "beds": 2 }, { "cost": 200, "beds": 1 }, { "cost": 250, "beds": 2 } ] },
     { "id": "lingkuang", "name": "灵矿场", "cost": 90, "w": 2, "h": 2, "color": "0x4f8f88", "type": "mine", "output": "spiritOre", "baseTime": 8, "desc": "开采灵矿石", "upgrades": [ { "cost": 140, "speed": 0.4 }, { "cost": 190, "speed": 0.9 }, { "cost": 240, "speed": 0.45 }, { "cost": 290, "speed": 0.55 } ] },
     { "id": "lianqi", "name": "炼器坊", "cost": 180, "w": 2, "h": 2, "color": "0x9b5a36", "type": "forge", "input": "spiritOre", "output": "azureEdgeSword", "baseTime": 12, "desc": "消耗3灵矿石炼成青锋剑", "upgrades": [ { "cost": 230, "speed": 0.4 }, { "cost": 280, "speed": 0.9 }, { "cost": 330, "speed": 0.45 }, { "cost": 380, "speed": 0.55 } ] },
-    { "id": "faqipu", "name": "法器铺", "cost": 160, "w": 2, "h": 2, "color": "0x426f83", "type": "artifactSell", "input": "azureEdgeSword", "baseTime": 5, "capacity": 3, "desc": "向访客售卖青锋剑", "upgrades": [ { "cost": 210, "speed": 0.35, "capacity": 1 }, { "cost": 260, "speed": 0.8, "capacity": 2 }, { "cost": 310, "speed": 0.4, "capacity": 1 }, { "cost": 360, "speed": 0.5, "capacity": 1 } ] }
+    { "id": "faqipu", "name": "法器铺", "cost": 160, "w": 2, "h": 2, "color": "0x426f83", "type": "artifactSell", "input": "azureEdgeSword", "baseTime": 5, "capacity": 3, "desc": "向访客售卖青锋剑", "upgrades": [ { "cost": 210, "speed": 0.35, "capacity": 1 }, { "cost": 260, "speed": 0.8, "capacity": 2 }, { "cost": 310, "speed": 0.4, "capacity": 1 }, { "cost": 360, "speed": 0.5, "capacity": 1 } ] },
+    { "id": "decor-sakura", "name": "樱树", "cost": 20, "w": 2, "h": 2, "color": "0xd98cab", "type": "decor", "desc": "装点宗门的樱花古树", "renderScale": 1 },
+    { "id": "decor-pine", "name": "松树", "cost": 20, "w": 2, "h": 2, "color": "0x4f7f52", "type": "decor", "desc": "苍翠挺拔的迎客松", "renderScale": 1 },
+    { "id": "decor-flower", "name": "花丛", "cost": 10, "w": 2, "h": 2, "color": "0xc56f9f", "type": "decor", "desc": "点缀庭院的灵花小景", "renderScale": 1 },
+    { "id": "decor-lantern", "name": "石灯", "cost": 15, "w": 2, "h": 2, "color": "0x8f856f", "type": "decor", "desc": "夜间照路的古朴石灯", "renderScale": 1 },
+    { "id": "decor-lotus", "name": "荷花小景", "cost": 10, "w": 2, "h": 2, "color": "0x6c9f72", "type": "decor", "desc": "一方清雅的荷花小景", "renderScale": 1 }
   ],
   "recipes": [
     { "id": "juling", "name": "聚灵丹", "input": 2, "price": 30, "unlock": "default" },
     { "id": "bigu", "name": "辟谷丹", "input": 3, "price": 55, "unlock": "dan" },
     { "id": "jianqi", "name": "剑气丸", "input": 3, "price": 50, "unlock": "jian" },
-    { "id": "zhuji", "name": "筑基丹", "input": 5, "price": 110, "unlock": "research", "research": { "spirit": 400, "rep": 40 } },
-    { "id": "ningjian", "name": "凝剑丸", "input": 6, "price": 150, "unlock": "research", "research": { "spirit": 700, "rep": 80 } },
-    { "id": "huashen", "name": "化神丹", "input": 9, "price": 300, "unlock": "research", "research": { "spirit": 1500, "rep": 150 } }
+    { "id": "zhuji", "name": "筑基丹", "input": 5, "price": 110, "unlock": "research", "research": { "spirit": 1500, "rep": 80 } },
+    { "id": "ningjian", "name": "凝剑丸", "input": 6, "price": 150, "unlock": "research", "research": { "spirit": 4500, "rep": 180 } },
+    { "id": "huashen", "name": "化神丹", "input": 9, "price": 300, "unlock": "research", "research": { "spirit": 12000, "rep": 320 } }
   ],
   "combos": [
     { "id": "danxiang_full", "name": "丹香阵·圆满", "needs": ["lingtian", "danfang", "xiangfang"], "effect": "craftSpeed", "value": 0.5, "desc": "灵田+炼丹房+厢房相邻：炼丹+50%" },
@@ -71,9 +76,38 @@
   "visitor": { "spawnBase": 9, "spawnMin": 3.5, "patience": 14, "happyTip": 5 },
   "expansions": [ { "spirit": 600, "rep": 60, "side": "east" }, { "spirit": 1800, "rep": 160, "side": "east" } ],
   "elders": [
-    { "id": "danchi", "name": "丹痴长老", "cost": 500, "rep": 50, "effect": "craftSpeed", "value": 0.5, "desc": "全派炼丹速度+50%" },
-    { "id": "zhaocai", "name": "招财长老", "cost": 500, "rep": 50, "effect": "sellPrice", "value": 0.25, "desc": "全派丹药售价+25%" },
-    { "id": "yingke", "name": "迎客长老", "cost": 400, "rep": 40, "effect": "visitor", "value": 0.3, "desc": "来客速度+30%" }
+    { "id": "yingke", "name": "迎客长老", "cost": 3500, "rep": 100, "effect": "visitor", "value": 0.3, "desc": "来客速度+30%" },
+    { "id": "danchi", "name": "丹痴长老", "cost": 6000, "rep": 160, "effect": "craftSpeed", "value": 0.5, "desc": "全派炼丹速度+50%" },
+    { "id": "zhaocai", "name": "招财长老", "cost": 8000, "rep": 220, "effect": "sellPrice", "value": 0.25, "desc": "全派丹药售价+25%" },
+    { "id": "luhuo", "name": "炉火长老", "cost": 9000, "rep": 260, "effect": "forgeSpeed", "value": 0.4, "desc": "全派炼器速度+40%" },
+    { "id": "jianqi", "name": "鉴器长老", "cost": 12000, "rep": 340, "effect": "artifactSellPrice", "value": 0.2, "desc": "全派法器售价+20%" }
+  ],
+  "researches": [
+    { "id": "forge-temper", "name": "淬灵火候", "cost": 2500, "rep": 100, "effect": "forgeSpeed", "value": 0.15, "desc": "炼器速度+15%" },
+    { "id": "forge-refine", "name": "百炼成锋", "cost": 7000, "rep": 220, "effect": "forgeSpeed", "value": 0.2, "desc": "炼器速度再+20%" },
+    { "id": "artifact-catalog", "name": "名器谱录", "cost": 16000, "rep": 400, "effect": "artifactSellPrice", "value": 0.2, "desc": "法器售价+20%" }
+  ],
+  "flavorEvents": [
+    { "id": "relic-kowtow", "title": "秘境误会", "detail": "弟子沈玉衡寻得一处秘境，对坐化上师遗骸哐哐磕了三个响头。遗骸旁浮出一行小字：孩子，咱这是修仙世界，不是武侠。" },
+    { "id": "furnace-sweet-potato", "title": "丹炉异香", "detail": "丹炉今日霞光大盛，众弟子以为神丹将成。开炉后才发现，是值守弟子把烤红薯忘在了里面。" },
+    { "id": "crane-waits", "title": "仙鹤等饭", "detail": "一只仙鹤在练功房外站了一整天。弟子们不敢惊扰，傍晚才发现它只是在等人投喂。", "effect": { "herbs": -1, "reputation": 1 } },
+    { "id": "longevity-pill", "title": "延寿之问", "detail": "山下来客问：服下此丹，真能延寿百年？店中弟子答：不能，但您会觉得这钱花得很有希望。", "effect": { "spirit": 30, "reputation": -1 } },
+    { "id": "sword-drying-rack", "title": "剑阵新用", "detail": "炼器坊七剑齐鸣，众人如临大敌。查验后发现，是新来的弟子把剑阵当成了晾衣架。" },
+    { "id": "mine-dragon", "title": "矿中龙吟", "detail": "灵矿深处传来阵阵龙吟。掌门亲临查看，发现只是两块矿石卡在矿车轮下。", "effect": { "spiritOre": 2 } },
+    { "id": "wrong-lecture", "title": "长老讲错书", "detail": "长老讲道三个时辰，弟子们听得如痴如醉。事后才发现长老拿错讲义，讲的是《灵田除虫要诀》。" },
+    { "id": "young-cultivator", "title": "年轻散修", "detail": "一位散修在山门外站了半日，终于鼓起勇气询问：贵宗还收三百岁的年轻弟子吗？" },
+    { "id": "banner-trial", "title": "万妖幡试用", "detail": "法器铺挂出万妖幡试用体验。当天没有妖怪上门，倒是吓跑了三名来看热闹的客人。" },
+    { "id": "great-opportunity", "title": "天降机缘", "detail": "弟子夜观天象，断言明日必有大机缘。次日清晨，他在路边捡到了一枚别人掉落的灵石。", "effect": { "spirit": 1 } },
+    { "id": "garden-foundation", "title": "灵草齐颤", "detail": "弟子勤修不辍，子时灵气激荡，引得满园灵草齐齐一颤。众人围观许久，最后一致认为动静很大。" },
+    { "id": "furnace-near-miss", "title": "丹炉虚惊", "detail": "炼丹房炉压骤升，值守弟子手忙脚乱。好在长老及时赶到，只炸黑了房梁，没有损失丹药。" },
+    { "id": "herb-garden-fire", "title": "药园小火", "detail": "灵药园夜间冒出火光，弟子们连夜扑救。天亮才发现只是驱虫符烧得太旺，所幸无人受伤。" },
+    { "id": "closed-door-exit", "title": "闭关出门", "detail": "弟子闭关七日，出关时气息凝实。掌门亲临道贺，对方却问：食堂今日还有饭吗？" },
+    { "id": "ore-surge", "title": "矿脉异动", "detail": "灵矿深处矿脉异动，一夜之间涌出大量矿石，矿工来不及搬运，只好先堆在洞口。", "effect": { "spiritOre": 5 } },
+    { "id": "cliff-cave", "title": "崖下洞府", "detail": "一位外门弟子采药时失足跌落，却在崖下发现前人洞府。洞里只有半卷模糊丹方和一张欠条。" },
+    { "id": "shop-preacher", "title": "店门论道", "detail": "丹药铺来了一位怪客，不买丹药，只坐在门口念叨道法自然。弟子们不敢驱赶，只好给他添了把椅子。" },
+    { "id": "flying-swords-roof", "title": "飞剑修屋", "detail": "炼器坊七柄青锋剑齐齐射出房顶。众人连夜修补，顺便抄了三遍《炼器安全守则》。", "effect": { "spirit": -50, "reputation": 2 } },
+    { "id": "waterfall-enlightenment", "title": "观瀑顿悟", "detail": "弟子观瀑布三天三夜后豁然开朗。众人上前求教，他只说：瀑布后面真的没有洞府。" },
+    { "id": "squirrel-thief", "title": "厢房异响", "detail": "厢房深夜传出异响，弟子提灯查看，发现是一只偷吃灵果的松鼠。追了半个时辰，松鼠仍安然无恙。" }
   ],
   "titles": [
     { "id": "t0", "name": "草创山门", "minDay": 1, "conds": [] },
@@ -83,7 +117,7 @@
     { "id": "t3a", "name": "一方名门", "minDay": 18, "conds": [ { "type": "reputation", "value": 100, "desc": "声望100" }, { "type": "totalEarned", "value": 3000, "desc": "累计收入3000" }, { "type": "expansions", "value": 1, "desc": "扩张1次" }, { "type": "upgradeLevels", "value": 3, "desc": "累计升级3次" } ] },
     { "id": "t4", "name": "名震一方", "minDay": 24, "conds": [ { "type": "visitorsServed", "value": 50, "desc": "服务50位访客" }, { "type": "reputation", "value": 160, "desc": "声望160" }, { "type": "totalEarned", "value": 7000, "desc": "累计收入7000" }, { "type": "research", "value": 2, "desc": "完成2次研发" }, { "type": "elders", "value": 1, "desc": "聘请1位长老" } ] },
     { "id": "t4a", "name": "威震群山", "minDay": 30, "conds": [ { "type": "disciples", "value": 10, "desc": "弟子10人" }, { "type": "expansions", "value": 2, "desc": "扩张2次" }, { "type": "upgradeLevels", "value": 6, "desc": "累计升级6次" } ] },
-    { "id": "t5", "name": "声名赫赫·大宗", "minDay": 36, "conds": [ { "type": "visitorsServed", "value": 100, "desc": "服务100位访客" }, { "type": "reputation", "value": 260, "desc": "声望260" }, { "type": "totalEarned", "value": 15000, "desc": "累计收入15000" }, { "type": "research", "value": 3, "desc": "完成全部研发" }, { "type": "elders", "value": 3, "desc": "聘请全部长老" } ] },
+    { "id": "t5", "name": "声名赫赫·大宗", "minDay": 36, "conds": [ { "type": "visitorsServed", "value": 100, "desc": "服务100位访客" }, { "type": "reputation", "value": 260, "desc": "声望260" }, { "type": "totalEarned", "value": 15000, "desc": "累计收入15000" }, { "type": "research", "value": 6, "desc": "完成全部研发" }, { "type": "elders", "value": 5, "desc": "聘请全部长老" } ] },
     { "id": "t6", "name": "仙门巨擘", "minDay": 45, "conds": [ { "type": "disciples", "value": 15, "desc": "弟子15人" }, { "type": "visitorsServed", "value": 180, "desc": "服务180位访客" }, { "type": "reputation", "value": 400, "desc": "声望400" }, { "type": "totalEarned", "value": 30000, "desc": "累计收入30000" } ] },
     { "id": "t7", "name": "天下道宗", "minDay": 60, "conds": [ { "type": "visitorsServed", "value": 300, "desc": "服务300位访客" }, { "type": "reputation", "value": 600, "desc": "声望600" }, { "type": "totalEarned", "value": 60000, "desc": "累计收入60000" } ] }
   ],

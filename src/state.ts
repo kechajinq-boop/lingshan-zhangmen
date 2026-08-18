@@ -11,13 +11,18 @@ const INITIAL_GRID_H = 19;
 
 export interface BuildingDef {
   id: string; name: string; cost: number; w: number; h: number; color: string;
-  type: 'gather' | 'craft' | 'sell' | 'train' | 'house' | 'mine' | 'forge' | 'artifactSell';
+  type: 'gather' | 'craft' | 'sell' | 'train' | 'house' | 'mine' | 'forge' | 'artifactSell' | 'decor';
   output?: string; input?: string; baseTime?: number; capacity?: number; beds?: number; desc: string;
   renderScale?: number;
   upgrades?: { cost: number; speed?: number; capacity?: number; beds?: number }[];
 }
 export interface RecipeDef { id: string; name: string; input: number; price: number; unlock: string; research?: { spirit: number; rep: number }; }
 export interface ComboDef { id: string; name: string; needs: string[]; effect: string; value: number; desc: string; negative?: boolean; }
+export interface ResearchDef { id: string; name: string; cost: number; rep: number; effect: string; value: number; desc: string; }
+export interface FlavorEventDef {
+  id: string; title: string; detail: string;
+  effect?: { spirit?: number; reputation?: number; herbs?: number; spiritOre?: number };
+}
 
 export interface PlacedBuilding {
   uid: number; defId: string; gx: number; gy: number; slotId?: string;
@@ -75,7 +80,7 @@ export interface Visitor {
   sprite?: Phaser.GameObjects.Container;
 }
 
-export type EventType = 'visitor-buy' | 'visitor-leave' | 'gather' | 'craft' | 'build' | 'upgrade' | 'recruit' | 'train' | 'research' | 'elder' | 'expand' | 'commission' | 'combo' | 'day-summary' | 'title-up';
+export type EventType = 'visitor-buy' | 'visitor-leave' | 'gather' | 'craft' | 'build' | 'upgrade' | 'recruit' | 'train' | 'research' | 'elder' | 'expand' | 'commission' | 'combo' | 'day-summary' | 'title-up' | 'flavor';
 export interface GameEvent { id: number; day: number; time: string; type: EventType; level: 'info' | 'highlight' | 'critical'; title: string; detail: string; color: string; }
 export interface TitleCond { type: string; value: number; desc: string; }
 export interface TitleDef { id: string; name: string; minDay: number; conds: TitleCond[]; anyConds?: TitleCond[]; }
@@ -92,6 +97,7 @@ export interface GameStateData {
   day: number; dayTime: number;
   gridW: number; gridH: number;
   unlockedRecipes: string[];
+  completedResearch: string[];
   disciples: Disciple[];
   buildings: PlacedBuilding[];
   visitors: Visitor[];
@@ -104,11 +110,12 @@ export interface GameStateData {
   recruitCandidates: RecruitCandidate[]; recruitRefreshCount: number; recruitNextDay: number;
   commissionOffers: string[]; activeCommission: ActiveCommission | null; nextCommissionDay: number;
   eventLog: GameEvent[]; firstSellDone: boolean; currentTitle: string;
+  lastFlavorEventDay: number; recentFlavorEventIds: string[];
 }
 
 export class GameState {
   data: GameStateData;
-  defs: { buildings: BuildingDef[]; recipes: RecipeDef[]; combos: ComboDef[]; factions: any[]; disciple: any; visitor: any; maxLevel: number; expansions: { spirit: number; rep: number; side: string }[]; elders: { id: string; name: string; cost: number; rep: number; effect: string; value: number; desc: string }[]; titles: TitleDef[]; visitorNames: { identity: string; name: string }[]; discipleNames: string[]; spiritRoots: SpiritRootDef[]; commissions: CommissionDef[] };
+  defs: { buildings: BuildingDef[]; recipes: RecipeDef[]; researches: ResearchDef[]; flavorEvents: FlavorEventDef[]; combos: ComboDef[]; factions: any[]; disciple: any; visitor: any; maxLevel: number; expansions: { spirit: number; rep: number; side: string }[]; elders: { id: string; name: string; cost: number; rep: number; effect: string; value: number; desc: string }[]; titles: TitleDef[]; visitorNames: { identity: string; name: string }[]; discipleNames: string[]; spiritRoots: SpiritRootDef[]; commissions: CommissionDef[] };
   grid: IsoGrid;
   economy: Economy;
   combo: ComboSystem;
@@ -124,6 +131,8 @@ export class GameState {
     if (!this.defs.discipleNames) this.defs.discipleNames = [];
     if (!this.defs.spiritRoots) this.defs.spiritRoots = [];
     if (!this.defs.commissions) this.defs.commissions = [];
+    if (!this.defs.researches) this.defs.researches = [];
+    if (!this.defs.flavorEvents) this.defs.flavorEvents = [];
     this.events = new Phaser.Events.EventEmitter();
     this.grid = new IsoGrid(INITIAL_GRID_W, INITIAL_GRID_H);
     this.economy = new Economy(this);
@@ -152,6 +161,9 @@ export class GameState {
       if (!Array.isArray(restored.disciples)) restored.disciples = [];
       if (!Array.isArray(restored.buildings)) restored.buildings = [];
       if (!Array.isArray(restored.unlockedRecipes)) restored.unlockedRecipes = [];
+      if (!Array.isArray(restored.completedResearch)) restored.completedResearch = [];
+      if (!Array.isArray(restored.recentFlavorEventIds)) restored.recentFlavorEventIds = [];
+      if (!Number.isFinite(restored.lastFlavorEventDay)) restored.lastFlavorEventDay = restored.day;
       if (!restored.pills || typeof restored.pills !== 'object') restored.pills = {};
       for (const recipeId of restored.unlockedRecipes) {
         if (!Number.isFinite(restored.pills[recipeId])) restored.pills[recipeId] = 0;
@@ -202,10 +214,11 @@ export class GameState {
       const fac = raw.factions.find((f: any) => f.id === faction);
       const recipes = raw.recipes.filter((r: RecipeDef) => r.unlock === 'default' || r.unlock === faction).map((r: RecipeDef) => r.id);
       this.data = {
-        schemaVersion: 8,
+        schemaVersion: 9,
         faction, spirit: 300, herbs: 0, pills: {}, spiritOre: 0, azureEdgeSwords: 0, reputation: 10,
         day: 1, dayTime: 0, gridW: INITIAL_GRID_W, gridH: INITIAL_GRID_H,
         unlockedRecipes: recipes,
+        completedResearch: [],
         disciples: [{
           id: 'd0', name: '顾长风', level: 1, assignedTo: null,
           root: 'san', planting: 62, alchemy: 60, business: 56, talent: 65,
@@ -219,6 +232,7 @@ export class GameState {
         recruitCandidates: [], recruitRefreshCount: 0, recruitNextDay: 0,
         commissionOffers: [], activeCommission: null, nextCommissionDay: 1,
         eventLog: [], firstSellDone: false, currentTitle: 't0',
+        lastFlavorEventDay: 1, recentFlavorEventIds: [],
       };
       for (const r of recipes) this.data.pills[r] = 0;
     }
@@ -502,6 +516,14 @@ export class GameState {
     return 30 + targetLevel * 10;
   }
 
+  trainingCapacity(b: PlacedBuilding): number {
+    return this.buildingDef(b.defId).type === 'train' ? Math.min(6, this.upgradeLevel(b) + 1) : 0;
+  }
+
+  progressionBuildingCount(): number {
+    return this.data.buildings.filter(building => this.buildingDef(building.defId).type !== 'decor').length;
+  }
+
   titleIndex(): number { return Math.max(0, this.defs.titles.findIndex(t => t.id === this.data.currentTitle)); }
 
   titleCondMet(c: TitleCond): { ok: boolean; cur: number } {
@@ -511,11 +533,11 @@ export class GameState {
     else if (c.type === 'reputation') cur = d.reputation;
     else if (c.type === 'totalEarned') cur = d.totalEarned;
     else if (c.type === 'disciples') cur = d.disciples.length;
-    else if (c.type === 'research') cur = this.defs.recipes.filter(r => r.unlock === 'research' && d.unlockedRecipes.includes(r.id)).length;
+    else if (c.type === 'research') cur = this.defs.recipes.filter(r => r.unlock === 'research' && d.unlockedRecipes.includes(r.id)).length + d.completedResearch.length;
     else if (c.type === 'elders') cur = d.elders.length;
     else if (c.type === 'expansions') cur = d.expansionsUnlocked;
-    else if (c.type === 'buildings') cur = d.buildings.length;
-    else if (c.type === 'upgradeLevels') cur = d.buildings.reduce((sum, b) => sum + Math.max(0, (b.level || 1) - 1), 0);
+    else if (c.type === 'buildings') cur = this.progressionBuildingCount();
+    else if (c.type === 'upgradeLevels') cur = d.buildings.reduce((sum, b) => sum + (this.buildingDef(b.defId).type === 'decor' ? 0 : Math.max(0, (b.level || 1) - 1)), 0);
     else if (c.type === 'firstSell') cur = d.firstSellDone ? 1 : 0;
     else if (c.type === 'hasCore') { const types = new Set(d.buildings.map(b => this.buildingDef(b.defId).type)); cur = (types.has('gather') && types.has('craft') && types.has('sell')) ? 1 : 0; }
     return { ok: cur >= c.value, cur };
@@ -595,12 +617,13 @@ export class GameState {
     const def = this.buildingDef(b.defId);
     // Dan-specific faction, elder and combo effects must not leak into forging.
     if (def.id === 'danfang') mult += this.factionBonus('craftSpeed') + this.elderBonus('craftSpeed');
+    if (def.id === 'lianqi') mult += this.researchBonus('forgeSpeed') + this.elderBonus('forgeSpeed');
     return mult;
   }
 
   workersBonus(b: PlacedBuilding): number {
     const def = this.buildingDef(b.defId);
-    if (def.type === 'house') return 0;
+    if (def.type === 'house' || def.type === 'decor') return 0;
     let bonus = 0;
     for (const did of b.assigned) {
       const dis = this.data.disciples.find(d => d.id === did);
@@ -620,7 +643,16 @@ export class GameState {
   }
 
   artifactSellPrice(): number {
-    return Math.round(65 * (1 + this.factionBonus('sellPrice')));
+    return Math.round(65 * (1 + this.factionBonus('sellPrice') + this.researchBonus('artifactSellPrice') + this.elderBonus('artifactSellPrice')));
+  }
+
+  researchBonus(effect: string): number {
+    let total = 0;
+    for (const id of this.data.completedResearch) {
+      const research = this.defs.researches.find(item => item.id === id);
+      if (research?.effect === effect) total += research.value;
+    }
+    return total;
   }
 
   elderBonus(effect: string): number {
@@ -685,5 +717,71 @@ export class GameState {
     this.data.unlockedRecipes.push(r.id);
     this.data.pills[r.id] = 0;
     return true;
+  }
+
+  researchableProjects(): ResearchDef[] {
+    return this.defs.researches.filter(research => !this.data.completedResearch.includes(research.id));
+  }
+
+  canResearchProject(research: ResearchDef): { ok: boolean; reason: string } {
+    if (this.data.completedResearch.includes(research.id)) return { ok: false, reason: '已经完成' };
+    if (this.data.spirit < research.cost) return { ok: false, reason: '灵石不足' };
+    if (this.data.reputation < research.rep) return { ok: false, reason: '声望不足' };
+    return { ok: true, reason: '' };
+  }
+
+  completeResearchProject(id: string): boolean {
+    const research = this.defs.researches.find(item => item.id === id);
+    if (!research || !this.canResearchProject(research).ok) return false;
+    this.data.spirit -= research.cost;
+    this.data.completedResearch.push(id);
+    return true;
+  }
+
+  triggerDailyFlavorEvents(random: () => number = Math.random): FlavorEventDef[] {
+    const d = this.data;
+    if (d.lastFlavorEventDay >= d.day || this.defs.flavorEvents.length === 0) return [];
+    const recent = new Set(d.recentFlavorEventIds);
+    let pool = this.defs.flavorEvents.filter(event => !recent.has(event.id));
+    if (pool.length < 2) pool = [...this.defs.flavorEvents];
+    const count = random() < 0.5 ? 1 : 2;
+    const selected: FlavorEventDef[] = [];
+    while (pool.length > 0 && selected.length < count) {
+      const index = Math.min(pool.length - 1, Math.floor(random() * pool.length));
+      selected.push(pool.splice(index, 1)[0]);
+    }
+    for (const event of selected) {
+      this.applyFlavorEffect(event);
+      const suffix = this.flavorEffectText(event);
+      this.logEvent('flavor', event.effect ? 'highlight' : 'info', event.title, event.detail + (suffix ? '｜' + suffix : ''), event.effect ? '#b8df83' : '#d7c7a4');
+    }
+    d.lastFlavorEventDay = d.day;
+    d.recentFlavorEventIds = [...d.recentFlavorEventIds, ...selected.map(event => event.id)].slice(-5);
+    return selected;
+  }
+
+  applyFlavorEffect(event: FlavorEventDef): void {
+    const effect = event.effect;
+    if (!effect) return;
+    const d = this.data;
+    if (effect.spirit) d.spirit = Math.max(0, d.spirit + effect.spirit);
+    if (effect.reputation) d.reputation = Phaser.Math.Clamp(d.reputation + effect.reputation, 0, 999);
+    if (effect.herbs) d.herbs = Math.max(0, d.herbs + effect.herbs);
+    if (effect.spiritOre) d.spiritOre = Math.max(0, d.spiritOre + effect.spiritOre);
+  }
+
+  flavorEffectText(event: FlavorEventDef): string {
+    const effect = event.effect;
+    if (!effect) return '';
+    const parts: string[] = [];
+    const push = (label: string, value?: number): void => {
+      if (!value) return;
+      parts.push(label + (value > 0 ? '+' : '') + value);
+    };
+    push('灵石', effect.spirit);
+    push('声望', effect.reputation);
+    push('药草', effect.herbs);
+    push('灵矿石', effect.spiritOre);
+    return parts.join('，');
   }
 }

@@ -1,11 +1,13 @@
 import { expect, test } from '@playwright/test';
 
+const URL = process.env.TEST_URL || 'http://127.0.0.1:4173/';
+
 const SAVE_KEY = 'lingshan_save_v1';
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
 async function enterNewGame(page: import('@playwright/test').Page) {
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
@@ -96,7 +98,7 @@ test('two expansions switch stages and preserve existing building slots', async 
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(8);
+  ))).toBe(9);
 
   await page.mouse.click(1122, 1033);
   await page.waitForTimeout(500);
@@ -116,7 +118,7 @@ test('two expansions switch stages and preserve existing building slots', async 
 });
 
 test('schema 6 save migrates to slots without losing buildings', async ({ page }) => {
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto(URL);
   await page.evaluate(key => {
     localStorage.setItem(key, JSON.stringify({
       schemaVersion: 6,
@@ -140,7 +142,7 @@ test('schema 6 save migrates to slots without losing buildings', async ({ page }
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(8);
+  ))).toBe(9);
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(2);
   expect(state.buildings.every((building: { slotId?: string }) => !!building.slotId)).toBe(true);
@@ -175,7 +177,7 @@ test('all twenty stage-one slots remain usable together', async ({ page }) => {
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(8);
+  ))).toBe(9);
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(20);
   expect(new Set(state.buildings.map((building: { slotId: string }) => building.slotId)).size).toBe(20);
@@ -187,7 +189,7 @@ test('mobile landscape can drag a building onto a green slot', async ({ page }) 
   page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
   page.on('pageerror', error => errors.push(error.message));
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
@@ -195,7 +197,16 @@ test('mobile landscape can drag a building onto a green slot', async ({ page }) 
   await page.locator('canvas').click({ position: { x: 422, y: 148 } });
   await page.waitForTimeout(1400);
 
-  await page.mouse.move(64, 335);
+  const danpuButton = await expect.poll(async () => page.locator('canvas').evaluate(canvas => {
+    const state = JSON.parse(canvas.dataset.v12State || '{}');
+    return state.uiButtons?.find((item: { defId: string }) => item.defId === 'danpu') || null;
+  })).not.toBeNull();
+  void danpuButton;
+  const mobileBuildButton = await page.locator('canvas').evaluate(canvas => {
+    const state = JSON.parse(canvas.dataset.v12State || '{}');
+    return state.uiButtons.find((item: { defId: string }) => item.defId === 'danpu');
+  });
+  await page.mouse.move(mobileBuildButton.x, mobileBuildButton.y);
   await page.mouse.down();
   const mobileSlot = await expect.poll(async () => page.locator('canvas').evaluate(canvas => {
     const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;

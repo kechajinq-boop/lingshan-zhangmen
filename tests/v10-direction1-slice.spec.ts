@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+const URL = process.env.TEST_URL || 'http://127.0.0.1:4173/';
+
 test.use({ viewport: { width: 1920, height: 1080 } });
 
 async function placeSelectedBuilding(page: import('@playwright/test').Page, buttonX: number, slotId: string) {
@@ -22,7 +24,7 @@ test('v0.10 direction-one visual slice', async ({ page }) => {
   });
   page.on('pageerror', error => errors.push(error.message));
 
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
@@ -53,7 +55,7 @@ test('v0.10 direction-one visual slice', async ({ page }) => {
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(8);
+  ))).toBe(9);
   await page.screenshot({
     path: 'deliverables/v10-direction1-slice/03-continued-save.png',
     fullPage: true,
@@ -70,7 +72,7 @@ test('v0.10 direction-one mobile landscape opens', async ({ page }) => {
   page.on('pageerror', error => errors.push(error.message));
 
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('http://127.0.0.1:4173/');
+  await page.goto(URL);
   await page.evaluate(() => localStorage.clear());
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();

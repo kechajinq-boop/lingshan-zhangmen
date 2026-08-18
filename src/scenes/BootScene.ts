@@ -58,6 +58,16 @@ export class BootScene extends Phaser.Scene {
     ]) {
       this.load.image('v10-' + id, v10PropPath + id + '.png');
     }
+    const buildableDecorations: Record<string, string> = {
+      'decor-sakura': 'prop_tree_sakura_01',
+      'decor-pine': 'prop_tree_pine_01',
+      'decor-flower': 'prop_flower_01',
+      'decor-lantern': 'prop_lantern_01',
+      'decor-lotus': 'prop_lotus_01',
+    };
+    for (const [id, source] of Object.entries(buildableDecorations)) {
+      this.load.image('building-' + id, v10PropPath + source + '.png');
+    }
     for (const stage of ['01', '02', '03']) {
       this.load.image('v10-map-stage-' + stage, 'assets/v10/map/map_stage_' + stage + '_base.png');
     }

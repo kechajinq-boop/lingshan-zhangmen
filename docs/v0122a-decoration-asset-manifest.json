@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "art_direction_brief": "docs/v0122a-decoration-art-direction.md",
+  "runtime": {
+    "engine": "Phaser 3",
+    "camera": "staggered-isometric",
+    "target_platforms": ["desktop-web", "mobile-landscape"],
+    "footprint": [2, 2],
+    "anchor": "bottom-center",
+    "filtering": "project-default",
+    "source_policy": "immutable-existing-project-assets",
+    "scale_approval": {
+      "approved_on": "2026-08-18",
+      "reference_asset": "public/assets/v10/buildings/building-danfang.png",
+      "reference_runtime_bounds_at_1920x1080": [150, 140],
+      "rule": "each decoration keeps its native aspect ratio and uses about one quarter of a standard building exterior area",
+      "approved_mockup": "deliverables/v0122a-decoration-mockup/v0122a-decoration-area-comparison-corrected.png"
+    }
+  },
+  "assets": [
+    {
+      "id": "decor-sakura",
+      "role": "buildable decoration",
+      "path": "public/assets/v10/props/prop_tree_sakura_01.png",
+      "sha256": "9d34a203733185965026374c1254fc7a119e231153b31a9bdb35c3bbdf315771",
+      "status": "approved-source-scale-and-engine-review",
+      "technical": { "dimensions": [170, 185], "content_bounds": [8, 68, 170, 185], "alpha": true, "anchor": "bottom-center", "ground_contact": [85, 185], "footprint": [2, 2], "render_config": [50, 55], "expected_desktop_bounds": [70, 76], "interaction": "minimum-58px-code-hit-area", "collision_half_bounds": [18, 15] },
+      "source": { "kind": "existing-project-asset", "provenance": "not recorded in current checkout", "license": "internal review required before external asset redistribution" },
+      "verification": { "sha256_recorded": true, "alpha_check_passed": true, "native_scale_reviewed": true, "in_engine_reviewed": true, "approved_by": "user-area-quarter-confirmation-2026-08-18" }
+    },
+    {
+      "id": "decor-pine",
+      "role": "buildable decoration",
+      "path": "public/assets/v10/props/prop_tree_pine_01.png",
+      "sha256": "6bded54e00f212d34e4caf2231eb64f43266481d6ac3498b7d60873fa7d5fb96",
+      "status": "approved-source-scale-and-engine-review",
+      "technical": { "dimensions": [170, 180], "content_bounds": [4, 42, 149, 180], "alpha": true, "anchor": "bottom-center", "ground_contact": [76, 180], "footprint": [2, 2], "render_config": [50, 54], "expected_desktop_bounds": [70, 75], "interaction": "minimum-58px-code-hit-area", "collision_half_bounds": [18, 15] },
+      "source": { "kind": "existing-project-asset", "provenance": "not recorded in current checkout", "license": "internal review required before external asset redistribution" },
+      "verification": { "sha256_recorded": true, "alpha_check_passed": true, "native_scale_reviewed": true, "in_engine_reviewed": true, "approved_by": "user-area-quarter-confirmation-2026-08-18" }
+    },
+    {
+      "id": "decor-flower",
+      "role": "buildable decoration",
+      "path": "public/assets/v10/props/prop_flower_01.png",
+      "sha256": "2d48082949f3b52d611693d0bc73c1db1e3fbf6b7ecd6b0ec9a4ef8849612fbd",
+      "status": "approved-source-scale-and-engine-review",
+      "technical": { "dimensions": [170, 160], "content_bounds": [0, 16, 170, 160], "alpha": true, "anchor": "bottom-center", "ground_contact": [85, 160], "footprint": [2, 2], "render_config": [54, 50], "expected_desktop_bounds": [75, 70], "interaction": "minimum-58px-code-hit-area", "collision_half_bounds": [20, 13] },
+      "source": { "kind": "existing-project-asset", "provenance": "not recorded in current checkout", "license": "internal review required before external asset redistribution" },
+      "verification": { "sha256_recorded": true, "alpha_check_passed": true, "native_scale_reviewed": true, "in_engine_reviewed": true, "approved_by": "user-area-quarter-confirmation-2026-08-18" }
+    },
+    {
+      "id": "decor-lantern",
+      "role": "buildable decoration",
+      "path": "public/assets/v10/props/prop_lantern_01.png",
+      "sha256": "b2b8b6258df04032181651d2b19401df24d4bdcaa63a7ee39278696850dd8af0",
+      "status": "approved-source-scale-and-engine-review",
+      "technical": { "dimensions": [125, 170], "content_bounds": [0, 0, 125, 170], "alpha": true, "anchor": "bottom-center", "ground_contact": [63, 170], "footprint": [2, 2], "render_config": [45, 61], "expected_desktop_bounds": [62, 85], "interaction": "minimum-58px-code-hit-area", "collision_half_bounds": [12, 14] },
+      "source": { "kind": "existing-project-asset", "provenance": "not recorded in current checkout", "license": "internal review required before external asset redistribution" },
+      "verification": { "sha256_recorded": true, "alpha_check_passed": true, "native_scale_reviewed": true, "in_engine_reviewed": true, "approved_by": "user-area-quarter-confirmation-2026-08-18" }
+    },
+    {
+      "id": "decor-lotus",
+      "role": "buildable decoration",
+      "path": "public/assets/v10/props/prop_lotus_01.png",
+      "sha256": "9a71b46f2ec0924411208d3d81409b008795131e77388e8d5285373b48ef6426",
+      "status": "approved-source-scale-and-engine-review",
+      "technical": { "dimensions": [155, 115], "content_bounds": [13, 51, 155, 115], "alpha": true, "anchor": "bottom-center", "ground_contact": [84, 115], "footprint": [2, 2], "render_config": [60, 45], "expected_desktop_bounds": [84, 62], "interaction": "minimum-58px-code-hit-area", "collision_half_bounds": [20, 10] },
+      "source": { "kind": "existing-project-asset", "provenance": "not recorded in current checkout", "license": "internal review required before external asset redistribution" },
+      "verification": { "sha256_recorded": true, "alpha_check_passed": true, "native_scale_reviewed": true, "in_engine_reviewed": true, "approved_by": "user-area-quarter-confirmation-2026-08-18" }
+    }
+  ]
+}

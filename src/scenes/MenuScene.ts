@@ -24,7 +24,7 @@ export class MenuScene extends Phaser.Scene {
       strokeThickness: 6,
       shadow: { color: '#000000', blur: 0, offsetX: 3, offsetY: 4, fill: true },
     }).setOrigin(0.5);
-    this.add.text(width / 2, titleY + 50, '仙山经营重构 · v0.12.1', {
+    this.add.text(width / 2, titleY + 50, '经营内容补全 · v0.12.2-A', {
       fontSize: '14px',
       color: '#57351e',
       fontFamily: FONT,

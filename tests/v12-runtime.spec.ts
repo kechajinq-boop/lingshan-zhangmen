@@ -14,7 +14,7 @@ import {
   v12SlotsAreAdjacent,
 } from '../src/data/v12Map';
 
-const URL = 'http://127.0.0.1:4173/';
+const URL = process.env.TEST_URL || 'http://127.0.0.1:4173/';
 const SAVE_KEY = 'lingshan_save_v1';
 const VISITOR_ASSET_MANIFEST = JSON.parse(readFileSync(
   resolve(process.cwd(), 'tests', 'fixtures', 'v121-visitor-asset-manifest.json'),
@@ -67,7 +67,7 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await expect.poll(async () => page.evaluate(key => {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw).schemaVersion : 0;
-  }, SAVE_KEY)).toBe(8);
+  }, SAVE_KEY)).toBe(9);
   await page.waitForTimeout(250);
 }
 
@@ -153,7 +153,7 @@ test('schema-seven save migrates to schema eight without changing old resources 
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(250);
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
-  expect(saved.schemaVersion).toBe(8);
+  expect(saved.schemaVersion).toBe(9);
   expect(saved.spirit).toBe(old.spirit);
   expect(saved.herbs).toBe(old.herbs);
   expect(saved.pills).toEqual(old.pills);
