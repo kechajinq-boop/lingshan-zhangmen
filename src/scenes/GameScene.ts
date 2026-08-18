@@ -69,11 +69,22 @@ const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
   lingkuang: { width: 108, height: 108, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 58, collisionHalfHeight: 41, collisionOffsetY: 8 },
   lianqi: { width: 104, height: 104, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 53, collisionHalfHeight: 41, collisionOffsetY: 8 },
   faqipu: { width: 94, height: 94, offsetX: 0, anchorOffsetY: 40, collisionHalfWidth: 50, collisionHalfHeight: 38, collisionOffsetY: 8 },
-  'decor-sakura': { width: 50, height: 55, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
-  'decor-pine': { width: 50, height: 54, offsetX: 3, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
-  'decor-flower': { width: 54, height: 50, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 13, collisionOffsetY: 3 },
-  'decor-lantern': { width: 45, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
-  'decor-lotus': { width: 60, height: 45, offsetX: -3, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 10, collisionOffsetY: 2 },
+  'decor-sakura': { width: 73, height: 73, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-sakura-large': { width: 57, height: 57, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-pine': { width: 66, height: 66, offsetX: 2, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-pine-large': { width: 56, height: 56, offsetX: 2, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 15, collisionOffsetY: 4 },
+  'decor-flower': { width: 56, height: 56, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-spirit-blue': { width: 62, height: 62, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-bamboo': { width: 47, height: 63, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 15, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-bush': { width: 62, height: 62, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-rock-small': { width: 78, height: 78, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-rock-large': { width: 60, height: 60, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 19, collisionHalfHeight: 14, collisionOffsetY: 3 },
+  'decor-lantern': { width: 50, height: 67, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-lantern-2': { width: 51, height: 69, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-incense': { width: 50, height: 67, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-crystal-lamp': { width: 59, height: 80, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-lotus': { width: 68, height: 51, offsetX: -3, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 10, collisionOffsetY: 2 },
+  'decor-reeds': { width: 61, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 11, collisionOffsetY: 2 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: false, back: true },
@@ -2158,22 +2169,29 @@ export class GameScene extends Phaser.Scene {
       '景',
     );
     if (this.decorMenuOpen) {
-      const paletteW = decorDefs.length * buttonW + (decorDefs.length - 1) * gap;
-      const paletteY = firstRowY - buttonH - gap - 8;
-      const palette = this.add.rectangle(0, paletteY, paletteW + 16, buttonH + 12, 0xffefc1, 0.98)
+      const decorColumns = Math.min(8, decorDefs.length);
+      const decorRows = Math.ceil(decorDefs.length / decorColumns);
+      const paletteW = decorColumns * buttonW + (decorColumns - 1) * gap;
+      const paletteH = decorRows * buttonH + (decorRows - 1) * gap;
+      const paletteBottomY = firstRowY - buttonH / 2 - gap - 8;
+      const paletteCenterY = paletteBottomY - paletteH / 2;
+      const palette = this.add.rectangle(0, paletteCenterY, paletteW + 16, paletteH + 12, 0xffefc1, 0.98)
         .setStrokeStyle(2, 0xd8993a, 0.95)
         .setInteractive();
       palette.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
       this.buildMenu.add(palette);
       const paletteStartX = -paletteW / 2 + buttonW / 2;
       decorDefs.forEach((def, index) => {
-        const bx = paletteStartX + index * (buttonW + gap);
-        addButton(bx, paletteY, def.name, 0xcde0a1, pointer => {
+        const column = index % decorColumns;
+        const row = Math.floor(index / decorColumns);
+        const bx = paletteStartX + column * (buttonW + gap);
+        const by = paletteBottomY - buttonH / 2 - row * (buttonH + gap);
+        addButton(bx, by, def.name, 0xcde0a1, pointer => {
           this.beginBuildPointer(def.id, pointer);
         }, { key: 'defId', value: def.id });
-        const icon = this.add.image(bx, paletteY - 8, 'building-' + def.id)
+        const icon = this.add.image(bx, by - 8, 'building-' + def.id)
           .setDisplaySize(compact ? 30 : 38, compact ? 27 : 34);
-        const cost = this.add.text(bx, paletteY + buttonH / 2 - 20, String(def.cost), {
+        const cost = this.add.text(bx, by + buttonH / 2 - 20, String(def.cost), {
           fontSize: '11px', color: '#7b241c', fontFamily: FONT, fontStyle: 'bold',
           stroke: '#fff1bd', strokeThickness: 2,
         }).setOrigin(0.5);

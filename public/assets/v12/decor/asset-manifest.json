@@ -1,0 +1,24 @@
+{
+  "schema": "lingshan.v0122a.approved-natural-decor.v1",
+  "status": "approved-source-copy",
+  "source": "v10-continuous-flat-production/approved-assets/props",
+  "integrationPolicy": "Original transparent PNG files copied byte-for-byte; runtime scaling only.",
+  "assets": [
+    { "defId": "decor-incense", "file": "prop_incense_burner.png", "width": 192, "height": 256, "alphaPixels": 12991, "sha256": "957ed6eeb53add3efed305e534041c7b574b5b4e6a14d1c37dc9701ee20be7bb" },
+    { "defId": "decor-lantern", "file": "prop_lantern_stone_01.png", "width": 192, "height": 256, "alphaPixels": 13055, "sha256": "0511fa645419e68b08fc0e19d95b6ed1be32684914b73404666720eb999c0695" },
+    { "defId": "decor-lantern-2", "file": "prop_lantern_stone_02.png", "width": 192, "height": 256, "alphaPixels": 12465, "sha256": "0ac2c8ff17640d6492cfabf47bed690f4e7734d6dfd9fd74bcfe11bf79c0c29d" },
+    { "defId": "decor-bamboo", "file": "prop_plant_bamboo_01.png", "width": 192, "height": 256, "alphaPixels": 15042, "sha256": "d47a5e4e726d0738a1252b640fcc29a6f20b16531b610fe8ff6b53e6fade8d07" },
+    { "defId": "decor-bush", "file": "prop_plant_bush_01.png", "width": 192, "height": 192, "alphaPixels": 8590, "sha256": "1fdf6674a52f7ea04ad70932da678f2e489cca4c781d5d3bece58f3371bc3474" },
+    { "defId": "decor-spirit-blue", "file": "prop_plant_spirit_blue.png", "width": 192, "height": 192, "alphaPixels": 8483, "sha256": "a84188f28cc9925563c18b81d2b890fddfdb3f454068c60332891ea0b54d4379" },
+    { "defId": "decor-flower", "file": "prop_plant_spirit_purple.png", "width": 192, "height": 192, "alphaPixels": 10579, "sha256": "bfbd922d2ce92bfd3573257a51cd51983cf3218980350b2e49167875b1801dc9" },
+    { "defId": "decor-rock-small", "file": "prop_rock_01.png", "width": 192, "height": 192, "alphaPixels": 5454, "sha256": "a475f436eeac0671c9587467b0b3fd0e82e66ed3d6675b0abf07b24bbba1f44f" },
+    { "defId": "decor-rock-large", "file": "prop_rock_02.png", "width": 256, "height": 256, "alphaPixels": 16110, "sha256": "bef781c5c8323da20f2e6c47fe7859cde566ee80b3402957096d6899afa893ec" },
+    { "defId": "decor-crystal-lamp", "file": "prop_spirit_crystal_lamp.png", "width": 192, "height": 256, "alphaPixels": 9286, "sha256": "f28496eeb6d9ea3916a4596ee3f3a3dce827ccd90970f526c380b84564109049" },
+    { "defId": "decor-sakura", "file": "prop_tree_cherry_01.png", "width": 256, "height": 256, "alphaPixels": 10929, "sha256": "cc8a469b29a226f0c27a93be0f9549e2ad39bf78471b6e7ff32c794dc04f18dc" },
+    { "defId": "decor-sakura-large", "file": "prop_tree_cherry_02.png", "width": 320, "height": 320, "alphaPixels": 28187, "sha256": "fe4ac904407ef0583f6b13fc7d063b8935a3f384528829334a26d7ef3c5b03b2" },
+    { "defId": "decor-pine", "file": "prop_tree_pine_01.png", "width": 256, "height": 256, "alphaPixels": 13452, "sha256": "28682a7e135db58ba792b68f50f0174023807468b72700c863f3899c80234396" },
+    { "defId": "decor-pine-large", "file": "prop_tree_pine_02.png", "width": 320, "height": 320, "alphaPixels": 29112, "sha256": "dbaef0c495c1a5fbcad5d20a576441855c9dcd3e7eef59aeaa4f43e39f410929" },
+    { "defId": "decor-lotus", "file": "prop_water_lotus.png", "width": 256, "height": 192, "alphaPixels": 12694, "sha256": "c119fe08d4c887b0a96738d25c18d9c354c570e08c5a45009353d8006884e981" },
+    { "defId": "decor-reeds", "file": "prop_water_reeds.png", "width": 192, "height": 192, "alphaPixels": 8826, "sha256": "80c3ce0e3619f0ac8a0067941a6844c69bced19d4861d9b30284a8ea0405853a" }
+  ]
+}
