@@ -214,13 +214,29 @@ export class Economy {
     const candidates = open.filter(s => this.shopLoad(s) === minLoad);
     const target = candidates[this.nextShopCursor % candidates.length];
     this.nextShopCursor++;
+    return this.spawnVisitorAt(target);
+  }
+
+  debugSpawnVisitor(): boolean {
+    const shops = this.sellBuildings();
+    if (shops.length === 0) return false;
+    this.syncSellShopQueues(shops);
+    const minLoad = Math.min(...shops.map(shop => this.shopLoad(shop)));
+    const candidates = shops.filter(shop => this.shopLoad(shop) === minLoad);
+    const target = candidates[this.nextShopCursor % candidates.length];
+    this.nextShopCursor++;
+    return this.spawnVisitorAt(target);
+  }
+
+  spawnVisitorAt(target: PlacedBuilding): boolean {
+    const d = this.gs.data;
     const v: any = { id: Date.now() + (++this.visitorSeq), state: 'walking' as const, targetUid: target.uid, patience: this.gs.defs.visitor.patience, happy: false, walkTimer: 1.6 };
     const pool = this.gs.defs.visitorNames || [];
     if (pool.length) { const p = pool[Math.floor(Math.random() * pool.length)]; v.identity = p.identity; v.name = p.name; } else { v.identity = '访客'; v.name = '访客' + v.id % 100; }
     d.visitors.push(v);
     target.queue++;
     this.gs.events.emit('visitor-spawn', v, target);
-    return true;
+    return d.visitors.includes(v);
   }
 
   tickVisitors(dt: number): void {

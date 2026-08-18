@@ -129,6 +129,21 @@ async function clickBuildDefinition(page: Page, defId: string) {
   await page.locator('canvas').click({ position: { x: target.x, y: target.y }, force: true });
 }
 
+async function openAcceptanceTools(page: Page) {
+  const state = await gameState(page);
+  const button = state.acceptanceTools?.button;
+  expect(button).toBeTruthy();
+  await page.locator('canvas').click({ position: { x: button.x, y: button.y }, force: true });
+  await expect.poll(async () => (await gameState(page)).acceptanceTools?.open).toBe(true);
+}
+
+async function clickAcceptanceAction(page: Page, action: string) {
+  const state = await gameState(page);
+  const target = state.acceptanceTools?.actions?.find((item: any) => item.action === action);
+  expect(target).toBeTruthy();
+  await page.locator('canvas').click({ position: { x: target.x, y: target.y }, force: true });
+}
+
 test('schema 8 save migrates to schema 9 with safe defaults and backup', async ({ page }) => {
   await continueGame(page, schemaEightSave({ day: 12 }));
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
@@ -224,6 +239,52 @@ test('legacy production effects only appear while the three buildings are workin
   }, { timeout: 12000 }).toBe(true);
 });
 
+test('acceptance tools grant saved resources and can force a new visitor after day eighteen', async ({ page }) => {
+  await continueGame(page, schemaEightSave({
+    spirit: 10,
+    reputation: 5,
+    herbs: 3,
+    spiritOre: 4,
+    azureEdgeSwords: 0,
+    pills: { juling: 1, bigu: 2 },
+    day: 19,
+    buildings: [building(0, 'danpu'), building(1, 'faqipu')],
+  }));
+  await openAcceptanceTools(page);
+  for (const action of ['spirit', 'reputation', 'herbs', 'spiritOre', 'pills', 'azureEdgeSwords']) {
+    await clickAcceptanceAction(page, action);
+  }
+  await expect.poll(async () => {
+    const state = await gameState(page);
+    return {
+      spirit: state.spirit,
+      reputation: state.reputation,
+      herbs: state.herbs,
+      spiritOre: state.spiritOre,
+      azureEdgeSwords: state.azureEdgeSwords,
+      juling: state.pills.juling,
+      bigu: state.pills.bigu,
+    };
+  }).toEqual({ spirit: 50010, reputation: 999, herbs: 203, spiritOre: 204, azureEdgeSwords: 50, juling: 51, bigu: 52 });
+
+  await clickAcceptanceAction(page, 'clearVisitors');
+  await expect.poll(async () => (await gameState(page)).visitors.length).toBe(0);
+  await clickAcceptanceAction(page, 'spawnVisitor');
+  await expect.poll(async () => (await gameState(page)).visitorVisuals.length).toBeGreaterThan(0);
+
+  await page.reload();
+  await expect(page.locator('canvas')).toBeVisible();
+  await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 886 }, force: true });
+  await expect.poll(async () => (await gameState(page)).spirit).toBe(50010);
+  const restored = await gameState(page);
+  expect(restored.reputation).toBe(999);
+  expect(restored.herbs).toBe(203);
+  expect(restored.spiritOre).toBe(204);
+  expect(restored.azureEdgeSwords).toBe(50);
+  expect(restored.pills).toMatchObject({ juling: 51, bigu: 52 });
+});
+
 test('approved quarter-area decorations build, persist, stay out of progression and refund on demolition', async ({ page }) => {
   test.setTimeout(120_000);
   await continueGame(page, schemaEightSave({ spirit: 5000, buildings: [building(0, 'danfang')] }));
@@ -299,5 +360,22 @@ test('decoration palette stays inside mobile landscape viewport', async ({ brows
     expect(button.y).toBeLessThan(370);
   }
   await page.screenshot({ path: 'deliverables/v0122a-qa/decorations-mobile-palette.png', fullPage: true });
+  await context.close();
+});
+
+test('acceptance tools fit inside mobile landscape viewport', async ({ browser }) => {
+  const context = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  await continueGame(page, schemaEightSave(), { x: 422, y: 320 });
+  await openAcceptanceTools(page);
+  const actions = (await gameState(page)).acceptanceTools.actions;
+  expect(actions).toHaveLength(9);
+  for (const action of actions) {
+    expect(action.x).toBeGreaterThan(10);
+    expect(action.x).toBeLessThan(834);
+    expect(action.y).toBeGreaterThan(10);
+    expect(action.y).toBeLessThan(380);
+  }
+  await page.screenshot({ path: 'deliverables/v0122a-qa/acceptance-tools-mobile.png', fullPage: true });
   await context.close();
 });
