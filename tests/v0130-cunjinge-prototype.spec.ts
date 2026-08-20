@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const URL = 'http://127.0.0.1:4180/deliverables/v0130-cunjinge-prototype/';
+const URL = process.env.CUNJINGE_TEST_URL || 'http://127.0.0.1:4180/deliverables/v0130-cunjinge-prototype/';
 
 test('desktop prototype completes a full five-round auction', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1920, height: 1080 });
