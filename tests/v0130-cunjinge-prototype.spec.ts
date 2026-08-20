@@ -18,16 +18,29 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
   const treasureCount = await page.locator('.treasure').count();
   expect(treasureCount).toBeGreaterThanOrEqual(5);
   expect(treasureCount).toBeLessThanOrEqual(13);
-  await expect(page.locator('.treasure[class*="aura-"]')).toHaveCount(treasureCount);
-  const startingBid = Number(await page.locator('#bidInput').inputValue());
-  await expect(page.locator('[data-bid="plus20"]')).toContainText(String(Math.round(startingBid * 1.2)));
+  const firstRoundVisible = await page.locator('.treasure:not(.aura-hidden)').count();
+  expect(firstRoundVisible).toBeGreaterThan(0);
+  expect(firstRoundVisible).toBeLessThan(treasureCount);
+  await expect(page.locator('#bidInput')).toHaveValue('0');
+  await expect(page.locator('[data-bid="plus20"]')).toBeDisabled();
+  await expect(page.locator('[data-bid="plus20"]')).toContainText('首轮手填');
+  const publicClues = await page.locator('#clues').innerText();
+  expect(publicClues).not.toMatch(/估值|行价|真实品质|重宝脚点|最低价/);
   await page.locator('[data-art="price"]').click();
   await page.locator('[data-art="shape"]').click();
   await expect(page.locator('[data-art="aura"]')).toBeDisabled();
   await page.locator('#threatBtn').click();
+  await expect(page.locator('#threatModal')).toBeVisible();
+  await page.locator('[data-threat-target]').first().click();
+  await page.locator('#threatConfirm').click();
+  await expect(page.locator('#threatOutcome')).toBeVisible();
+  await page.locator('#threatCancel').click();
+  await expect(page.locator('#threatModal')).toBeHidden();
   await expect(page.locator('#threatBtn')).toBeDisabled();
   await expect(page.locator('#topStatus')).toContainText('灵石24900');
   await expect(page.locator('#artLog')).not.toHaveText('');
+  const journalBox = await page.locator('#artLog').boundingBox();
+  expect(journalBox!.height).toBeGreaterThan(80);
   await page.locator('#bidInput').fill('400');
   for (let round = 1; round <= 5; round++) {
     await page.locator('#submitBid').click();
@@ -40,8 +53,11 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
       await expect(page.locator('#bidInput')).toBeEnabled();
       await expect(page.locator('.clue')).toHaveCount(round + 1);
       await expect(page.locator('[data-bid="plus20"]')).toContainText('480');
+      const visibleNow = await page.locator('.treasure:not(.aura-hidden)').count();
+      expect(visibleNow).toBeGreaterThan(firstRoundVisible);
     }
   }
+  await expect(page.locator('.treasure:not(.aura-hidden)')).toHaveCount(treasureCount);
   await expect(page.locator('#submitBid')).toHaveText('揭晓宝匣');
   await page.locator('#submitBid').click();
   await expect(page.locator('#result')).toBeVisible();
@@ -56,7 +72,7 @@ test('844x390 landscape keeps chest, clues and bid controls on screen', async ({
   await page.goto(URL);
   await page.getByRole('button', { name: '先玩免费教学匣' }).click();
   await expect(page.locator('#arena')).toBeVisible();
-  for (const selector of ['#grid', '#clues', '#arts', '#threatTarget', '#threatBtn', '#bidInput', '#submitBid']) {
+  for (const selector of ['#grid', '#clues', '#arts', '#artLog', '#threatBtn', '#bidInput', '#submitBid']) {
     const box = await page.locator(selector).boundingBox();
     expect(box, selector).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -65,5 +81,26 @@ test('844x390 landscape keeps chest, clues and bid controls on screen', async ({
     expect(box!.y + box!.height).toBeLessThanOrEqual(390);
   }
   expect((await page.locator('#submitBid').boundingBox())!.height).toBeGreaterThanOrEqual(34);
+  await page.locator('#threatBtn').click();
+  await expect(page.locator('#threatModal')).toBeVisible();
+  const modalBox = await page.locator('.threat-card').boundingBox();
+  expect(modalBox!.x).toBeGreaterThanOrEqual(0);
+  expect(modalBox!.x + modalBox!.width).toBeLessThanOrEqual(844);
   await page.screenshot({ path: testInfo.outputPath('mobile-auction.png'), fullPage: true });
+});
+
+test('tutorial settlement keeps a meaningful value gap', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(URL);
+  await page.getByRole('button', { name: '先玩免费教学匣' }).click();
+  await page.locator('#bidInput').fill('400');
+  for (let round = 1; round <= 5; round++) {
+    await page.locator('#submitBid').click();
+    if (round < 5) await page.locator('#submitBid').click();
+  }
+  await page.locator('#submitBid').click();
+  await expect(page.locator('#result')).toBeVisible();
+  const deal = Number(await page.locator('#dealValue').innerText());
+  const actual = Number(await page.locator('#actualValue').innerText());
+  expect(actual / Math.max(1, deal)).toBeGreaterThanOrEqual(1.25);
 });
