@@ -145,6 +145,7 @@ export class GameScene extends Phaser.Scene {
   acceptanceToolsOpen = false;
   acceptanceToolsPanel?: Phaser.GameObjects.Container;
   acceptanceToolsButton?: Phaser.GameObjects.Rectangle;
+  cunjingeButton?: Phaser.GameObjects.Rectangle;
   keysBound = false;
   saveTimer = 0;
   minBoardScale = 1;
@@ -1812,6 +1813,12 @@ export class GameScene extends Phaser.Scene {
 
     const systemButtons = [
       {
+        label: this.gs.data.cunjinge.activeAuction ? (compact ? '续拍' : '继续寸金阁') : '寸金阁',
+        color: this.gs.data.cunjinge.activeAuction || (this.gs.data.day >= 7 && (this.gs.data.day - 7) % 3 === 0) ? 0xb57a2e : 0x6f6758,
+        run: () => { this.gs.save.save(); this.scene.start('Cunjinge'); },
+        cunjinge: true,
+      },
+      {
         label: compact ? '验收' : '验收工具',
         color: this.acceptanceToolsOpen ? 0xc67a2d : 0x8a623d,
         run: () => this.toggleAcceptanceTools(),
@@ -1845,6 +1852,7 @@ export class GameScene extends Phaser.Scene {
       });
       if (action.debug) this.npcDebugButton = btn;
       if (action.acceptance) this.acceptanceToolsButton = btn;
+      if (action.cunjinge) this.cunjingeButton = btn;
       this.hudLayer.add([btn, text]);
     });
   }
@@ -3340,6 +3348,12 @@ export class GameScene extends Phaser.Scene {
             x: Number(child.x),
             y: Number(child.y),
           })) || [],
+      },
+      cunjinge: {
+        button: this.cunjingeButton ? { x: this.cunjingeButton.x, y: this.cunjingeButton.y } : null,
+        active: d.cunjinge.activeAuction !== null,
+        chips: d.cunjinge.chips,
+        chestsStarted: d.cunjinge.chestsStarted,
       },
       uiButtons: this.buildMenu.list.filter((child: any) => child.getData?.('action') || child.getData?.('defId') || child.getData?.('speed') !== undefined).map((child: any) => ({
         action: child.getData('action') || null,

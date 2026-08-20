@@ -2,6 +2,7 @@
 import { BootScene } from './scenes/BootScene';
 import { MenuScene } from './scenes/MenuScene';
 import { GameScene } from './scenes/GameScene';
+import { CunjingeScene } from './scenes/CunjingeScene';
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -12,5 +13,5 @@ new Phaser.Game({
     width: '100%',
     height: '100%',
   },
-  scene: [BootScene, MenuScene, GameScene],
+  scene: [BootScene, MenuScene, GameScene, CunjingeScene],
 });

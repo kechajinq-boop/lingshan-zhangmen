@@ -2,6 +2,7 @@ import { IsoGrid } from './systems/IsoGrid';
 import { Economy } from './systems/Economy';
 import { ComboSystem } from './systems/ComboSystem';
 import { SaveSystem } from './systems/SaveSystem';
+import { CunjingeState, defaultCunjingeState, normalizeCunjingeState } from './systems/CunjingeSystem';
 
 export type FactionId = 'dan' | 'jian';
 export type SpiritRootId = 'tian' | 'shuang' | 'san' | 'si' | 'wu';
@@ -113,6 +114,7 @@ export interface GameStateData {
   commissionOffers: string[]; activeCommission: ActiveCommission | null; nextCommissionDay: number;
   eventLog: GameEvent[]; firstSellDone: boolean; currentTitle: string;
   lastFlavorEventDay: number; recentFlavorEventIds: string[];
+  cunjinge: CunjingeState;
 }
 
 export class GameState {
@@ -166,6 +168,7 @@ export class GameState {
       if (!Array.isArray(restored.completedResearch)) restored.completedResearch = [];
       if (!Array.isArray(restored.recentFlavorEventIds)) restored.recentFlavorEventIds = [];
       if (!Number.isFinite(restored.lastFlavorEventDay)) restored.lastFlavorEventDay = restored.day;
+      restored.cunjinge = normalizeCunjingeState(restored.cunjinge);
       if (!restored.pills || typeof restored.pills !== 'object') restored.pills = {};
       for (const recipeId of restored.unlockedRecipes) {
         if (!Number.isFinite(restored.pills[recipeId])) restored.pills[recipeId] = 0;
@@ -216,7 +219,7 @@ export class GameState {
       const fac = raw.factions.find((f: any) => f.id === faction);
       const recipes = raw.recipes.filter((r: RecipeDef) => r.unlock === 'default' || r.unlock === faction).map((r: RecipeDef) => r.id);
       this.data = {
-        schemaVersion: 9,
+        schemaVersion: 10,
         faction, spirit: 300, herbs: 0, pills: {}, spiritOre: 0, azureEdgeSwords: 0, reputation: 10,
         day: 1, dayTime: 0, gridW: INITIAL_GRID_W, gridH: INITIAL_GRID_H,
         unlockedRecipes: recipes,
@@ -235,6 +238,7 @@ export class GameState {
         commissionOffers: [], activeCommission: null, nextCommissionDay: 1,
         eventLog: [], firstSellDone: false, currentTitle: 't0',
         lastFlavorEventDay: 1, recentFlavorEventIds: [],
+        cunjinge: defaultCunjingeState(),
       };
       for (const r of recipes) this.data.pills[r] = 0;
     }
