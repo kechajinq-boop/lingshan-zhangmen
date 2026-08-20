@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "art_direction_brief": "art-direction-brief.md",
+  "generated_at": "2026-08-20",
+  "assets": [
+    {
+      "id": "cunjinge-player-master",
+      "role": "player auction portrait",
+      "source_path": "npc/player-master-source.png",
+      "final_path": "npc/final/player-master.png",
+      "count": 1,
+      "dimensions": "256x256",
+      "alpha": true,
+      "status": "integrated-candidate"
+    },
+    {
+      "id": "cunjinge-npc-portraits",
+      "role": "alchemist sword cultivator and merchant opponent portraits",
+      "source_path": "npc/npc-atlas-source.png",
+      "transparent_source_path": "npc/npc-atlas-transparent.png",
+      "final_pattern": "npc/final/npc-01.png..npc-24.png",
+      "contact_sheet": "npc/npc-contact-sheet.jpg",
+      "count": 24,
+      "dimensions": "256x256",
+      "alpha": true,
+      "status": "integrated-candidate"
+    },
+    {
+      "id": "cunjinge-treasure-icons",
+      "role": "auction chest treasure icons",
+      "source_path": "treasure/treasure-atlas-source.png",
+      "final_pattern": "treasure/final/treasure-01.png..treasure-40.png",
+      "contact_sheet": "treasure/treasure-contact-sheet.jpg",
+      "count": 40,
+      "dimensions": "160x160",
+      "alpha": true,
+      "status": "integrated-candidate"
+    }
+  ],
+  "source": {
+    "kind": "generated",
+    "tool": "OpenAI built-in image generation",
+    "creator": "Codex",
+    "license_note": "Generated for this project; retain this manifest and source files. Human rights review required before commercial store submission.",
+    "prompt_record": "Conversation task 019ffe06-a05f-7951-8243-2d8806315420"
+  },
+  "verification": {
+    "alpha_checked": true,
+    "contact_sheets_checked": true,
+    "native_scale_reviewed": true,
+    "in_game_reviewed": true,
+    "approved_by_user": false
+  }
+}
