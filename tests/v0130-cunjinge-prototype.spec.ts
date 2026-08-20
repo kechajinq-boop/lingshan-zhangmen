@@ -28,6 +28,9 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
   expect(publicClues).not.toMatch(/估值|行价|真实品质|重宝脚点|最低价/);
   await page.locator('[data-art="price"]').click();
   await expect(page.locator('#uses')).toContainText('本轮已用');
+  const firstMarkedCount = await page.locator('.treasure.marked').count();
+  expect(firstMarkedCount).toBeGreaterThanOrEqual(1);
+  await page.screenshot({ path: testInfo.outputPath('desktop-markers.png'), fullPage: true });
   expect(await page.locator('[data-art]').evaluateAll(buttons => buttons.every(button => (button as HTMLButtonElement).disabled))).toBeTruthy();
   await expect(page.locator('[data-art="aura"]')).toBeDisabled();
   await page.locator('#threatBtn').click();
@@ -48,14 +51,16 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
       await expect(page.locator('[data-art="price"]')).toBeDisabled();
       await page.locator('[data-art="shape"]').click();
       expect(await page.locator('[data-art]').evaluateAll(buttons => buttons.every(button => (button as HTMLButtonElement).disabled))).toBeTruthy();
+      expect(await page.locator('.treasure.marked').count()).toBeGreaterThan(firstMarkedCount);
     }
     if (round === 2) {
       await page.locator('#bidInput').fill('399');
       await page.locator('#submitBid').click();
       await expect(page.locator('#bidInput')).toBeEnabled();
-      await expect(page.locator('.toast').last()).toContainText('必须高于上轮400');
+      await expect(page.locator('.toast').last()).toContainText('不能低于上轮400');
     }
-    await page.locator('#bidInput').fill(String(300 + round * 100));
+    const currentBid = round === 2 ? 400 : 300 + round * 100;
+    await page.locator('#bidInput').fill(String(currentBid));
     await page.locator('#submitBid').click();
     await expect(page.locator('#bidInput')).toBeDisabled();
     await expect(page.locator('#topStatus')).toContainText('报价已锁定');
@@ -65,7 +70,7 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
       await page.locator('#submitBid').click();
       await expect(page.locator('#bidInput')).toBeEnabled();
       await expect(page.locator('.clue')).toHaveCount(round + 1);
-      await expect(page.locator('[data-bid="plus20"]')).toContainText(String(Math.round((300 + round * 100) * 1.2)));
+      await expect(page.locator('[data-bid="plus20"]')).toContainText(String(Math.round(currentBid * 1.2)));
       const visibleNow = await page.locator('.treasure:not(.aura-hidden)').count();
       expect(visibleNow).toBeGreaterThan(firstRoundVisible);
     }
@@ -103,15 +108,37 @@ test('844x390 landscape keeps chest, clues and bid controls on screen', async ({
   expect(shapes.some(shape => ['2x3', '2x4', '3x3', '4x2', '4x4'].includes(shape))).toBeTruthy();
   const fiveControls = await page.locator('#arts .art, #threatBtn').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect()).map(box => ({ x: box.x, y: box.y })));
   expect(fiveControls).toHaveLength(5);
-  expect(Math.max(...fiveControls.map(box => box.y)) - Math.min(...fiveControls.map(box => box.y))).toBeLessThanOrEqual(2);
-  expect(fiveControls.map(box => box.x)).toEqual([...fiveControls.map(box => box.x)].sort((a, b) => a - b));
+  expect(Math.max(...fiveControls.map(box => box.x)) - Math.min(...fiveControls.map(box => box.x))).toBeLessThanOrEqual(2);
+  expect(fiveControls.map(box => box.y)).toEqual([...fiveControls.map(box => box.y)].sort((a, b) => a - b));
+  const readingColumns = await Promise.all(['#clues', '.appraisal', '#artLog'].map(async selector => (await page.locator(selector).boundingBox())!));
+  expect(readingColumns[0].x).toBeLessThan(readingColumns[1].x);
+  expect(readingColumns[1].x).toBeLessThan(readingColumns[2].x);
   expect((await page.locator('#submitBid').boundingBox())!.height).toBeGreaterThanOrEqual(34);
+  await page.screenshot({ path: testInfo.outputPath('mobile-layout.png'), fullPage: true });
   await page.locator('#threatBtn').click();
   await expect(page.locator('#threatModal')).toBeVisible();
   const modalBox = await page.locator('#threatModal .threat-card').boundingBox();
   expect(modalBox!.x).toBeGreaterThanOrEqual(0);
   expect(modalBox!.x + modalBox!.width).toBeLessThanOrEqual(844);
   await page.screenshot({ path: testInfo.outputPath('mobile-auction.png'), fullPage: true });
+});
+
+test('quick bid prices stay distinct near the chip limit and equal bids remain valid', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.goto(URL);
+  await page.getByRole('button', { name: '兑换5000' }).click();
+  await page.locator('[data-room="market"]').click();
+  await page.locator('#bidInput').fill('4900');
+  await page.locator('#submitBid').click();
+  await page.locator('#submitBid').click();
+  const quickPrices = await page.locator('[data-bid]').allTextContents();
+  expect(quickPrices.join('|')).toContain('5880');
+  expect(quickPrices.join('|')).toContain('7350');
+  expect(quickPrices.join('|')).toContain('8330');
+  expect(new Set(quickPrices).size).toBe(3);
+  await page.locator('#bidInput').fill('4900');
+  await page.locator('#submitBid').click();
+  await expect(page.locator('#bidInput')).toBeDisabled();
 });
 
 test('tutorial settlement keeps a meaningful value gap', async ({ page }) => {
