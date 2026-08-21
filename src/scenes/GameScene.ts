@@ -18,7 +18,7 @@ import {
   v12StageForBuildingCount as v10StageForBuildingCount,
 } from '../data/v12Map';
 import { TILE_W, TILE_H } from '../systems/IsoGrid';
-import { VisitorObstacle } from '../systems/VisitorPath';
+import { findVisitorPath, VisitorObstacle } from '../systems/VisitorPath';
 
 interface BuildGhost { gx: number; gy: number; ok: boolean; gfx?: Phaser.GameObjects.Container; }
 interface BuildingRenderConfig {
@@ -48,9 +48,6 @@ const FIXED_MAP_ART = {
 };
 const MAP_ART_SCALE_X = FIXED_MAP_ART.width / FIXED_MAP_ART.sourceWidth;
 const MAP_ART_SCALE_Y = FIXED_MAP_ART.height / FIXED_MAP_ART.sourceHeight;
-const REGION_CENTER_BY_ID = Object.fromEntries(
-  V12_ROAD_NODES.filter(node => /^zone-\d+$/.test(node.id)).map(node => [node.id, node]),
-) as Record<string, { mapX: number; mapY: number }>;
 const DEFAULT_BUILDING_RENDER: BuildingRenderConfig = {
   width: 105,
   height: 105,
@@ -358,7 +355,13 @@ export class GameScene extends Phaser.Scene {
     return slot ? { mapX: slot.mapX, mapY: slot.mapY } : null;
   }
 
-  visitorObstacles(excludeBuildingUid?: number, buildingHalfWidth = 48, buildingHalfHeight = 34): VisitorObstacle[] {
+  visitorObstacles(
+    excludeBuildingUid?: number,
+    buildingHalfWidth = 48,
+    buildingHalfHeight = 34,
+    collisionScale = 1,
+    includeDecor = true,
+  ): VisitorObstacle[] {
     const fixed = V10_FIXED_OBJECTS
       .filter(object => object.id !== 'pond-lotus')
       .map(object => {
@@ -379,12 +382,13 @@ export class GameScene extends Phaser.Scene {
         const point = this.buildingMapPoint(building);
         if (!point) return null;
         const def = this.gs.buildingDef(building.defId);
+        if (def.type === 'decor' && !includeDecor) return null;
         const render = BUILDING_RENDER[def.id] || DEFAULT_BUILDING_RENDER;
         return {
           x: point.mapX + render.offsetX,
           y: point.mapY + render.collisionOffsetY,
-          halfWidth: render.collisionHalfWidth || buildingHalfWidth,
-          halfHeight: render.collisionHalfHeight || buildingHalfHeight,
+          halfWidth: (render.collisionHalfWidth || buildingHalfWidth) * collisionScale,
+          halfHeight: (render.collisionHalfHeight || buildingHalfHeight) * collisionScale,
         };
       })
       .filter((obstacle): obstacle is VisitorObstacle => !!obstacle);
@@ -420,20 +424,46 @@ export class GameScene extends Phaser.Scene {
     if (!startNode || !targetNodeId) return null;
     const road = this.roadPath(startNode.id, targetNodeId);
     if (!road) return null;
-    const path: V10MapPoint[] = [start, ...road.map(node => ({ mapX: node.mapX, mapY: node.mapY }))];
+    let path: V10MapPoint[];
     if (targetSlot) {
-      // Each 4x2 region has a clear centre aisle. Walk along that aisle first,
-      // then approach the selected south-facing building entrance.
-      const zoneCenterX = REGION_CENTER_BY_ID[targetSlot.zone]?.mapX ?? targetSlot.mapX;
-      const entranceY = target.mapY;
-      path.push({ mapX: zoneCenterX, mapY: entranceY });
-      path.push(target);
+      // The authored road reaches the outside edge of each build region. From there,
+      // use the navigation grid to weave through dense slots to the exact shop entrance.
+      const roadPrefix = road.slice(0, -1);
+      const connectorStart = roadPrefix[roadPrefix.length - 1] || road[0];
+      const walkable = V10_WALKABLE_POLYGONS[this.visibleMapStage()] || V10_WALKABLE_POLYGONS[0];
+      const connectorObstacles = (includeDecor: boolean) => this.visitorObstacles(
+        excludeBuildingUid,
+        48,
+        34,
+        0.65,
+        includeDecor,
+      );
+      const connector = findVisitorPath(
+        { mapX: connectorStart.mapX, mapY: connectorStart.mapY },
+        target,
+        walkable,
+        V10_WATER_POLYGON,
+        connectorObstacles(true),
+      ) || findVisitorPath(
+        { mapX: connectorStart.mapX, mapY: connectorStart.mapY },
+        target,
+        walkable,
+        V10_WATER_POLYGON,
+        connectorObstacles(false),
+      );
+      if (!connector) return null;
+      path = [
+        start,
+        ...roadPrefix.map(node => ({ mapX: node.mapX, mapY: node.mapY })),
+        ...connector.slice(1),
+      ];
     } else {
-      path.push(target);
+      path = [start, ...road.map(node => ({ mapX: node.mapX, mapY: node.mapY })), target];
+      if (!this.visitorPathIsClear(path, excludeBuildingUid)) return null;
     }
     const compactPath = path.filter((point, index) => index === 0
       || Math.hypot(point.mapX - path[index - 1].mapX, point.mapY - path[index - 1].mapY) > 1);
-    return this.visitorPathIsClear(compactPath, excludeBuildingUid) ? compactPath : null;
+    return compactPath;
   }
 
   nearestRoadNode(point: V10MapPoint) {
@@ -1977,7 +2007,7 @@ export class GameScene extends Phaser.Scene {
     }
     const spawned = this.gs.economy.debugSpawnVisitor();
     if (!spawned) {
-      this.toast('访客无法抵达商铺，请检查商铺入口或先清理当前访客');
+      this.toast('所有商铺入口均不可达，请调整紧贴商铺的建筑后重试');
       return;
     }
     this.gs.save.save();
@@ -2021,7 +2051,7 @@ export class GameScene extends Phaser.Scene {
     const compact = this.scale.width < 900;
     this.eventFeed.setVisible(true);
     const { x, y, width, height } = this.eventFeedBounds();
-    const entries = this.gs.data.eventLog.slice(-(compact || this.eventFeedCollapsed ? 1 : 2)).reverse();
+    const entries = this.gs.data.eventLog.slice(-(compact || this.eventFeedCollapsed ? 1 : 3)).reverse();
     this.eventFeed.setPosition(x, y);
     const bg = this.add.rectangle(0, 0, width, height, 0xffefc1, 0.94)
       .setOrigin(0, 0)
@@ -2064,20 +2094,23 @@ export class GameScene extends Phaser.Scene {
       const entry = entries[0];
       const latest = this.add.text(compact ? 82 : 88, height / 2, entry.title, {
         fontSize: '11px', color: '#5b4833', fontFamily: FONT,
-      }).setOrigin(0, 0.5).setMaxLines(1);
-      latest.setWordWrapWidth(Math.max(80, width - (compact ? 158 : 160)));
+        wordWrap: { width: Math.max(80, width - (compact ? 158 : 160)), useAdvancedWrap: true },
+      }).setOrigin(0, 0.5).setMaxLines(1)
+        .setFixedSize(Math.max(80, width - (compact ? 158 : 160)), 18);
       this.eventFeed.add(latest);
       return;
     }
     entries.forEach((entry, index) => {
-      const rowY = 39 + index * 31;
+      const rowY = 39 + index * 42;
       const marker = this.add.circle(15, rowY + 4, 3, index === 0 ? 0x67a451 : 0xc19555, 0.95);
       const head = this.add.text(24, rowY, entry.title, {
         fontSize: '11px', color: index === 0 ? '#5d3a22' : '#72563f', fontFamily: FONT, fontStyle: 'bold',
-      }).setMaxLines(1).setWordWrapWidth(width - 36);
+        wordWrap: { width: width - 42, useAdvancedWrap: true },
+      }).setMaxLines(1).setFixedSize(width - 38, 14);
       const detail = this.add.text(24, rowY + 14, entry.detail, {
         fontSize: '10px', color: '#7d6a54', fontFamily: FONT,
-      }).setMaxLines(1).setWordWrapWidth(width - 36);
+        wordWrap: { width: width - 42, useAdvancedWrap: true },
+      }).setMaxLines(2).setFixedSize(width - 38, 26);
       this.eventFeed.add([marker, head, detail]);
     });
   }
@@ -2090,7 +2123,7 @@ export class GameScene extends Phaser.Scene {
       x: margin,
       y: top + this.topBarHeight() + (compact ? 6 : 12),
       width: compact ? Math.min(300, this.scale.width - margin * 2) : 300,
-      height: compact || this.eventFeedCollapsed ? 34 : 106,
+      height: compact || this.eventFeedCollapsed ? 34 : 166,
     };
   }
 
@@ -2183,7 +2216,8 @@ export class GameScene extends Phaser.Scene {
     this.buildMenu.removeAll(true);
     const w = this.scale.width, h = this.scale.height;
     const defs = this.gs.defs.buildings.filter(def => def.type !== 'decor');
-    const decorDefs = this.gs.defs.buildings.filter(def => def.type === 'decor');
+    const allDecorDefs = this.gs.defs.buildings.filter(def => def.type === 'decor');
+    const decorDefs = allDecorDefs.filter(def => (def.unlockExpansion || 0) <= this.visibleMapStage());
     const compact = w < 900;
     const menuHeight = this.buildMenuHeight();
     const buttonW = compact ? 50 : 60;
@@ -2325,7 +2359,8 @@ export class GameScene extends Phaser.Scene {
       const decorColumns = Math.min(8, decorDefs.length);
       const decorRows = Math.ceil(decorDefs.length / decorColumns);
       const paletteW = decorColumns * buttonW + (decorColumns - 1) * gap;
-      const paletteH = decorRows * buttonH + (decorRows - 1) * gap;
+      const paletteHeaderH = 18;
+      const paletteH = decorRows * buttonH + (decorRows - 1) * gap + paletteHeaderH;
       const paletteBottomY = firstRowY - buttonH / 2 - gap - 8;
       const paletteCenterY = paletteBottomY - paletteH / 2;
       const palette = this.add.rectangle(0, paletteCenterY, paletteW + 16, paletteH + 12, 0xffefc1, 0.98)
@@ -2333,6 +2368,11 @@ export class GameScene extends Phaser.Scene {
         .setInteractive();
       palette.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
       this.buildMenu.add(palette);
+      const nextHint = decorDefs.length < allDecorDefs.length ? ' · 扩建后开放更多' : ' · 已全部开放';
+      const paletteTitle = this.add.text(0, paletteCenterY - paletteH / 2 + 10, '装饰 ' + decorDefs.length + '/' + allDecorDefs.length + nextHint, {
+        fontSize: compact ? '10px' : '11px', color: '#6a4b2a', fontFamily: FONT, fontStyle: 'bold',
+      }).setOrigin(0.5);
+      this.buildMenu.add(paletteTitle);
       const paletteStartX = -paletteW / 2 + buttonW / 2;
       decorDefs.forEach((def, index) => {
         const column = index % decorColumns;
@@ -2752,7 +2792,7 @@ export class GameScene extends Phaser.Scene {
     const projects = this.gs.researchableProjects();
     const rowCount = recipes.length + projects.length;
     const sectionCount = (recipes.length > 0 ? 1 : 0) + (projects.length > 0 ? 1 : 0);
-    const h = 66 + Math.max(1, rowCount) * 46 + sectionCount * 20;
+    const h = 66 + Math.max(1, rowCount) * 46 + sectionCount * 30;
     const bg = this.add.rectangle(0, 0, 320, h, 0xfff0c9, 0.99).setStrokeStyle(2, 0xf08b3e).setInteractive();
     bg.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
     const title = this.add.text(0, -h / 2 + 18, '宗门研发', { fontSize: '17px', color: '#6a361c', fontFamily: FONT }).setOrigin(0.5);
@@ -2763,7 +2803,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (recipes.length > 0) {
       this.researchPanel.add(this.add.text(-138, y, '丹方研发', { fontSize: '12px', color: '#8d4d20', fontFamily: FONT, fontStyle: 'bold' }).setOrigin(0, 0.5));
-      y += 20;
+      y += 30;
     }
     for (const r of recipes) {
       const check = this.gs.canResearch(r);
@@ -2777,7 +2817,7 @@ export class GameScene extends Phaser.Scene {
     }
     if (projects.length > 0) {
       this.researchPanel.add(this.add.text(-138, y, '炼器研发', { fontSize: '12px', color: '#426f83', fontFamily: FONT, fontStyle: 'bold' }).setOrigin(0, 0.5));
-      y += 20;
+      y += 30;
     }
     for (const project of projects) {
       const check = this.gs.canResearchProject(project);
@@ -2829,6 +2869,7 @@ export class GameScene extends Phaser.Scene {
     if (this.gs.expand()) {
       this.drawGridExpansion();
       this.layoutBoard();
+      this.layoutUI();
       this.toast('消耗 ' + ex.spirit + '灵石 ' + ex.rep + '声望，开拓新区域');
       this.gs.logEvent('expand', 'highlight', '开拓新域', '宗门开拓新区域（-' + ex.spirit + '灵石，需声望' + ex.rep + '）', '#8fdc72');
       this.gs.save.save();

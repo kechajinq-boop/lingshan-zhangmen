@@ -8,10 +8,10 @@ const SAVE_KEY = 'lingshan_save_v1';
 const gamedata = JSON.parse(readFileSync(resolve(process.cwd(), 'src', 'data', 'gamedata.json'), 'utf8').replace(/^\uFEFF/, ''));
 const decorManifest = JSON.parse(readFileSync(resolve(process.cwd(), 'public', 'assets', 'v12', 'decor', 'asset-manifest.json'), 'utf8'));
 const decorationIds = [
-  'decor-sakura', 'decor-sakura-large', 'decor-pine', 'decor-pine-large',
-  'decor-flower', 'decor-spirit-blue', 'decor-bamboo', 'decor-bush',
-  'decor-rock-small', 'decor-rock-large', 'decor-lantern', 'decor-lantern-2',
-  'decor-incense', 'decor-crystal-lamp', 'decor-lotus', 'decor-reeds',
+  'decor-sakura', 'decor-pine', 'decor-flower', 'decor-lantern', 'decor-lotus',
+  'decor-sakura-large', 'decor-pine-large', 'decor-spirit-blue', 'decor-bamboo', 'decor-bush',
+  'decor-rock-small', 'decor-rock-large', 'decor-lantern-2', 'decor-incense',
+  'decor-crystal-lamp', 'decor-reeds',
 ];
 
 test.use({ viewport: { width: 1920, height: 1080 } });
@@ -161,6 +161,9 @@ test('buildable natural decorations match the approved source files', () => {
     const bytes = readFileSync(resolve(process.cwd(), 'public', 'assets', 'v12', 'decor', asset.file));
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(asset.sha256);
   }
+  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion === 0)).toHaveLength(5);
+  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion <= 1)).toHaveLength(10);
+  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion <= 2)).toHaveLength(16);
 });
 
 test('confirmed research and elder costs are data-driven and forging bonuses apply', async ({ page }) => {
@@ -174,6 +177,7 @@ test('confirmed research and elder costs are data-driven and forging bonuses app
   await continueGame(page, schemaEightSave({ buildings: [building(0, 'lianqi')] }));
   await clickAction(page, '研发');
   await expect.poll(async () => (await gameState(page)).researchRows?.length || 0).toBe(6);
+  await page.screenshot({ path: 'deliverables/v0122a-r1-qa/research-spacing-desktop.png', fullPage: true });
   let state = await gameState(page);
   const research = state.researchRows.find((row: any) => row.projectId === 'forge-temper');
   await page.locator('canvas').click({ position: { x: research.x, y: research.y }, force: true });
@@ -219,6 +223,25 @@ test('each new game day creates one or two flavor events without duplicate day r
   expect(first.flavorEventsToday).toBeLessThanOrEqual(2);
   await page.waitForTimeout(1200);
   expect((await gameState(page)).flavorEventsToday).toBe(first.flavorEventsToday);
+});
+
+test('desktop event feed shows three wrapped entries without covering the build controls', async ({ page }) => {
+  const longDetail = '长老讲道三日，弟子们听得如痴如醉，散场后才发现他把炼丹口诀讲成了灵兽食谱。';
+  await continueGame(page, schemaEightSave({
+    eventLog: [1, 2, 3].map(index => ({
+      id: index,
+      day: 18,
+      time: `1${index}:00`,
+      type: 'flavor',
+      level: 'info',
+      title: `宗门趣闻${index}`,
+      detail: longDetail,
+      color: '#8bd5ff',
+    })),
+  }));
+  await page.screenshot({ path: 'deliverables/v0122a-r1-qa/event-feed-wrapped-desktop.png', fullPage: true });
+  const state = await gameState(page);
+  expect(state.uiButtons.length).toBeGreaterThan(10);
 });
 
 test('legacy production effects only appear while the three buildings are working', async ({ page }) => {
@@ -267,6 +290,11 @@ test('acceptance tools grant saved resources and can force a new visitor after d
     };
   }).toEqual({ spirit: 50010, reputation: 999, herbs: 203, spiritOre: 204, azureEdgeSwords: 50, juling: 51, bigu: 52 });
 
+  await page.keyboard.press('Escape');
+  let state = await gameState(page);
+  const pause = state.uiButtons.find((item: any) => item.speed === 0);
+  await page.locator('canvas').click({ position: pause, force: true });
+  await openAcceptanceTools(page);
   await clickAcceptanceAction(page, 'clearVisitors');
   await expect.poll(async () => (await gameState(page)).visitors.length).toBe(0);
   await clickAcceptanceAction(page, 'spawnVisitor');
@@ -287,7 +315,7 @@ test('acceptance tools grant saved resources and can force a new visitor after d
 
 test('approved quarter-area decorations build, persist, stay out of progression and refund on demolition', async ({ page }) => {
   test.setTimeout(120_000);
-  await continueGame(page, schemaEightSave({ spirit: 5000, buildings: [building(0, 'danfang')] }));
+  await continueGame(page, schemaEightSave({ spirit: 5000, expansionsUnlocked: 2, buildings: [building(0, 'danfang')] }));
   await clickAction(page, '装饰');
   await expect.poll(async () => {
     const state = await gameState(page);
@@ -327,7 +355,7 @@ test('approved quarter-area decorations build, persist, stay out of progression 
     expect(areaRatio).toBeGreaterThanOrEqual(0.24);
     expect(areaRatio).toBeLessThanOrEqual(0.26);
   }
-  await page.screenshot({ path: 'deliverables/v0122a-qa/decorations-area-quarter-runtime.png', fullPage: true });
+  await page.screenshot({ path: 'deliverables/v0122a-r1-qa/decorations-area-quarter-runtime.png', fullPage: true });
 
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
@@ -345,10 +373,19 @@ test('approved quarter-area decorations build, persist, stay out of progression 
   expect((await gameState(page)).spirit).toBe(5000 - totalDecorationCost + 7);
 });
 
+test('decoration menu unlocks cumulatively as five, ten and sixteen items', async ({ page }) => {
+  for (const [expansionsUnlocked, expected] of [[0, 5], [1, 10], [2, 16]] as const) {
+    await continueGame(page, schemaEightSave({ expansionsUnlocked }));
+    await clickAction(page, '装饰');
+    const buttons = (await gameState(page)).uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
+    expect(buttons).toHaveLength(expected);
+  }
+});
+
 test('decoration palette stays inside mobile landscape viewport', async ({ browser }) => {
   const context = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
-  await continueGame(page, schemaEightSave(), { x: 422, y: 320 });
+  await continueGame(page, schemaEightSave({ expansionsUnlocked: 2 }), { x: 422, y: 320 });
   await clickAction(page, '装饰');
   const state = await gameState(page);
   const buttons = state.uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
@@ -359,7 +396,7 @@ test('decoration palette stays inside mobile landscape viewport', async ({ brows
     expect(button.y).toBeGreaterThan(20);
     expect(button.y).toBeLessThan(370);
   }
-  await page.screenshot({ path: 'deliverables/v0122a-qa/decorations-mobile-palette.png', fullPage: true });
+  await page.screenshot({ path: 'deliverables/v0122a-r1-qa/decorations-mobile-palette.png', fullPage: true });
   await context.close();
 });
 

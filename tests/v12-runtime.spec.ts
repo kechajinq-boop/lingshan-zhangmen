@@ -373,12 +373,14 @@ test('sold-out shops still receive a neutral visitor without reputation loss', a
   await expect.poll(async () => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').visitorVisuals.length
   )), { timeout: 10000 }).toBeGreaterThan(0);
+  const spawned = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  expect(spawned.visitors[0].walkTimer).toBeLessThan(12);
   await expect.poll(async () => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').visitors.some((visitor: { arrivedAtShop: boolean }) => visitor.arrivedAtShop)
-  )), { timeout: 15000 }).toBe(true);
+  )), { timeout: 25000 }).toBe(true);
   await expect.poll(async () => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').visitors.length
-  )), { timeout: 15000 }).toBe(0);
+  )), { timeout: 25000 }).toBe(0);
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(250);
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
@@ -386,6 +388,79 @@ test('sold-out shops still receive a neutral visitor without reputation loss', a
   expect(saved.reputation).toBe(old.reputation);
   expect(saved.visitorsLost).toBe(old.visitorsLost);
   expect(saved.eventLog.some((event: { title: string }) => event.title === '商铺暂时售罄')).toBe(true);
+});
+
+test('dense stage-three layout keeps day-thirty-one visitors and acceptance spawns reachable', async ({ page }) => {
+  test.setTimeout(150_000);
+  const pillSlotIndex = V12_BUILD_SLOTS.findIndex(slot => slot.zone === 'zone-01' && slot.row === 0 && slot.column === 1);
+  const artifactSlotIndex = V12_BUILD_SLOTS.findIndex(slot => slot.zone === 'zone-04' && slot.row === 0 && slot.column === 2);
+  const decorIds = ['decor-sakura', 'decor-pine', 'decor-flower', 'decor-lantern', 'decor-lotus'];
+  const decorSlotIndexes = V12_BUILD_SLOTS
+    .map((_slot, index) => index)
+    .filter(index => index !== pillSlotIndex && index !== artifactSlotIndex)
+    .slice(-decorIds.length);
+  const buildings = V12_BUILD_SLOTS.map((_slot, index) => {
+    let defId = 'danfang';
+    if (index === pillSlotIndex) defId = 'danpu';
+    else if (index === artifactSlotIndex) defId = 'faqipu';
+    else if (decorSlotIndexes.includes(index)) defId = decorIds[decorSlotIndexes.indexOf(index)];
+    return { ...makeBuilding(index, defId), sellRecipe: defId === 'danpu' ? 'juling' : null };
+  });
+  await continueGame(page, {
+    ...schemaSevenSave(buildings, 2),
+    day: 31,
+    dayTime: 0,
+    reputation: 999,
+    pills: { juling: 500, bigu: 500 },
+    azureEdgeSwords: 500,
+  });
+  let state = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  const speed2 = state.uiButtons.find((item: any) => item.speed === 2);
+  await page.locator('canvas').click({ position: speed2, force: true });
+  const naturalVisitors = new Set<number>();
+  await expect.poll(async () => {
+    const current = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    for (const visitor of current.visitors) naturalVisitors.add(visitor.id);
+    return current.day;
+  }, { timeout: 50_000, intervals: [200, 400, 800] }).toBeGreaterThanOrEqual(32);
+  expect(naturalVisitors.size).toBeGreaterThan(5);
+  state = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  const pause = state.uiButtons.find((item: any) => item.speed === 0);
+  await page.locator('canvas').click({ position: pause, force: true });
+  await page.locator('canvas').click({ position: state.acceptanceTools.button, force: true });
+  await expect.poll(async () => {
+    const current = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    return current.acceptanceTools.open;
+  }).toBe(true);
+
+  for (let cycle = 0; cycle < 8; cycle++) {
+    state = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    const clear = state.acceptanceTools.actions.find((item: any) => item.action === 'clearVisitors');
+    await page.locator('canvas').click({ position: clear, force: true });
+    await expect.poll(async () => {
+      const current = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+      return current.visitors.length;
+    }).toBe(0);
+    state = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    const spawn = state.acceptanceTools.actions.find((item: any) => item.action === 'spawnVisitor');
+    await page.locator('canvas').click({ position: spawn, force: true });
+    await expect.poll(async () => {
+      const current = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+      return current.visitorVisuals.length;
+    }).toBeGreaterThan(0);
+    state = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    expect(state.visitorVisuals[0].debugPath.length).toBeGreaterThan(3);
+  }
+
+  await page.keyboard.press('Escape');
+  await expect.poll(async () => {
+    const current = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+    return current.acceptanceTools.open;
+  }).toBe(false);
+  state = await page.locator('canvas').evaluate(canvas => JSON.parse(canvas.dataset.v12State || '{}'));
+  await page.locator('canvas').click({ position: state.npcDebug.button, force: true });
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: 'deliverables/v0122a-r1-qa/dense-day31-visitor-route.png', fullPage: true });
 });
 
 test('sold-out visitor flow remains active after day 18', async ({ page }) => {
