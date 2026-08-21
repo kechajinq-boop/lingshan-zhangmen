@@ -14,6 +14,7 @@ export interface BuildingDef {
   type: 'gather' | 'craft' | 'sell' | 'train' | 'house' | 'mine' | 'forge' | 'artifactSell' | 'decor';
   output?: string; input?: string; baseTime?: number; capacity?: number; beds?: number; desc: string;
   renderScale?: number;
+  unlockExpansion?: number;
   upgrades?: { cost: number; speed?: number; capacity?: number; beds?: number }[];
 }
 export interface RecipeDef { id: string; name: string; input: number; price: number; unlock: string; research?: { spirit: number; rep: number }; }

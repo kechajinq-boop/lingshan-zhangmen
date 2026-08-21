@@ -212,9 +212,8 @@ export class Economy {
     if (open.length === 0) return false;
     const minLoad = Math.min(...open.map(s => this.shopLoad(s)));
     const candidates = open.filter(s => this.shopLoad(s) === minLoad);
-    const target = candidates[this.nextShopCursor % candidates.length];
-    this.nextShopCursor++;
-    return this.spawnVisitorAt(target);
+    if (this.spawnFirstReachable(candidates)) return true;
+    return this.spawnFirstReachable(open.filter(shop => !candidates.includes(shop)));
   }
 
   debugSpawnVisitor(): boolean {
@@ -223,9 +222,19 @@ export class Economy {
     this.syncSellShopQueues(shops);
     const minLoad = Math.min(...shops.map(shop => this.shopLoad(shop)));
     const candidates = shops.filter(shop => this.shopLoad(shop) === minLoad);
-    const target = candidates[this.nextShopCursor % candidates.length];
+    if (this.spawnFirstReachable(candidates)) return true;
+    return this.spawnFirstReachable(shops.filter(shop => !candidates.includes(shop)));
+  }
+
+  spawnFirstReachable(candidates: PlacedBuilding[]): boolean {
+    if (candidates.length === 0) return false;
+    const start = this.nextShopCursor % candidates.length;
     this.nextShopCursor++;
-    return this.spawnVisitorAt(target);
+    for (let index = 0; index < candidates.length; index++) {
+      const target = candidates[(start + index) % candidates.length];
+      if (this.spawnVisitorAt(target)) return true;
+    }
+    return false;
   }
 
   markVisitorArrived(visitorId: number): void {
