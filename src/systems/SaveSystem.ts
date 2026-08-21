@@ -4,8 +4,9 @@ const KEY = 'lingshan_save_v1';
 const PRE_V10_BACKUP_KEY = 'lingshan_save_backup_pre_v10';
 const PRE_V12_BACKUP_KEY = 'lingshan_save_backup_pre_v12';
 const PRE_V0122A_BACKUP_KEY = 'lingshan_save_backup_pre_v0122a';
+const PRE_V0124_BACKUP_KEY = 'lingshan_save_backup_pre_v0124';
 const CORRUPT_BACKUP_KEY = 'lingshan_save_backup_corrupt';
-const SCHEMA_VERSION = 9;
+const SCHEMA_VERSION = 10;
 
 export class SaveSystem {
   gs: GameState;
@@ -43,6 +44,9 @@ export class SaveSystem {
       }
       if (oldSchema < SCHEMA_VERSION && !localStorage.getItem(PRE_V0122A_BACKUP_KEY)) {
         localStorage.setItem(PRE_V0122A_BACKUP_KEY, s);
+      }
+      if (oldSchema < SCHEMA_VERSION && !localStorage.getItem(PRE_V0124_BACKUP_KEY)) {
+        localStorage.setItem(PRE_V0124_BACKUP_KEY, s);
       }
       d.schemaVersion = SCHEMA_VERSION;
       d.spiritOre = Number.isFinite(Number(d.spiritOre)) ? Math.max(0, Number(d.spiritOre)) : 0;

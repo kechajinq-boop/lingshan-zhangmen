@@ -53,7 +53,7 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(9);
+  ))).toBe(10);
 }
 
 async function buildablePoint(page: import('@playwright/test').Page, slotId: string) {

@@ -76,7 +76,7 @@ async function continueGame(page: import('@playwright/test').Page, state: unknow
   await expect.poll(async () => page.evaluate(key => {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw).schemaVersion : 0;
-  }, SAVE_KEY)).toBe(9);
+  }, SAVE_KEY)).toBe(10);
   await page.waitForTimeout(250);
 }
 
@@ -213,13 +213,13 @@ test('gate route uses only the open portal and never crosses the gate base sides
   }
 });
 
-test('schema-seven save migrates to schema eight without changing old resources or buildings', async ({ page }) => {
+test('schema-seven save migrates to schema ten without changing old resources or buildings', async ({ page }) => {
   const old = schemaSevenSave([makeBuilding(0, 'lingtian'), makeBuilding(1, 'danfang')]);
   await continueGame(page, old);
   await page.mouse.click(1793, 50);
   await page.waitForTimeout(250);
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
-  expect(saved.schemaVersion).toBe(9);
+  expect(saved.schemaVersion).toBe(10);
   expect(saved.spirit).toBe(old.spirit);
   expect(saved.herbs).toBe(old.herbs);
   expect(saved.pills).toEqual(old.pills);

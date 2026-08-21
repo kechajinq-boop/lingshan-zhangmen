@@ -107,11 +107,11 @@ async function continueGame(page: Page, save: unknown, menuClick = { x: 960, y: 
   await expect(page.locator('canvas')).toBeVisible();
   await expect.poll(async () => {
     const state = await gameState(page);
-    if (state.schemaVersion === 9) return state.schemaVersion;
+    if (state.schemaVersion === 10) return state.schemaVersion;
     await page.locator('canvas').click({ position: menuClick, force: true });
     await page.waitForTimeout(250);
     return (await gameState(page)).schemaVersion;
-  }, { timeout: 15000 }).toBe(9);
+  }, { timeout: 15000 }).toBe(10);
 }
 
 async function clickAction(page: Page, action: string) {
@@ -150,10 +150,12 @@ async function clickAcceptanceAction(page: Page, action: string) {
   await page.locator('canvas').click({ position: { x: target.x, y: target.y }, force: true });
 }
 
-test('schema 8 save migrates to schema 9 with safe defaults and backup', async ({ page }) => {
+test('schema 8 save migrates to schema 10 with safe defaults and backup', async ({ page }) => {
   await continueGame(page, schemaEightSave({ day: 12 }));
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
-  expect(saved.schemaVersion).toBe(9);
+  expect(saved.schemaVersion).toBe(10);
+  expect(saved.cunjinge).toMatchObject({ chips: 0, chests: 0, auction: null, appraiserXp: 0 });
+  expect(await page.evaluate(() => !!localStorage.getItem('lingshan_save_backup_pre_v0124'))).toBe(true);
   expect(saved.completedResearch).toEqual([]);
   expect(saved.lastFlavorEventDay).toBe(12);
   expect(saved.recentFlavorEventIds).toEqual([]);

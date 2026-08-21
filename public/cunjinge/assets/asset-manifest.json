@@ -1,0 +1,12 @@
+{
+  "schema": "lingshan.v0124.cunjinge-art.v1",
+  "status": "approved-prototype-assets",
+  "source": "codex/v0.13.0-cunjinge@091293b",
+  "npcPortraits": 25,
+  "treasureImages": 40,
+  "notes": [
+    "24 NPC portraits plus 1 player-master portrait",
+    "40 treasure images reused across five hidden quality tiers",
+    "Copied without recutting from the user-approved Cunjinge prototype"
+  ]
+}

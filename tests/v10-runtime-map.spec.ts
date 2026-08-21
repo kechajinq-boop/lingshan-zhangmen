@@ -98,7 +98,7 @@ test('two expansions switch stages and preserve existing building slots', async 
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(9);
+  ))).toBe(10);
 
   await page.mouse.click(1122, 1033);
   await page.waitForTimeout(500);
@@ -142,7 +142,7 @@ test('schema 6 save migrates to slots without losing buildings', async ({ page }
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(9);
+  ))).toBe(10);
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(2);
   expect(state.buildings.every((building: { slotId?: string }) => !!building.slotId)).toBe(true);
@@ -177,7 +177,7 @@ test('all twenty stage-one slots remain usable together', async ({ page }) => {
   await page.locator('canvas').click({ position: { x: 960, y: 886 } });
   await expect.poll(() => page.locator('canvas').evaluate(canvas => (
     JSON.parse(canvas.dataset.v12State || '{}').schemaVersion || 0
-  ))).toBe(9);
+  ))).toBe(10);
   const state = await savedState(page);
   expect(state.buildings).toHaveLength(20);
   expect(new Set(state.buildings.map((building: { slotId: string }) => building.slotId)).size).toBe(20);

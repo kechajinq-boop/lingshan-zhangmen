@@ -88,6 +88,32 @@ export interface GameEvent { id: number; day: number; time: string; type: EventT
 export interface TitleCond { type: string; value: number; desc: string; }
 export interface TitleDef { id: string; name: string; minDay: number; conds: TitleCond[]; anyConds?: TitleCond[]; }
 
+export interface CunjingeProgress {
+  chips: number;
+  chests: number;
+  eventDay: number;
+  room: unknown | null;
+  auction: unknown | null;
+  tutorialDone: boolean;
+  appraiserXp: number;
+  sessionXp: number;
+  startLevel: number;
+}
+
+export function defaultCunjingeProgress(): CunjingeProgress {
+  return {
+    chips: 0,
+    chests: 0,
+    eventDay: 0,
+    room: null,
+    auction: null,
+    tutorialDone: false,
+    appraiserXp: 0,
+    sessionXp: 0,
+    startLevel: 1,
+  };
+}
+
 export interface GameStateData {
   schemaVersion: number;
   faction: FactionId;
@@ -114,6 +140,7 @@ export interface GameStateData {
   commissionOffers: string[]; activeCommission: ActiveCommission | null; nextCommissionDay: number;
   eventLog: GameEvent[]; firstSellDone: boolean; currentTitle: string;
   lastFlavorEventDay: number; recentFlavorEventIds: string[];
+  cunjinge: CunjingeProgress;
 }
 
 export class GameState {
@@ -167,6 +194,7 @@ export class GameState {
       if (!Array.isArray(restored.completedResearch)) restored.completedResearch = [];
       if (!Array.isArray(restored.recentFlavorEventIds)) restored.recentFlavorEventIds = [];
       if (!Number.isFinite(restored.lastFlavorEventDay)) restored.lastFlavorEventDay = restored.day;
+      restored.cunjinge = { ...defaultCunjingeProgress(), ...(restored.cunjinge || {}) };
       if (!restored.pills || typeof restored.pills !== 'object') restored.pills = {};
       for (const recipeId of restored.unlockedRecipes) {
         if (!Number.isFinite(restored.pills[recipeId])) restored.pills[recipeId] = 0;
@@ -217,7 +245,7 @@ export class GameState {
       const fac = raw.factions.find((f: any) => f.id === faction);
       const recipes = raw.recipes.filter((r: RecipeDef) => r.unlock === 'default' || r.unlock === faction).map((r: RecipeDef) => r.id);
       this.data = {
-        schemaVersion: 9,
+        schemaVersion: 10,
         faction, spirit: 300, herbs: 0, pills: {}, spiritOre: 0, azureEdgeSwords: 0, reputation: 10,
         day: 1, dayTime: 0, gridW: INITIAL_GRID_W, gridH: INITIAL_GRID_H,
         unlockedRecipes: recipes,
@@ -236,6 +264,7 @@ export class GameState {
         commissionOffers: [], activeCommission: null, nextCommissionDay: 1,
         eventLog: [], firstSellDone: false, currentTitle: 't0',
         lastFlavorEventDay: 1, recentFlavorEventIds: [],
+        cunjinge: defaultCunjingeProgress(),
       };
       for (const r of recipes) this.data.pills[r] = 0;
     }
