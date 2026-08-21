@@ -16,10 +16,16 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
   await expect.poll(() => page.locator('.avatar img').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBeTruthy();
   await expect(page.locator('.clue')).toHaveCount(1);
   await expect(page.locator('#topStatus')).toContainText('45秒');
+  await expect(page.locator('#topStatus .countdown')).toHaveText('45秒');
+  expect(await page.locator('#topStatus .countdown').evaluate(node => getComputedStyle(node).color)).toBe('rgb(199, 49, 40)');
+  expect(Number.parseFloat(await page.locator('#topStatus .countdown').evaluate(node => getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(20);
+  expect((await page.locator('#topStatus').innerText()).indexOf('45秒')).toBeGreaterThan((await page.locator('#topStatus').innerText()).indexOf('鉴宝师'));
   const treasureCount = await page.locator('.treasure').count();
   expect(treasureCount).toBeGreaterThanOrEqual(5);
   expect(treasureCount).toBeLessThanOrEqual(13);
   await expect.poll(() => page.locator('.treasure img').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBeTruthy();
+  await expect(page.locator('.treasure.type-known')).toHaveCount(0);
+  expect(await page.locator('.treasure img').evaluateAll(images => images.every(image => getComputedStyle(image).opacity === '0'))).toBeTruthy();
   const firstRoundVisible = await page.locator('.treasure:not(.aura-hidden)').count();
   expect(firstRoundVisible).toBeGreaterThan(0);
   expect(firstRoundVisible).toBeLessThan(treasureCount);
@@ -76,6 +82,14 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
       await expect(page.locator('[data-bid="plus20"]')).toContainText(String(Math.round(currentBid * 1.2)));
       const visibleNow = await page.locator('.treasure:not(.aura-hidden)').count();
       expect(visibleNow).toBeGreaterThan(firstRoundVisible);
+      if (round === 3) {
+        await expect(page.locator('.treasure.type-known')).toHaveCount(1);
+        await expect(page.locator('.treasure.type-known .type-badge')).toBeVisible();
+        await expect(page.locator('.clue').last()).toContainText(/蓝色|紫色|橙色|金色|红色/);
+        await expect(page.locator('.clue').last()).toContainText(/丹药|法器|灵植|灵材|功法/);
+        await expect(page.locator('#artLog')).toContainText('线索反应');
+        await page.screenshot({ path: testInfo.outputPath('desktop-type-reveal.png'), fullPage: true });
+      }
     }
   }
   await expect(page.locator('.treasure:not(.aura-hidden)')).toHaveCount(treasureCount);
@@ -87,6 +101,7 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
   await page.locator('#submitBid').click();
   await expect(page.locator('#result')).toBeVisible();
   await expect(page.locator('.treasure.revealed')).toHaveCount(treasureCount);
+  expect(await page.locator('.treasure.revealed img').evaluateAll(images => images.every(image => getComputedStyle(image).opacity === '1'))).toBeTruthy();
   await expect(page.locator('#actualValue')).not.toHaveText('');
   expect(consoleErrors).toEqual([]);
   await page.screenshot({ path: testInfo.outputPath('desktop-result.png'), fullPage: true });
@@ -114,10 +129,16 @@ test('844x390 landscape keeps chest, clues and bid controls on screen', async ({
   expect(Math.max(...fiveControls.map(box => box.x)) - Math.min(...fiveControls.map(box => box.x))).toBeLessThanOrEqual(2);
   expect(fiveControls.map(box => box.y)).toEqual([...fiveControls.map(box => box.y)].sort((a, b) => a - b));
   expect(Math.max(...fiveControls.map(box => box.height))).toBeLessThanOrEqual(24);
-  expect((await page.locator('.appraisal').boundingBox())!.width).toBeLessThanOrEqual(82);
-  const readingColumns = await Promise.all(['#clues', '.appraisal', '#artLog'].map(async selector => (await page.locator(selector).boundingBox())!));
+  expect(Math.max(...await page.locator('#arts .art, #threatBtn').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect().width)))).toBeLessThanOrEqual(78);
+  const readingColumns = await Promise.all(['.clues', '.appraisal', '.auction-log'].map(async selector => (await page.locator(selector).boundingBox())!));
   expect(readingColumns[0].x).toBeLessThan(readingColumns[1].x);
   expect(readingColumns[1].x).toBeLessThan(readingColumns[2].x);
+  const readingWidth = readingColumns.reduce((sum, box) => sum + box.width, 0);
+  expect(readingColumns[0].width / readingWidth).toBeGreaterThan(0.34);
+  expect(readingColumns[1].width / readingWidth).toBeGreaterThan(0.21);
+  expect(readingColumns[1].width / readingWidth).toBeLessThan(0.29);
+  expect(readingColumns[2].width / readingWidth).toBeGreaterThan(0.33);
+  await expect(page.locator('#logNext')).toBeVisible();
   expect((await page.locator('#submitBid').boundingBox())!.height).toBeGreaterThanOrEqual(34);
   await page.screenshot({ path: testInfo.outputPath('mobile-layout.png'), fullPage: true });
   await page.locator('#threatBtn').click();
