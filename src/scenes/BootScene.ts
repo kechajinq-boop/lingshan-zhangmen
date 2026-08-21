@@ -58,15 +58,27 @@ export class BootScene extends Phaser.Scene {
     ]) {
       this.load.image('v10-' + id, v10PropPath + id + '.png');
     }
+    const v12DecorPath = 'assets/v12/decor/';
     const buildableDecorations: Record<string, string> = {
-      'decor-sakura': 'prop_tree_sakura_01',
+      'decor-sakura': 'prop_tree_cherry_01',
+      'decor-sakura-large': 'prop_tree_cherry_02',
       'decor-pine': 'prop_tree_pine_01',
-      'decor-flower': 'prop_flower_01',
-      'decor-lantern': 'prop_lantern_01',
-      'decor-lotus': 'prop_lotus_01',
+      'decor-pine-large': 'prop_tree_pine_02',
+      'decor-flower': 'prop_plant_spirit_purple',
+      'decor-spirit-blue': 'prop_plant_spirit_blue',
+      'decor-bamboo': 'prop_plant_bamboo_01',
+      'decor-bush': 'prop_plant_bush_01',
+      'decor-rock-small': 'prop_rock_01',
+      'decor-rock-large': 'prop_rock_02',
+      'decor-lantern': 'prop_lantern_stone_01',
+      'decor-lantern-2': 'prop_lantern_stone_02',
+      'decor-incense': 'prop_incense_burner',
+      'decor-crystal-lamp': 'prop_spirit_crystal_lamp',
+      'decor-lotus': 'prop_water_lotus',
+      'decor-reeds': 'prop_water_reeds',
     };
     for (const [id, source] of Object.entries(buildableDecorations)) {
-      this.load.image('building-' + id, v10PropPath + source + '.png');
+      this.load.image('building-' + id, v12DecorPath + source + '.png');
     }
     for (const stage of ['01', '02', '03']) {
       this.load.image('v10-map-stage-' + stage, 'assets/v10/map/map_stage_' + stage + '_base.png');
