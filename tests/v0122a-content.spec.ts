@@ -105,9 +105,13 @@ async function continueGame(page: Page, save: unknown, menuClick = { x: 960, y: 
   await page.evaluate(([key, value]) => localStorage.setItem(key, JSON.stringify(value)), [SAVE_KEY, save]);
   await page.reload();
   await expect(page.locator('canvas')).toBeVisible();
-  await page.waitForTimeout(900);
-  await page.locator('canvas').click({ position: menuClick, force: true });
-  await expect.poll(async () => (await gameState(page)).schemaVersion).toBe(9);
+  await expect.poll(async () => {
+    const state = await gameState(page);
+    if (state.schemaVersion === 9) return state.schemaVersion;
+    await page.locator('canvas').click({ position: menuClick, force: true });
+    await page.waitForTimeout(250);
+    return (await gameState(page)).schemaVersion;
+  }, { timeout: 15000 }).toBe(9);
 }
 
 async function clickAction(page: Page, action: string) {
