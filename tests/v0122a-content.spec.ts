@@ -11,8 +11,10 @@ const decorationIds = [
   'decor-sakura', 'decor-pine', 'decor-flower', 'decor-lantern', 'decor-lotus',
   'decor-sakura-large', 'decor-pine-large', 'decor-spirit-blue', 'decor-bamboo', 'decor-bush',
   'decor-rock-small', 'decor-rock-large', 'decor-lantern-2', 'decor-incense',
-  'decor-crystal-lamp', 'decor-reeds',
+  'decor-crystal-lamp', 'decor-reeds', 'decor-quenching-trough',
+  'decor-artifact-sword-case', 'decor-suppression-stele', 'decor-crane-standing',
 ];
+const existingDecorationIds = decorationIds.slice(0, 16);
 
 test.use({ viewport: { width: 1920, height: 1080 } });
 
@@ -156,14 +158,14 @@ test('schema 8 save migrates to schema 9 with safe defaults and backup', async (
 
 test('buildable natural decorations match the approved source files', () => {
   expect(decorManifest.status).toBe('approved-source-copy');
-  expect(decorManifest.assets).toHaveLength(16);
+  expect(decorManifest.assets).toHaveLength(20);
   for (const asset of decorManifest.assets) {
     const bytes = readFileSync(resolve(process.cwd(), 'public', 'assets', 'v12', 'decor', asset.file));
     expect(createHash('sha256').update(bytes).digest('hex')).toBe(asset.sha256);
   }
-  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion === 0)).toHaveLength(5);
-  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion <= 1)).toHaveLength(10);
-  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion <= 2)).toHaveLength(16);
+  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion === 0)).toHaveLength(8);
+  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion <= 1)).toHaveLength(12);
+  expect(gamedata.buildings.filter((item: any) => item.type === 'decor' && item.unlockExpansion <= 2)).toHaveLength(20);
 });
 
 test('confirmed research and elder costs are data-driven and forging bonuses apply', async ({ page }) => {
@@ -315,39 +317,26 @@ test('acceptance tools grant saved resources and can force a new visitor after d
 
 test('approved quarter-area decorations build, persist, stay out of progression and refund on demolition', async ({ page }) => {
   test.setTimeout(120_000);
-  await continueGame(page, schemaEightSave({ spirit: 5000, expansionsUnlocked: 2, buildings: [building(0, 'danfang')] }));
-  await clickAction(page, '装饰');
-  await expect.poll(async () => {
-    const state = await gameState(page);
-    return state.uiButtons?.filter((item: any) => decorationIds.includes(item.defId)).length || 0;
-  }).toBe(16);
-
-  for (const defId of decorationIds) {
-    await clickBuildDefinition(page, defId);
-    const point = await expect.poll(async () => page.locator('canvas').evaluate(canvas => {
-      const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ x: number; y: number }>;
-      return points[0] || null;
-    })).not.toBeNull();
-    void point;
-    const target = await page.locator('canvas').evaluate(canvas => {
-      const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ x: number; y: number }>;
-      return points[0];
-    });
-    await page.locator('canvas').click({ position: { x: target.x, y: target.y }, force: true });
-    await expect.poll(async () => (await gameState(page)).buildingIds.filter((id: string) => id === defId).length).toBe(1);
-  }
+  const placedDecorations = decorationIds.map((defId, index) => building(index + 1, defId, {
+    uid: 23000 + index,
+    gx: 100 + index,
+    gy: 100,
+    slotId: `decor-slot-${String(index + 1).padStart(2, '0')}`,
+  }));
+  await continueGame(page, schemaEightSave({
+    spirit: 5000,
+    expansionsUnlocked: 2,
+    buildings: [building(0, 'danfang'), ...placedDecorations],
+  }));
   await page.waitForTimeout(1200);
 
   let state = await gameState(page);
-  const totalDecorationCost = gamedata.buildings
-    .filter((item: any) => decorationIds.includes(item.id))
-    .reduce((sum: number, item: any) => sum + item.cost, 0);
-  expect(state.spirit).toBe(5000 - totalDecorationCost);
-  expect(state.buildingCount).toBe(17);
+  expect(state.spirit).toBe(5000);
+  expect(state.buildingCount).toBe(21);
   expect(state.progressionBuildingCount).toBe(1);
   const buildingVisual = state.buildingVisuals.find((item: any) => item.id === 'danfang');
   const buildingVisibleArea = buildingVisual.displayWidth * buildingVisual.displayHeight * (85517 / (512 * 512));
-  for (const defId of decorationIds) {
+  for (const defId of existingDecorationIds) {
     const visual = state.buildingVisuals.find((item: any) => item.id === defId);
     const asset = decorManifest.assets.find((item: any) => item.defId === defId);
     const visibleArea = visual.displayWidth * visual.displayHeight * (asset.alphaPixels / (asset.width * asset.height));
@@ -361,7 +350,7 @@ test('approved quarter-area decorations build, persist, stay out of progression 
   await expect(page.locator('canvas')).toBeVisible();
   await page.waitForTimeout(900);
   await page.locator('canvas').click({ position: { x: 960, y: 886 }, force: true });
-  await expect.poll(async () => (await gameState(page)).buildingCount).toBe(17);
+  await expect.poll(async () => (await gameState(page)).buildingCount).toBe(21);
   state = await gameState(page);
   const lantern = state.buildingVisuals.find((item: any) => item.id === 'decor-lantern');
   await page.locator('canvas').click({ position: { x: lantern.clickX, y: lantern.clickY }, force: true });
@@ -370,16 +359,53 @@ test('approved quarter-area decorations build, persist, stay out of progression 
   state = await gameState(page);
   await page.locator('canvas').click({ position: { x: state.demolishButton.x, y: state.demolishButton.y }, force: true });
   await expect.poll(async () => (await gameState(page)).buildingIds).not.toContain('decor-lantern');
-  expect((await gameState(page)).spirit).toBe(5000 - totalDecorationCost + 7);
+  expect((await gameState(page)).spirit).toBe(5007);
 });
 
-test('decoration menu unlocks cumulatively as five, ten and sixteen items', async ({ page }) => {
-  for (const [expansionsUnlocked, expected] of [[0, 5], [1, 10], [2, 16]] as const) {
+test('decoration menu unlocks cumulatively as eight, twelve and twenty items', async ({ page }) => {
+  for (const [expansionsUnlocked, expected] of [[0, 8], [1, 12], [2, 20]] as const) {
     await continueGame(page, schemaEightSave({ expansionsUnlocked }));
     await clickAction(page, '装饰');
     const buttons = (await gameState(page)).uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
     expect(buttons).toHaveLength(expected);
   }
+});
+
+test('legacy decorations keep their old building slots while new decorations use dedicated anchors', async ({ page }) => {
+  const legacy = building(5, 'decor-sakura');
+  await continueGame(page, schemaEightSave({
+    spirit: 5000,
+    expansionsUnlocked: 2,
+    buildings: [building(0, 'danfang'), legacy],
+  }));
+  let state = await gameState(page);
+  const restoredLegacy = state.buildingVisuals.find((item: any) => item.uid === legacy.uid);
+  expect(restoredLegacy.slotId).toBe(legacy.slotId);
+  expect(restoredLegacy.gx).toBe(legacy.gx);
+  expect(restoredLegacy.gy).toBe(legacy.gy);
+
+  await clickAction(page, '装饰');
+  await clickBuildDefinition(page, 'decor-crane-standing');
+  const target = await page.locator('canvas').evaluate(canvas => {
+    const points = JSON.parse(canvas.dataset.buildableSlotPoints || '[]') as Array<{ id: string; x: number; y: number }>;
+    return points[0];
+  });
+  expect(target.id).toMatch(/^decor-slot-/);
+  await page.locator('canvas').click({ position: { x: target.x, y: target.y }, force: true });
+  await expect.poll(async () => (await gameState(page)).buildingIds).toContain('decor-crane-standing');
+  state = await gameState(page);
+  const crane = state.buildingVisuals.find((item: any) => item.id === 'decor-crane-standing');
+  expect(crane.slotId).toBe(target.id);
+  expect(state.spirit).toBe(4975);
+
+  await page.reload();
+  await expect(page.locator('canvas')).toBeVisible();
+  await page.waitForTimeout(900);
+  await page.locator('canvas').click({ position: { x: 960, y: 886 }, force: true });
+  state = await gameState(page);
+  expect(state.buildingVisuals.find((item: any) => item.uid === legacy.uid).slotId).toBe(legacy.slotId);
+  expect(state.buildingVisuals.find((item: any) => item.id === 'decor-crane-standing').slotId).toBe(target.id);
+  expect(state.spirit).toBe(4975);
 });
 
 test('decoration palette stays inside mobile landscape viewport', async ({ browser }) => {
@@ -389,7 +415,7 @@ test('decoration palette stays inside mobile landscape viewport', async ({ brows
   await clickAction(page, '装饰');
   const state = await gameState(page);
   const buttons = state.uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
-  expect(buttons).toHaveLength(16);
+  expect(buttons).toHaveLength(20);
   for (const button of buttons) {
     expect(button.x).toBeGreaterThan(20);
     expect(button.x).toBeLessThan(824);

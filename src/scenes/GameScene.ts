@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { BuildingDef, CommissionDef, GameState, PlacedBuilding, RecruitCandidate, Visitor } from '../state';
 import {
   V12_BUILD_SLOTS as V10_BUILD_SLOTS,
+  V12_DECORATION_SLOTS,
   V12_FIXED_OBJECTS as V10_FIXED_OBJECTS,
   V12_GATE_POINT as V10_GATE_POINT,
   V12_GRID_BASIS as V10_GRID_BASIS,
@@ -20,7 +21,7 @@ import {
 import { TILE_W, TILE_H } from '../systems/IsoGrid';
 import { findVisitorPath, VisitorObstacle } from '../systems/VisitorPath';
 
-interface BuildGhost { gx: number; gy: number; ok: boolean; gfx?: Phaser.GameObjects.Container; }
+interface BuildGhost { gx: number; gy: number; slotId?: string; ok: boolean; gfx?: Phaser.GameObjects.Container; }
 interface BuildingRenderConfig {
   width: number;
   height: number;
@@ -82,6 +83,10 @@ const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
   'decor-crystal-lamp': { width: 59, height: 80, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
   'decor-lotus': { width: 68, height: 51, offsetX: -3, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 10, collisionOffsetY: 2 },
   'decor-reeds': { width: 61, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 11, collisionOffsetY: 2 },
+  'decor-quenching-trough': { width: 66, height: 51, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 11, collisionOffsetY: 2 },
+  'decor-artifact-sword-case': { width: 68, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 19, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-suppression-stele': { width: 42, height: 63, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 13, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-crane-standing': { width: 36, height: 65, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 10, collisionHalfHeight: 12, collisionOffsetY: 3 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: false, back: true },
@@ -275,6 +280,7 @@ export class GameScene extends Phaser.Scene {
     const available = V10_BUILD_SLOTS.filter(slot => slot.stage <= this.visibleMapStage());
     const used = new Set<string>();
     for (const building of this.gs.data.buildings) {
+      if (this.isDedicatedDecoration(building)) continue;
       let target = available.find(slot => slot.id === building.slotId && !used.has(slot.id));
       if (!target) target = available.find(slot => slot.gx === building.gx && slot.gy === building.gy && !used.has(slot.id));
       if (!target) {
@@ -297,6 +303,7 @@ export class GameScene extends Phaser.Scene {
       () => Array<number | null>(this.gs.grid.w).fill(null),
     );
     for (const building of this.gs.data.buildings) {
+      if (this.isDedicatedDecoration(building)) continue;
       const def = this.gs.buildingDef(building.defId);
       if (building.slotId && this.gs.grid.canPlace(building.gx, building.gy, def.w, def.h)) {
         this.gs.grid.place(building.gx, building.gy, building.uid, def.w, def.h);
@@ -335,6 +342,31 @@ export class GameScene extends Phaser.Scene {
     return V10_BUILD_SLOTS.filter(slot => slot.stage <= stage);
   }
 
+  isDedicatedDecoration(building: PlacedBuilding): boolean {
+    return this.gs.buildingDef(building.defId).type === 'decor'
+      && !!building.slotId?.startsWith('decor-slot-')
+      && V12_DECORATION_SLOTS.some(slot => slot.id === building.slotId);
+  }
+
+  decorationSlotOccupied(slotId: string, excludeUid?: number): boolean {
+    return this.gs.data.buildings.some(building => (
+      building.uid !== excludeUid
+      && building.slotId === slotId
+      && this.gs.buildingDef(building.defId).type === 'decor'
+    ));
+  }
+
+  placementSlots(def: BuildingDef | null): V10BuildSlot[] {
+    return def?.type === 'decor' ? V12_DECORATION_SLOTS : this.unlockedBuildSlots();
+  }
+
+  placementSlot(def: BuildingDef, gx: number, gy: number, slotId?: string): V10BuildSlot | null {
+    const slots = this.placementSlots(def);
+    return slots.find(slot => slot.id === slotId)
+      || slots.find(slot => slot.gx === gx && slot.gy === gy)
+      || null;
+  }
+
   fixedMapPoint(mapX: number, mapY: number): { x: number; y: number } {
     return {
       x: FIXED_MAP_ART.x - FIXED_MAP_ART.width / 2 + mapX * FIXED_MAP_ART.width / FIXED_MAP_ART.sourceWidth,
@@ -350,7 +382,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   buildingMapPoint(building: PlacedBuilding): V10MapPoint | null {
-    const slot = V10_BUILD_SLOTS.find(item => item.id === building.slotId)
+    const slot = V12_DECORATION_SLOTS.find(item => item.id === building.slotId)
+      || V10_BUILD_SLOTS.find(item => item.id === building.slotId)
       || V10_BUILD_SLOTS.find(item => item.gx === building.gx && item.gy === building.gy);
     return slot ? { mapX: slot.mapX, mapY: slot.mapY } : null;
   }
@@ -360,7 +393,7 @@ export class GameScene extends Phaser.Scene {
     buildingHalfWidth = 48,
     buildingHalfHeight = 34,
     collisionScale = 1,
-    includeDecor = true,
+    includeDecor = false,
   ): VisitorObstacle[] {
     const fixed = V10_FIXED_OBJECTS
       .filter(object => object.id !== 'pond-lotus')
@@ -431,25 +464,19 @@ export class GameScene extends Phaser.Scene {
       const roadPrefix = road.slice(0, -1);
       const connectorStart = roadPrefix[roadPrefix.length - 1] || road[0];
       const walkable = V10_WALKABLE_POLYGONS[this.visibleMapStage()] || V10_WALKABLE_POLYGONS[0];
-      const connectorObstacles = (includeDecor: boolean) => this.visitorObstacles(
+      const connectorObstacles = () => this.visitorObstacles(
         excludeBuildingUid,
         48,
         34,
         0.65,
-        includeDecor,
+        false,
       );
       const connector = findVisitorPath(
         { mapX: connectorStart.mapX, mapY: connectorStart.mapY },
         target,
         walkable,
         V10_WATER_POLYGON,
-        connectorObstacles(true),
-      ) || findVisitorPath(
-        { mapX: connectorStart.mapX, mapY: connectorStart.mapY },
-        target,
-        walkable,
-        V10_WATER_POLYGON,
-        connectorObstacles(false),
+        connectorObstacles(),
       );
       if (!connector) return null;
       path = [
@@ -521,7 +548,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   slotVisualPosition(gx: number, gy: number): { x: number; y: number } | null {
-    const slot = V10_BUILD_SLOTS.find(item => item.gx === gx && item.gy === gy);
+    const slot = V12_DECORATION_SLOTS.find(item => item.gx === gx && item.gy === gy)
+      || V10_BUILD_SLOTS.find(item => item.gx === gx && item.gy === gy);
     if (!slot) return null;
     return this.fixedMapPoint(slot.mapX, slot.mapY);
   }
@@ -529,13 +557,14 @@ export class GameScene extends Phaser.Scene {
   slotVisualVertices(gx: number, gy: number, scale = 1): Phaser.Math.Vector2[] | null {
     const center = this.slotVisualPosition(gx, gy);
     if (!center) return null;
+    const footprintScale = V12_DECORATION_SLOTS.some(slot => slot.gx === gx && slot.gy === gy) ? 0.5 : 1;
     const column = {
-      x: V10_GRID_BASIS.column.x * MAP_ART_SCALE_X * scale,
-      y: V10_GRID_BASIS.column.y * MAP_ART_SCALE_Y * scale,
+      x: V10_GRID_BASIS.column.x * MAP_ART_SCALE_X * scale * footprintScale,
+      y: V10_GRID_BASIS.column.y * MAP_ART_SCALE_Y * scale * footprintScale,
     };
     const row = {
-      x: V10_GRID_BASIS.row.x * MAP_ART_SCALE_X * scale,
-      y: V10_GRID_BASIS.row.y * MAP_ART_SCALE_Y * scale,
+      x: V10_GRID_BASIS.row.x * MAP_ART_SCALE_X * scale * footprintScale,
+      y: V10_GRID_BASIS.row.y * MAP_ART_SCALE_Y * scale * footprintScale,
     };
     return [
       new Phaser.Math.Vector2(center.x - (column.x + row.x) / 2, center.y - (column.y + row.y) / 2),
@@ -546,13 +575,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   nearestVisualSlot(localX: number, localY: number): V10BuildSlot | null {
+    const def = this.selectedBuild ? this.gs.buildingDef(this.selectedBuild) : null;
     let best: { slot: V10BuildSlot; distance: number } | null = null;
-    for (const slot of this.unlockedBuildSlots()) {
+    for (const slot of this.placementSlots(def)) {
       const point = this.fixedMapPoint(slot.mapX, slot.mapY);
       const distance = Phaser.Math.Distance.Between(localX, localY, point.x, point.y);
       if (!best || distance < best.distance) best = { slot, distance };
     }
-    return best && best.distance <= 44 ? best.slot : null;
+    return best && best.distance <= (def?.type === 'decor' ? 32 : 44) ? best.slot : null;
   }
 
   slotForFootprint(gx: number, gy: number, width: number, height: number): V10BuildSlot | null {
@@ -624,7 +654,8 @@ export class GameScene extends Phaser.Scene {
   drawGroundCell(gx: number, gy: number): void {
     const key = gx + ',' + gy;
     if (this.gridTileKeys.has(key)) return;
-    const slot = this.unlockedBuildSlots().find(item => item.gx === gx && item.gy === gy);
+    const slot = V12_DECORATION_SLOTS.find(item => item.gx === gx && item.gy === gy)
+      || this.unlockedBuildSlots().find(item => item.gx === gx && item.gy === gy);
     if (!slot) return;
     const point = this.slotVisualPosition(gx, gy);
     if (!point) return;
@@ -647,6 +678,7 @@ export class GameScene extends Phaser.Scene {
     this.groundLayer.add(this.mapBase);
     const g = this.gs.grid;
     for (const slot of this.unlockedBuildSlots()) this.drawGroundCell(slot.gx, slot.gy);
+    for (const slot of V12_DECORATION_SLOTS) this.drawGroundCell(slot.gx, slot.gy);
     const gateGrid = this.gateGridPosition();
     const gateFoot = this.fixedMapPoint(V10_GATE_POINT.mapX, V10_GATE_POINT.mapY);
     const gate = this.add.container(gateFoot.x, gateFoot.y);
@@ -697,12 +729,15 @@ export class GameScene extends Phaser.Scene {
   refreshBuildSlotHighlights(hoveredSlotId?: string): void {
     const def = this.selectedBuild ? this.gs.buildingDef(this.selectedBuild) : null;
     const availableSlots: V10BuildSlot[] = [];
-    for (const slot of this.unlockedBuildSlots()) {
+    for (const slot of [...this.unlockedBuildSlots(), ...V12_DECORATION_SLOTS]) {
       const tile = this.gridTiles.get(slot.id);
       if (!tile) continue;
-      const available = !!def
-        && this.gs.grid.canPlace(slot.gx, slot.gy, def.w, def.h)
-        && this.isBuildableFootprint(slot.gx, slot.gy, def.w, def.h);
+      const isDecorSlot = slot.id.startsWith('decor-slot-');
+      const available = !!def && (def.type === 'decor'
+        ? isDecorSlot && !this.decorationSlotOccupied(slot.id)
+        : !isDecorSlot
+          && this.gs.grid.canPlace(slot.gx, slot.gy, def.w, def.h)
+          && this.isBuildableFootprint(slot.gx, slot.gy, def.w, def.h));
       tile.clear();
       tile.setVisible(available);
       if (!available) continue;
@@ -1045,7 +1080,7 @@ export class GameScene extends Phaser.Scene {
     const slotPoint = this.slotVisualPosition(b.gx, b.gy);
     const foot = slotPoint || this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
     const artX = slotPoint ? render.offsetX * MAP_ART_SCALE_X : 0;
-    const artY = slotPoint ? render.anchorOffsetY * MAP_ART_SCALE_Y : 0;
+    const artY = slotPoint && !this.isDedicatedDecoration(b) ? render.anchorOffsetY * MAP_ART_SCALE_Y : 0;
     const renderScale = (def.renderScale ?? 1) * DEFAULT_BUILDING_SCALE;
     const displayW = render.width * renderScale * MAP_ART_SCALE_X;
     const displayH = render.height * renderScale * MAP_ART_SCALE_Y;
@@ -1089,7 +1124,18 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0, 0.5)
       .setVisible(false);
     const hoverFrame = this.add.graphics().setVisible(false);
-    this.drawLotPrism(hoverFrame, b.gx, b.gy, def.w, def.h, 0xffe071, foot.x, foot.y, 34);
+    if (this.isDedicatedDecoration(b)) {
+      const points = this.slotVisualVertices(b.gx, b.gy)
+        ?.map(point => new Phaser.Math.Vector2(point.x - foot.x, point.y - foot.y));
+      if (points) {
+        hoverFrame.fillStyle(0xffe071, 0.13);
+        hoverFrame.fillPoints(points, true);
+        hoverFrame.lineStyle(2, 0xffe071, 0.95);
+        hoverFrame.strokePoints(points, true);
+      }
+    } else {
+      this.drawLotPrism(hoverFrame, b.gx, b.gy, def.w, def.h, 0xffe071, foot.x, foot.y, 34);
+    }
     const scaffold = this.add.graphics().setVisible(animateConstruction);
     const scaffoldHalfW = displayW / 2 + 2;
     const scaffoldH = displayH * 0.8;
@@ -1243,10 +1289,13 @@ export class GameScene extends Phaser.Scene {
       const def = this.gs.buildingDef(this.selectedBuild);
       const targetGX = slot.gx;
       const targetGY = slot.gy;
-      if (!this.ghost) this.ghost = { gx: targetGX, gy: targetGY, ok: false };
+      if (!this.ghost) this.ghost = { gx: targetGX, gy: targetGY, slotId: slot.id, ok: false };
       this.ghost.gx = targetGX; this.ghost.gy = targetGY;
-      this.ghost.ok = this.gs.grid.canPlace(targetGX, targetGY, def.w, def.h)
-        && this.isBuildableFootprint(targetGX, targetGY, def.w, def.h);
+      this.ghost.slotId = slot.id;
+      this.ghost.ok = def.type === 'decor'
+        ? slot.id.startsWith('decor-slot-') && !this.decorationSlotOccupied(slot.id)
+        : this.gs.grid.canPlace(targetGX, targetGY, def.w, def.h)
+          && this.isBuildableFootprint(targetGX, targetGY, def.w, def.h);
       this.refreshBuildSlotHighlights(slot.id);
       if (this.ghost.gfx) this.ghost.gfx.destroy();
       const col = this.ghost.ok ? 0x7ddb6a : 0xdd6a6a;
@@ -1257,7 +1306,7 @@ export class GameScene extends Phaser.Scene {
       const renderScale = (def.renderScale ?? 1) * DEFAULT_BUILDING_SCALE;
       const preview = this.add.image(
         artPosition.x + (slotPoint ? render.offsetX * MAP_ART_SCALE_X : 0),
-        artPosition.y + (slotPoint ? render.anchorOffsetY * MAP_ART_SCALE_Y : 0),
+        artPosition.y + (slotPoint && !slot.id.startsWith('decor-slot-') ? render.anchorOffsetY * MAP_ART_SCALE_Y : 0),
         'building-' + def.id,
       )
         .setDisplaySize(render.width * renderScale * MAP_ART_SCALE_X, render.height * renderScale * MAP_ART_SCALE_Y)
@@ -1265,7 +1314,17 @@ export class GameScene extends Phaser.Scene {
         .setTint(col)
         .setAlpha(0.58);
       const frame = this.add.graphics();
-      this.drawLotPrism(frame, targetGX, targetGY, def.w, def.h, col);
+      if (def.type === 'decor') {
+        const points = this.slotVisualVertices(targetGX, targetGY);
+        if (points) {
+          frame.fillStyle(col, 0.18);
+          frame.fillPoints(points, true);
+          frame.lineStyle(2, col, 0.95);
+          frame.strokePoints(points, true);
+        }
+      } else {
+        this.drawLotPrism(frame, targetGX, targetGY, def.w, def.h, col);
+      }
       this.ghost.gfx.add([preview, frame]);
       this.placementLayer.add(this.ghost.gfx);
       return;
@@ -1288,12 +1347,13 @@ export class GameScene extends Phaser.Scene {
     if (this.researchOpen || this.elderOpen || this.recruitOpen || this.commissionOpen) return;
     if (this.buildDragPointerId === p.id) return;
     if (this.selectedBuild) {
-      let gx = this.ghost?.gx, gy = this.ghost?.gy;
+      let gx = this.ghost?.gx, gy = this.ghost?.gy, slotId = this.ghost?.slotId;
       if (gx === undefined || gy === undefined) {
         const slot = this.pointerToBuildSlot(p);
         if (slot) {
           gx = slot.gx;
           gy = slot.gy;
+          slotId = slot.id;
         }
       }
       const def = this.gs.buildingDef(this.selectedBuild);
@@ -1301,8 +1361,11 @@ export class GameScene extends Phaser.Scene {
         this.toast('请点击仙山上的圆形建造空地');
         return;
       }
-      if (this.gs.grid.canPlace(gx, gy, def.w, def.h) && this.isBuildableFootprint(gx, gy, def.w, def.h)) {
-        this.tryPlace(this.selectedBuild, gx, gy);
+      const canPlace = def.type === 'decor'
+        ? !!slotId?.startsWith('decor-slot-') && !this.decorationSlotOccupied(slotId)
+        : this.gs.grid.canPlace(gx, gy, def.w, def.h) && this.isBuildableFootprint(gx, gy, def.w, def.h);
+      if (canPlace) {
+        this.tryPlace(this.selectedBuild, gx, gy, slotId);
       } else {
         this.toast('此处未开放或需要 ' + def.w + '×' + def.h + ' 的完整空地');
       }
@@ -1323,7 +1386,7 @@ export class GameScene extends Phaser.Scene {
       this.buildDragDistance = 0;
       if (dragged) {
         if (defId && this.ghost?.ok && !this.isPointerOverHUD(p)) {
-          this.tryPlace(defId, this.ghost.gx, this.ghost.gy);
+          this.tryPlace(defId, this.ghost.gx, this.ghost.gy, this.ghost.slotId);
         } else {
           this.toast('只能放在亮起的绿色空地');
           this.cancelBuild();
@@ -1355,19 +1418,22 @@ export class GameScene extends Phaser.Scene {
     this.refreshBuildMenu();
   }
 
-  tryPlace(defId: string, gx: number, gy: number): void {
+  tryPlace(defId: string, gx: number, gy: number, requestedSlotId?: string): void {
     const def = this.gs.buildingDef(defId);
     const d = this.gs.data;
+    const slot = this.placementSlot(def, gx, gy, requestedSlotId);
+    if (!slot) return;
+    if (def.type === 'decor' && this.decorationSlotOccupied(slot.id)) return;
     if (d.spirit < def.cost) { this.toast('灵石不足'); return; }
     d.spirit -= def.cost;
     const b: PlacedBuilding = {
       uid: Date.now() + Math.floor(Math.random() * 999),
-      defId, gx, gy, slotId: this.slotForFootprint(gx, gy, def.w, def.h)?.id, progress: 0, level: 1,
+      defId, gx: slot.gx, gy: slot.gy, slotId: slot.id, progress: 0, level: 1,
       craftRecipe: null, sellRecipe: null,
       assigned: [], queue: 0, comboBonus: 0, stock: 0,
     };
     d.buildings.push(b);
-    this.gs.grid.place(gx, gy, b.uid, def.w, def.h);
+    if (def.type !== 'decor') this.gs.grid.place(slot.gx, slot.gy, b.uid, def.w, def.h);
     this.drawBuilding(b, true);
     const combos = this.gs.combo.recalc();
     this.toast(def.name + ' 开始施工');
@@ -2728,7 +2794,7 @@ export class GameScene extends Phaser.Scene {
     d.spirit += Math.floor(def.cost / 2);
     d.buildings = d.buildings.filter(x => x !== b);
     for (const dis of d.disciples) if (dis.assignedTo === b.uid) dis.assignedTo = null;
-    this.gs.grid.remove(b.gx, b.gy, def.w, def.h, b.uid);
+    if (!this.isDedicatedDecoration(b)) this.gs.grid.remove(b.gx, b.gy, def.w, def.h, b.uid);
     if (b.sprite) b.sprite.destroy();
     if (b.lotSprite) b.lotSprite.destroy();
     this.gs.combo.recalc();
@@ -3284,15 +3350,23 @@ export class GameScene extends Phaser.Scene {
       artifactSellPrice: this.gs.artifactSellPrice(),
       buildingCount: d.buildings.length,
       progressionBuildingCount: this.gs.progressionBuildingCount(),
+      selectedBuild: this.selectedBuild,
+      buildGhost: this.ghost ? { gx: this.ghost.gx, gy: this.ghost.gy, slotId: this.ghost.slotId || null, ok: this.ghost.ok } : null,
       buildingIds: d.buildings.map(building => building.defId),
       buildingVisuals: d.buildings.map(building => {
         const art = building.sprite?.getData('art') as Phaser.GameObjects.Image | undefined;
         const selectionLocalX = Number(building.sprite?.getData('selectionLocalX') || 0);
         const selectionLocalY = Number(building.sprite?.getData('selectionLocalY') || 0);
         const worker = building.sprite?.getData('worker') as Phaser.GameObjects.Image | undefined;
+        const mapPoint = this.buildingMapPoint(building);
         return {
           uid: building.uid,
           id: building.defId,
+          slotId: building.slotId || null,
+          gx: building.gx,
+          gy: building.gy,
+          mapX: mapPoint?.mapX ?? null,
+          mapY: mapPoint?.mapY ?? null,
           displayWidth: art?.displayWidth || 0,
           displayHeight: art?.displayHeight || 0,
           clickX: this.board.x + ((building.sprite?.x || 0) + selectionLocalX) * this.board.scaleX,

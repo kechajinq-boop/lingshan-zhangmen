@@ -89,6 +89,44 @@ export const V12_BUILD_SLOTS: V12BuildSlot[] = spatialSlots
     gy: Math.floor(index / 12) * 2,
   }));
 
+// Small 1x1 decoration anchors approved against the full 48-building map.
+// They are kept outside the construction grid so decorations never consume a
+// 2x2 building lot or block a shop entrance. The synthetic grid coordinates
+// are stable save identifiers only; rendering uses the authored map points.
+export const V12_DECORATION_SLOTS: V12BuildSlot[] = [
+  { id: 'decor-slot-01', mapX: 856, mapY: 191 },
+  { id: 'decor-slot-02', mapX: 754, mapY: 192 },
+  { id: 'decor-slot-03', mapX: 935, mapY: 229 },
+  { id: 'decor-slot-04', mapX: 855, mapY: 239 },
+  { id: 'decor-slot-05', mapX: 753, mapY: 243 },
+  { id: 'decor-slot-06', mapX: 934, mapY: 286 },
+  { id: 'decor-slot-07', mapX: 858, mapY: 288 },
+  { id: 'decor-slot-08', mapX: 756, mapY: 290 },
+  { id: 'decor-slot-09', mapX: 634, mapY: 386 },
+  { id: 'decor-slot-10', mapX: 951, mapY: 381 },
+  { id: 'decor-slot-11', mapX: 722, mapY: 388 },
+  { id: 'decor-slot-12', mapX: 641, mapY: 455 },
+  { id: 'decor-slot-13', mapX: 647, mapY: 537 },
+  { id: 'decor-slot-14', mapX: 738, mapY: 543 },
+  { id: 'decor-slot-15', mapX: 908, mapY: 558 },
+  { id: 'decor-slot-16', mapX: 772, mapY: 623 },
+  { id: 'decor-slot-17', mapX: 897, mapY: 628 },
+  { id: 'decor-slot-18', mapX: 777, mapY: 678 },
+  { id: 'decor-slot-19', mapX: 903, mapY: 684 },
+  { id: 'decor-slot-20', mapX: 784, mapY: 741 },
+  { id: 'decor-slot-21', mapX: 904, mapY: 745 },
+  { id: 'decor-slot-22', mapX: 783, mapY: 800 },
+  { id: 'decor-slot-23', mapX: 903, mapY: 803 },
+].map((slot, index) => ({
+  ...slot,
+  stage: 0,
+  zone: 'decor',
+  row: 0,
+  column: index,
+  gx: 100 + index,
+  gy: 100,
+}));
+
 export const V12_GATE_POINT = { mapX: 835, mapY: 912 } as const;
 
 // Visitors enter through the open centre of the gate. The two side blocks are

@@ -76,6 +76,10 @@ export class BootScene extends Phaser.Scene {
       'decor-crystal-lamp': 'prop_spirit_crystal_lamp',
       'decor-lotus': 'prop_water_lotus',
       'decor-reeds': 'prop_water_reeds',
+      'decor-quenching-trough': 'prop_quenching_trough',
+      'decor-artifact-sword-case': 'prop_artifact_sword_case',
+      'decor-suppression-stele': 'prop_suppression_stele',
+      'decor-crane-standing': 'prop_crane_standing',
     };
     for (const [id, source] of Object.entries(buildableDecorations)) {
       this.load.image('building-' + id, v12DecorPath + source + '.png');

@@ -209,7 +209,7 @@ export class GameState {
       restored.gridH = Math.max(oldGridH, INITIAL_GRID_H);
       this.grid = new IsoGrid(restored.gridW, restored.gridH);
       this.data = restored;
-      this.grid.rebuildFrom(restored.buildings, (building) => {
+      this.grid.rebuildFrom(restored.buildings.filter(building => !building.slotId?.startsWith('decor-slot-')), (building) => {
         const def = this.buildingDef(building.defId);
         return { width: def.w, height: def.h };
       });

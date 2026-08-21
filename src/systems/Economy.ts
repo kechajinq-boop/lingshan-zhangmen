@@ -193,9 +193,10 @@ export class Economy {
     const shopUids = new Set(shops.map(shop => shop.uid));
     const activeVisitors = d.visitors.filter(visitor => shopUids.has(visitor.targetUid)).length;
     const missing = this.desiredVisitorCount() - activeVisitors;
-    for (let i = 0; i < missing; i++) {
-      if (!this.trySpawnVisitor()) break;
-    }
+    // Only admit one visitor per spawn interval. Multiple visitors created on
+    // the same frame share the gate position and look like one NPC splitting
+    // into several people when their shop routes diverge near the main hall.
+    if (missing > 0) this.trySpawnVisitor();
   }
 
   trySpawnVisitor(): boolean {
