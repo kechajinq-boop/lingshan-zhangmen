@@ -21,18 +21,35 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          path: candidate
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: candidate/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build v0.12.4-R1 candidate
+        working-directory: candidate
+        run: npm ci && npm run build
 
-      - name: Build
-        run: npm run build
+      - name: Checkout stable v0.12.4
+        uses: actions/checkout@v6
+        with:
+          ref: codex/v0.12.4
+          path: stable
+
+      - name: Build stable v0.12.4
+        working-directory: stable
+        run: npm ci && npm run build
+
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p site/releases/v0.12.4-r1
+          cp -a stable/dist/. site/
+          cp -a candidate/dist/. site/releases/v0.12.4-r1/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -40,7 +57,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: site
 
   deploy:
     needs: build
