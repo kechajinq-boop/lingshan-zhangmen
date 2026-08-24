@@ -3,7 +3,7 @@ name: Deploy GitHub Pages
 on:
   push:
     branches:
-      - codex/v0.12.1
+      - codex/v0.12.4-r2
   workflow_dispatch:
 
 permissions:
@@ -31,8 +31,18 @@ jobs:
           cache: npm
           cache-dependency-path: candidate/package-lock.json
 
-      - name: Build v0.12.4-R1 candidate
+      - name: Build v0.12.4-R2 candidate
         working-directory: candidate
+        run: npm ci && npm run build
+
+      - name: Checkout v0.12.4-R1
+        uses: actions/checkout@v6
+        with:
+          ref: codex/v0.12.4-r1
+          path: previous
+
+      - name: Build v0.12.4-R1
+        working-directory: previous
         run: npm ci && npm run build
 
       - name: Checkout stable v0.12.4
@@ -48,8 +58,10 @@ jobs:
       - name: Assemble Pages artifact
         run: |
           mkdir -p site/releases/v0.12.4-r1
+          mkdir -p site/releases/v0.12.4-r2
           cp -a stable/dist/. site/
-          cp -a candidate/dist/. site/releases/v0.12.4-r1/
+          cp -a previous/dist/. site/releases/v0.12.4-r1/
+          cp -a candidate/dist/. site/releases/v0.12.4-r2/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

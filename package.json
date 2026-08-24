@@ -1,7 +1,7 @@
 {
     "name": "lingshan-zhangmen",
     "private": true,
-  "version": "0.12.4-r1",
+  "version": "0.12.4-r2",
     "type": "module",
     "scripts": {
         "dev": "vite",

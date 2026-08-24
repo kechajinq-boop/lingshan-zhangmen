@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 const ROOT = process.env.TEST_URL || 'http://127.0.0.1:4180/';
-const PLAY_URL = process.env.CUNJINGE_TEST_URL || new URL('cunjinge/?qa=1', ROOT).toString();
+const PLAY_URL = process.env.CUNJINGE_TEST_URL || new URL('cunjinge/index.html?qa=1', ROOT).toString();
 const SAVE_KEY = 'lingshan_save_v1';
 
 test('desktop prototype completes a full five-round auction', async ({ page }, testInfo) => {
@@ -12,8 +12,12 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto(PLAY_URL);
   await expect(page.getByRole('heading', { name: '寸金阁', exact: true })).toBeVisible();
+  const roomBackgrounds = await page.locator('.room').evaluateAll(nodes => nodes.map(node => getComputedStyle(node, '::before').backgroundImage));
+  expect(roomBackgrounds[0]).toContain('market.webp');
+  expect(roomBackgrounds[1]).toContain('cloud.webp');
+  expect(roomBackgrounds[2]).toContain('heaven.webp');
   await page.getByRole('button', { name: '兑换5000' }).click();
-  await page.locator('[data-room="market"]').click();
+  await page.locator('button[data-room="market"]').click();
   await expect(page.locator('.player')).toHaveCount(4);
   await expect.poll(() => page.locator('.avatar img').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBeTruthy();
   await expect(page.locator('.clue')).toHaveCount(1);
@@ -75,6 +79,16 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
     await page.locator('#submitBid').click();
     await expect(page.locator('#bidInput')).toBeDisabled();
     await expect(page.locator('#topStatus')).toContainText('报价已锁定');
+    const activeBidders = await page.locator('.player:not(.withdrawn)').count();
+    await expect(page.locator('.bid-bubble')).toHaveCount(activeBidders);
+    await expect(page.locator('.player.quote-on')).toHaveCount(activeBidders);
+    const bidBubbleTexts = await page.locator('.bid-bubble').allTextContents();
+    expect(bidBubbleTexts.every(text => text.includes('筹码') && !text.includes('灵石'))).toBeTruthy();
+    expect(new Set(bidBubbleTexts).size).toBe(activeBidders);
+    if (round === 1) {
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: testInfo.outputPath('desktop-bids.png'), fullPage: true });
+    }
     await expect(page.locator('.clue')).toHaveCount(round);
     if (round < 5) {
       await expect(page.locator('#submitBid')).toHaveText('查看下一轮线索');
@@ -90,6 +104,7 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
         await expect(page.locator('.clue').last()).toContainText(/蓝色|紫色|橙色|金色|红色/);
         await expect(page.locator('.clue').last()).toContainText(/丹药|法器|灵植|灵材|功法/);
         await expect(page.locator('#artLog')).toContainText('线索反应');
+        await expect(page.locator('.treasure[data-confirmed-rarity]')).toHaveCount(1);
         await page.screenshot({ path: testInfo.outputPath('desktop-type-reveal.png'), fullPage: true });
       }
     }
@@ -114,7 +129,8 @@ test('844x390 landscape keeps chest, clues and bid controls on screen', async ({
   await page.goto(PLAY_URL);
   await page.getByRole('button', { name: '先玩免费教学匣' }).click();
   await expect(page.locator('#arena')).toBeVisible();
-  for (const selector of ['#grid', '#clues', '#arts .art:first-child', '#artLog', '#threatBtn', '#bidInput', '#submitBid']) {
+  await expect(page.locator('#arena')).toHaveAttribute('data-room', 'market');
+  for (const selector of ['#grid', '#clues', '#arts .art:first-child', '#artLog', '#players', '#threatBtn', '#bidInput', '#submitBid']) {
     const box = await page.locator(selector).boundingBox();
     expect(box, selector).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
@@ -128,18 +144,15 @@ test('844x390 landscape keeps chest, clues and bid controls on screen', async ({
   expect(shapes.some(shape => ['2x3', '2x4', '3x3', '4x2', '4x4'].includes(shape))).toBeTruthy();
   const fiveControls = await page.locator('#arts .art, #threatBtn').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect()).map(box => ({ x: box.x, y: box.y, height: box.height })));
   expect(fiveControls).toHaveLength(5);
-  expect(Math.max(...fiveControls.map(box => box.x)) - Math.min(...fiveControls.map(box => box.x))).toBeLessThanOrEqual(2);
-  expect(fiveControls.map(box => box.y)).toEqual([...fiveControls.map(box => box.y)].sort((a, b) => a - b));
+  expect(Math.max(...fiveControls.map(box => box.y)) - Math.min(...fiveControls.map(box => box.y))).toBeLessThanOrEqual(2);
+  expect(fiveControls.map(box => box.x)).toEqual([...fiveControls.map(box => box.x)].sort((a, b) => a - b));
   expect(Math.max(...fiveControls.map(box => box.height))).toBeLessThanOrEqual(24);
-  expect(Math.max(...await page.locator('#arts .art, #threatBtn').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect().width)))).toBeLessThanOrEqual(78);
-  const readingColumns = await Promise.all(['.clues', '.appraisal', '.auction-log'].map(async selector => (await page.locator(selector).boundingBox())!));
+  const readingColumns = await Promise.all(['.clues', '.auction-log'].map(async selector => (await page.locator(selector).boundingBox())!));
   expect(readingColumns[0].x).toBeLessThan(readingColumns[1].x);
-  expect(readingColumns[1].x).toBeLessThan(readingColumns[2].x);
-  const readingWidth = readingColumns.reduce((sum, box) => sum + box.width, 0);
-  expect(readingColumns[0].width / readingWidth).toBeGreaterThan(0.34);
-  expect(readingColumns[1].width / readingWidth).toBeGreaterThan(0.21);
-  expect(readingColumns[1].width / readingWidth).toBeLessThan(0.29);
-  expect(readingColumns[2].width / readingWidth).toBeGreaterThan(0.33);
+  const playerCards = await page.locator('.player').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect()).map(box => ({ x: box.x, y: box.y })));
+  expect(playerCards).toHaveLength(4);
+  expect(Math.max(...playerCards.map(box => box.x)) - Math.min(...playerCards.map(box => box.x))).toBeLessThanOrEqual(2);
+  expect(playerCards.map(box => box.y)).toEqual([...playerCards.map(box => box.y)].sort((a, b) => a - b));
   await expect(page.locator('#logNext')).toBeVisible();
   expect((await page.locator('#submitBid').boundingBox())!.height).toBeGreaterThanOrEqual(34);
   await page.screenshot({ path: testInfo.outputPath('mobile-layout.png'), fullPage: true });
@@ -155,7 +168,7 @@ test('quick bid prices stay distinct near the chip limit and equal bids remain v
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.goto(PLAY_URL);
   await page.getByRole('button', { name: '兑换5000' }).click();
-  await page.locator('[data-room="market"]').click();
+  await page.locator('button[data-room="market"]').click();
   await page.locator('#bidInput').fill('4900');
   await page.locator('#submitBid').click();
   await page.locator('#submitBid').click();
@@ -187,7 +200,7 @@ test('tutorial settlement keeps a meaningful value gap', async ({ page }) => {
 
 test('ending the third chest asks whether to retain or cash out chips', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 720 });
-  await page.goto(ROOT);
+  await page.goto(PLAY_URL);
   await page.evaluate(key => localStorage.setItem(key, JSON.stringify({
     schemaVersion: 10,
     day: 7,
@@ -195,14 +208,21 @@ test('ending the third chest asks whether to retain or cash out chips', async ({
     reputation: 350,
     cunjinge: { chips: 0, chests: 0, eventDay: 7, room: null, auction: null, tutorialDone: false, appraiserXp: 120, sessionXp: 0, startLevel: 1 },
   })), SAVE_KEY);
-  await page.goto(PLAY_URL);
+  await page.reload();
   await page.getByRole('button', { name: '兑换5000' }).click();
   for (let chest = 1; chest <= 3; chest++) {
-    await page.locator('[data-room="market"]').click();
+    await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}').cunjinge?.chests, SAVE_KEY)).toBe(chest - 1);
+    await page.locator('button[data-room="market"]').click();
+    await expect.poll(() => page.evaluate(key => JSON.parse(localStorage.getItem(key) || '{}').cunjinge?.chests, SAVE_KEY)).toBe(chest);
     for (let round = 1; round <= 5; round++) {
-      await page.locator('#bidInput').fill(String(round * 100));
+      await page.locator('#bidInput').fill('0');
       await page.locator('#submitBid').click();
-      if (round < 5) await page.locator('#submitBid').click();
+      await expect(page.locator('#bidInput'), `chest ${chest}, round ${round}`).toBeDisabled();
+      if (round < 5) {
+        await expect(page.locator('#submitBid')).toHaveText('查看下一轮线索');
+        await page.locator('#submitBid').click();
+        await expect(page.locator('#bidInput')).toBeEnabled();
+      }
     }
     await page.locator('#submitBid').click();
     await expect(page.locator('#result')).toBeVisible();
@@ -259,7 +279,7 @@ test('schema 9 save migrates, enters from the sect and resumes a locked auction 
   await page.waitForURL(/\/cunjinge\//);
   await expect(page.locator('#spirit')).toHaveText('50000');
   await page.getByRole('button', { name: '兑换5000' }).click();
-  await page.locator('[data-room="market"]').click();
+  await page.locator('button[data-room="market"]').click();
   await expect(page.locator('#arena')).toBeVisible();
   let saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
   expect(saved.schemaVersion).toBe(10);

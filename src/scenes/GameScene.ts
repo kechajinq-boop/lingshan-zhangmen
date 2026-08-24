@@ -1913,7 +1913,7 @@ export class GameScene extends Phaser.Scene {
         color: this.gs.data.cunjinge.auction || (this.gs.data.day >= 7 && (this.gs.data.day - 7) % 3 === 0) ? 0xb57a2e : 0x6f6758,
         run: () => {
           this.gs.save.save();
-          const target = new URL('cunjinge/', window.location.href);
+          const target = new URL('cunjinge/index.html', window.location.href);
           target.search = '';
           window.location.assign(target.toString());
         },
