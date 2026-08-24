@@ -17,23 +17,33 @@ export class Economy {
     const d = this.gs.data;
     d.dayTime += dt;
     if (d.dayTime >= DAY_LEN) {
-      d.dayTime = 0;
-      if (this.gatherCount > 0) { this.gs.logEvent('gather', 'info', '灵田收获', '灵田收获 ' + this.gatherCount + ' 份药草', '#7ddb6a'); this.gatherCount = 0; }
-      if (this.craftCount > 0) { this.gs.logEvent('craft', 'info', '炼丹完成', '炼丹房炼成 ' + this.craftCount + ' 枚丹药', '#ffb347'); this.craftCount = 0; }
-      if (this.oreCount > 0) { this.gs.logEvent('gather', 'info', '灵矿开采', '灵矿场采得 ' + this.oreCount + ' 块灵矿石', '#75d9d1'); this.oreCount = 0; }
-      if (this.forgeCount > 0) { this.gs.logEvent('craft', 'info', '炼器完成', '炼器坊炼成 ' + this.forgeCount + ' 柄青锋剑', '#78c9ef'); this.forgeCount = 0; }
-      this.gs.logEvent('day-summary', 'info', '第' + d.day + '天小结', '营收 ' + d.dayEarned + ' 灵石，服务 ' + d.dayVisitorsServed + ' 人', '#8bd5ff');
-      d.dayEarned = 0;
-      d.dayVisitorsServed = 0;
-      d.day++;
-      this.gs.triggerDailyFlavorEvents();
-      this.gs.events.emit('day', d.day);
+      this.finishDay();
     }
     for (const b of d.buildings) this.tickBuilding(b, dt);
     this.tickVisitors(dt);
     this.spawnTimer += dt;
     const interval = this.spawnInterval();
     if (this.spawnTimer >= interval) { this.spawnTimer = 0; this.trySpawnVisitors(); }
+  }
+
+  debugAdvanceDay(): void {
+    this.gs.data.dayTime = 0;
+    this.finishDay();
+  }
+
+  private finishDay(): void {
+    const d = this.gs.data;
+    d.dayTime = 0;
+    if (this.gatherCount > 0) { this.gs.logEvent('gather', 'info', '灵田收获', '灵田收获 ' + this.gatherCount + ' 份药草', '#7ddb6a'); this.gatherCount = 0; }
+    if (this.craftCount > 0) { this.gs.logEvent('craft', 'info', '炼丹完成', '炼丹房炼成 ' + this.craftCount + ' 枚丹药', '#ffb347'); this.craftCount = 0; }
+    if (this.oreCount > 0) { this.gs.logEvent('gather', 'info', '灵矿开采', '灵矿场采得 ' + this.oreCount + ' 块灵矿石', '#75d9d1'); this.oreCount = 0; }
+    if (this.forgeCount > 0) { this.gs.logEvent('craft', 'info', '炼器完成', '炼器坊炼成 ' + this.forgeCount + ' 柄青锋剑', '#78c9ef'); this.forgeCount = 0; }
+    this.gs.logEvent('day-summary', 'info', '第' + d.day + '天小结', '营收 ' + d.dayEarned + ' 灵石，服务 ' + d.dayVisitorsServed + ' 人', '#8bd5ff');
+    d.dayEarned = 0;
+    d.dayVisitorsServed = 0;
+    d.day++;
+    this.gs.triggerDailyFlavorEvents();
+    this.gs.events.emit('day', d.day);
   }
 
   spawnInterval(): number {

@@ -2045,10 +2045,11 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0, 0.5));
     addButton(0, visitorHeaderY + 32, '立即召来1名访客', 'spawnVisitor', () => this.spawnAcceptanceVisitor(), 0x4f8a63);
     addButton(1, visitorHeaderY + 32, '清理当前访客', 'clearVisitors', () => this.clearAcceptanceVisitors(), 0x9b654d);
+    addButton(0, visitorHeaderY + 78, '推进1天', 'advanceDay', () => this.advanceAcceptanceDay(), 0x4f7792);
     const diagnosisLabel = this.npcDebugEnabled ? '关闭NPC路线诊断' : '开启NPC路线诊断';
-    const diagnosisX = left + width / 2;
+    const diagnosisX = left + 18 + buttonWidth / 2 + buttonWidth + gap;
     const diagnosisY = visitorHeaderY + 78;
-    const diagnosis = this.add.rectangle(diagnosisX, diagnosisY, width - 36, 34, this.npcDebugEnabled ? 0xc84335 : 0x704c35, 0.98)
+    const diagnosis = this.add.rectangle(diagnosisX, diagnosisY, buttonWidth, buttonHeight, this.npcDebugEnabled ? 0xc84335 : 0x704c35, 0.98)
       .setStrokeStyle(1, 0xffffff, 0.72)
       .setInteractive({ useHandCursor: true })
       .setData('acceptanceAction', 'npcDebug');
@@ -2061,6 +2062,13 @@ export class GameScene extends Phaser.Scene {
       this.renderAcceptanceTools();
     });
     panel.add([diagnosis, diagnosisText]);
+  }
+
+  advanceAcceptanceDay(): void {
+    const previousDay = this.gs.data.day;
+    this.gs.economy.debugAdvanceDay();
+    this.gs.save.save();
+    this.toast('已从第' + previousDay + '天推进到第' + this.gs.data.day + '天');
   }
 
   grantAcceptanceResource(kind: 'spirit' | 'reputation' | 'herbs' | 'spiritOre' | 'pills' | 'azureEdgeSwords'): void {

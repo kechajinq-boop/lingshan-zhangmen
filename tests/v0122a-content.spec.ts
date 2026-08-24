@@ -432,19 +432,52 @@ test('decoration palette stays inside mobile landscape viewport', async ({ brows
   await context.close();
 });
 
-test('acceptance tools fit inside mobile landscape viewport', async ({ browser }) => {
+test('acceptance tools advance one natural day and preserve timed content after reload', async ({ page }) => {
+  await continueGame(page, schemaEightSave({ day: 6, dayTime: 42 }));
+  await openAcceptanceTools(page);
+  await clickAcceptanceAction(page, 'advanceDay');
+  await expect.poll(async () => {
+    const state = await gameState(page);
+    return { day: state.day, cunjingeOpen: state.cunjinge.openToday };
+  }).toEqual({ day: 7, cunjingeOpen: true });
+
+  for (let day = 8; day <= 10; day++) {
+    await clickAcceptanceAction(page, 'advanceDay');
+    await expect.poll(async () => (await gameState(page)).day).toBe(day);
+  }
+  expect((await gameState(page)).cunjinge.openToday).toBe(true);
+
+  const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)!), SAVE_KEY);
+  expect(saved.day).toBe(10);
+  expect(saved.dayTime).toBe(0);
+  expect(saved.eventLog.some((entry: any) => entry.title === '第9天小结')).toBe(true);
+
+  await page.reload();
+  await expect(page.locator('canvas')).toBeVisible();
+  await expect.poll(async () => {
+    const state = await gameState(page);
+    if (state.day === 10) return true;
+    await page.locator('canvas').click({ position: { x: 960, y: 886 }, force: true });
+    await page.waitForTimeout(200);
+    return false;
+  }, { timeout: 15000 }).toBe(true);
+  const restored = await gameState(page);
+  expect(restored.cunjinge.openToday).toBe(true);
+});
+
+test('acceptance tools fit inside mobile landscape viewport', async ({ browser }, testInfo) => {
   const context = await browser.newContext({ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
   await continueGame(page, schemaEightSave(), { x: 422, y: 320 });
   await openAcceptanceTools(page);
   const actions = (await gameState(page)).acceptanceTools.actions;
-  expect(actions).toHaveLength(9);
+  expect(actions).toHaveLength(10);
   for (const action of actions) {
     expect(action.x).toBeGreaterThan(10);
     expect(action.x).toBeLessThan(834);
     expect(action.y).toBeGreaterThan(10);
     expect(action.y).toBeLessThan(380);
   }
-  await page.screenshot({ path: 'deliverables/v0122a-qa/acceptance-tools-mobile.png', fullPage: true });
+  await page.screenshot({ path: testInfo.outputPath('acceptance-tools-mobile.png'), fullPage: true });
   await context.close();
 });
