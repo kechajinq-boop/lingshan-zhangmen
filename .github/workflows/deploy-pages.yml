@@ -36,6 +36,12 @@ jobs:
           ref: codex/v0.12.4-r2
           path: r2
 
+      - name: Checkout v0.12.4-R3
+        uses: actions/checkout@v6
+        with:
+          ref: codex/v0.12.4-r3
+          path: r3
+
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -45,6 +51,7 @@ jobs:
             current/package-lock.json
             r1/package-lock.json
             r2/package-lock.json
+            r3/package-lock.json
 
       - name: Build current public preview
         working-directory: current
@@ -58,13 +65,19 @@ jobs:
         working-directory: r2
         run: npm ci && npm run build
 
+      - name: Build v0.12.4-R3
+        working-directory: r3
+        run: npm ci && npm run build
+
       - name: Assemble Pages artifact without dropping versioned previews
         run: |
           mkdir -p site/releases/v0.12.4-r1
           mkdir -p site/releases/v0.12.4-r2
+          mkdir -p site/releases/v0.12.4-r3
           cp -a current/dist/. site/
           cp -a r1/dist/. site/releases/v0.12.4-r1/
           cp -a r2/dist/. site/releases/v0.12.4-r2/
+          cp -a r3/dist/. site/releases/v0.12.4-r3/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
