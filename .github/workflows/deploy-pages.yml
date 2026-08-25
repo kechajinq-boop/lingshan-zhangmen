@@ -21,18 +21,50 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          path: current
+
+      - name: Checkout v0.12.4-R1
+        uses: actions/checkout@v6
+        with:
+          ref: codex/v0.12.4-r1
+          path: r1
+
+      - name: Checkout v0.12.4-R2
+        uses: actions/checkout@v6
+        with:
+          ref: codex/v0.12.4-r2
+          path: r2
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            current/package-lock.json
+            r1/package-lock.json
+            r2/package-lock.json
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Build current public preview
+        working-directory: current
+        run: npm ci && npm run build
 
-      - name: Build
-        run: npm run build
+      - name: Build v0.12.4-R1
+        working-directory: r1
+        run: npm ci && npm run build
+
+      - name: Build v0.12.4-R2
+        working-directory: r2
+        run: npm ci && npm run build
+
+      - name: Assemble Pages artifact without dropping versioned previews
+        run: |
+          mkdir -p site/releases/v0.12.4-r1
+          mkdir -p site/releases/v0.12.4-r2
+          cp -a current/dist/. site/
+          cp -a r1/dist/. site/releases/v0.12.4-r1/
+          cp -a r2/dist/. site/releases/v0.12.4-r2/
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -40,7 +72,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: site
 
   deploy:
     needs: build
