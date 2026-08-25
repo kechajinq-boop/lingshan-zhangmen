@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>灵山大掌门 · 开场动画</title>
+  <style>
+    :root { color-scheme:dark; --gold:#ffe7a5; --jade:#6ef0dc; }
+    * { box-sizing:border-box; }
+    html,body { width:100%; height:100%; margin:0; overflow:hidden; background:#030c13; font-family:"Microsoft YaHei","PingFang SC",sans-serif; }
+    body { display:grid; place-items:center; }
+    button { font:inherit; }
+    .shell { position:relative; width:min(100vw,177.78vh); height:min(100vh,56.25vw); overflow:hidden; background:#06131c; box-shadow:0 0 90px #000; }
+    .stage,.shot,.shade { position:absolute; inset:0; }
+    .shot { opacity:0; overflow:hidden; pointer-events:none; transition:opacity .55s ease; }
+    .shot.active { opacity:1; }
+    .scene { width:100%; height:100%; object-fit:cover; transform:scale(var(--scale-from,1.03)) translate(var(--pan-x,0),var(--pan-y,0)); transition:transform var(--camera,2.4s) cubic-bezier(.18,.62,.25,1); }
+    .active .scene { transform:scale(var(--scale-to,1.11)) translate(var(--pan-to-x,0),var(--pan-to-y,0)); }
+    .shade { z-index:1; background:linear-gradient(0deg,rgba(2,12,17,.55),transparent 48%),radial-gradient(circle at 50% 45%,transparent 40%,rgba(0,8,13,.24)); }
+    .cloud { position:absolute; z-index:2; width:52%; height:35%; border-radius:50%; opacity:.68; filter:blur(22px); background:radial-gradient(ellipse,rgba(244,255,255,.88),rgba(213,247,251,.2) 58%,transparent 72%); }
+    .active .cloud.c1 { animation:cloud-left 2.1s ease-out both; }
+    .active .cloud.c2 { animation:cloud-right 2.2s ease-out both; }
+    .c1 { left:-6%; top:35%; } .c2 { right:-8%; top:46%; }
+    @keyframes cloud-left { from{transform:translateX(24%);opacity:.94} to{transform:translateX(-20%);opacity:.3} }
+    @keyframes cloud-right { from{transform:translateX(-22%);opacity:.9} to{transform:translateX(22%);opacity:.28} }
+    .copy { position:absolute; z-index:6; left:50%; bottom:12%; width:90%; text-align:center; transform:translate(-50%,18px); opacity:0; text-shadow:0 4px 17px #000,0 0 24px #133d45; transition:.55s ease .12s; }
+    .active .copy { transform:translate(-50%,0); opacity:1; }
+    .eyebrow { margin-bottom:.35em; color:#d7fff7; font-size:clamp(12px,1.2vw,22px); letter-spacing:.32em; }
+    .headline { margin:0; color:#fff1c5; font:900 clamp(30px,5vw,88px)/1.12 "Microsoft YaHei",sans-serif; letter-spacing:.12em; -webkit-text-stroke:1px rgba(74,34,11,.8); }
+    .subline { margin:.55em 0 0; color:white; font-size:clamp(14px,1.5vw,27px); letter-spacing:.12em; }
+    .shot-1 .copy { bottom:15%; }
+    .shot-1 .headline { font-size:clamp(27px,4vw,68px); }
+    .shot-6 .copy { top:50%; bottom:auto; transform:translate(-50%,calc(-50% + 20px)); }
+    .shot-6.active .copy { transform:translate(-50%,-50%); }
+    .shot-6 .headline { color:#fff1c5; -webkit-text-fill-color:#fff1c5; -webkit-text-stroke:0; font-family:STKaiti,KaiTi,serif; font-size:clamp(43px,7vw,126px); letter-spacing:.08em; }
+    .shot-6 .subline { display:inline-block; padding:.48em 1.15em; border:1px solid rgba(255,224,148,.78); border-radius:999px; background:rgba(11,37,42,.65); color:#fff0ba; }
+    .forge-glow { position:absolute; z-index:3; left:62%; top:38%; width:14%; aspect-ratio:1; border-radius:50%; opacity:0; background:radial-gradient(circle,#fff6a6 0,#ff9b31 22%,rgba(244,77,22,.45) 45%,transparent 72%); mix-blend-mode:screen; }
+    .active .forge-glow { opacity:.9; animation:forge .4s ease-in-out infinite alternate; }
+    @keyframes forge { to{transform:scale(1.2);filter:brightness(1.35)} }
+    .spark { position:absolute; z-index:4; left:68%; top:45%; width:5px; height:5px; border-radius:50%; background:#fff1a0; box-shadow:0 0 9px #ff7b32; opacity:0; }
+    .active .spark { animation:spark 1s ease-out var(--delay,0s) infinite; }
+    @keyframes spark { 0%{opacity:0;transform:translate(0,0)} 18%{opacity:1} 100%{opacity:0;transform:translate(var(--sx),var(--sy)) scale(.2)} }
+    .chrome { position:absolute; z-index:12; left:3.5%; right:3.5%; bottom:3%; display:flex; align-items:center; gap:12px; }
+    .icon,.skip { height:36px; border:1px solid rgba(255,255,255,.4); color:white; background:rgba(0,17,24,.52); cursor:pointer; backdrop-filter:blur(6px); }
+    .icon { width:36px; border-radius:50%; }
+    .skip { padding:0 16px; border-radius:999px; letter-spacing:.08em; }
+    .progress { flex:1; height:5px; border-radius:5px; background:rgba(255,255,255,.2); overflow:hidden; }
+    .progress i { display:block; width:0; height:100%; background:linear-gradient(90deg,var(--jade),var(--gold)); box-shadow:0 0 12px var(--jade); }
+    .time { min-width:76px; color:white; text-align:right; font-size:13px; font-variant-numeric:tabular-nums; }
+    .gate { position:absolute; z-index:20; inset:0; display:grid; place-items:center; background:radial-gradient(circle at 50% 38%,rgba(46,143,158,.25),rgba(2,11,17,.92) 67%); transition:opacity .45s ease; }
+    .gate.hidden { opacity:0; pointer-events:none; }
+    .gate.ended { place-items:end center; padding-bottom:10%; background:linear-gradient(0deg,rgba(2,11,17,.5),transparent 38%); }
+    .gate.ended .seal,.gate.ended h1,.gate.ended p { display:none; }
+    .gate-card { text-align:center; animation:rise .7s ease both; }
+    .seal { width:82px; height:82px; margin:0 auto 20px; display:grid; place-items:center; border:2px solid #f4cf79; border-radius:50%; color:#ffe8ad; font:700 39px STKaiti,KaiTi,serif; box-shadow:0 0 34px rgba(78,226,207,.3),inset 0 0 20px rgba(255,224,150,.16); }
+    .gate h1 { margin:0 0 10px; color:#fff0c5; font:900 clamp(38px,5.4vw,88px) STKaiti,KaiTi,serif; letter-spacing:.08em; }
+    .gate p { margin:0 0 24px; color:#c4f4ed; font-size:clamp(13px,1.35vw,22px); letter-spacing:.22em; }
+    .play { padding:13px 34px; border:1px solid #ffe39a; border-radius:999px; color:#2d1b0b; background:linear-gradient(#ffedb8,#ebb34e); box-shadow:0 9px 30px rgba(0,0,0,.38); font-size:18px; font-weight:900; cursor:pointer; }
+    @keyframes rise { from{opacity:0;transform:translateY(20px)} }
+    @media(max-width:700px){ .chrome{left:4%;right:4%;bottom:4%}.time{display:none}.skip{padding:0 11px}.copy{bottom:16%}.headline{letter-spacing:.06em}.subline{letter-spacing:.04em} }
+    @media(prefers-reduced-motion:reduce){ .scene,.copy,.shot{transition-duration:.15s} }
+  </style>
+</head>
+<body>
+  <main class="shell" aria-label="灵山大掌门开场动画预览">
+    <section class="stage">
+      <article class="shot shot-1 active" data-start="0" data-end="1.8" style="--scale-from:1.15;--scale-to:1.03;--camera:1.8s">
+        <img class="scene" src="assets/pv-shot-01-bg.png" alt="云海中的浮空仙山">
+        <div class="shade"></div><i class="cloud c1"></i><i class="cloud c2"></i>
+        <div class="copy"><div class="eyebrow">云海深处 · 仙缘初启</div><h2 class="headline">一方仙山，静候掌门</h2></div>
+      </article>
+
+      <article class="shot shot-2" data-start="1.8" data-end="3.8" style="--scale-from:1.02;--scale-to:1.12;--camera:2s">
+        <img class="scene" src="assets/pv-shot-02-bg.png" alt="中央大殿、河流、桥梁和道路完整可见的浮空主岛">
+        <div class="shade"></div><i class="cloud c1"></i><i class="cloud c2"></i>
+        <div class="copy"><h2 class="headline">山门初立</h2></div>
+      </article>
+
+      <article class="shot shot-3" data-start="3.8" data-end="5.8" style="--scale-from:1.04;--scale-to:1.14;--camera:2s;--pan-to-x:1%;--pan-to-y:-1%">
+        <img class="scene" src="assets/pv-shot-03-bg.png" alt="众弟子前往灵田劳作">
+        <div class="shade"></div>
+        <div class="copy"><div class="eyebrow">灵植入田 · 丹火初燃</div><h2 class="headline">百业开工</h2><p class="subline">弟子奔赴灵田，仙山渐有生气</p></div>
+      </article>
+
+      <article class="shot shot-4" data-start="5.8" data-end="7.8" style="--scale-from:1.03;--scale-to:1.13;--camera:2s;--pan-to-x:-1%;--pan-to-y:-1%">
+        <img class="scene" src="assets/pv-shot-04-bg.png" alt="众弟子前往炼器区劳作">
+        <div class="shade"></div><i class="forge-glow"></i>
+        <i class="spark" style="--sx:-44px;--sy:-64px;--delay:0s"></i><i class="spark" style="--sx:26px;--sy:-76px;--delay:.28s"></i><i class="spark" style="--sx:62px;--sy:-46px;--delay:.61s"></i>
+        <div class="copy"><div class="eyebrow">灵矿入炉 · 剑鸣云霄</div><h2 class="headline">炼器开炉</h2><p class="subline">众人各赴其职，宗门运转不息</p></div>
+      </article>
+
+      <article class="shot shot-5" data-start="7.8" data-end="9.8" style="--scale-from:1.03;--scale-to:1.1;--camera:2s">
+        <img class="scene" src="assets/pv-shot-05-bg.png" alt="弟子与来客汇聚山门">
+        <div class="shade"></div>
+        <div class="copy"><h2 class="headline">弟子来投，山门日盛</h2></div>
+      </article>
+
+      <article class="shot shot-6" data-start="9.8" data-end="12" style="--scale-from:1.08;--scale-to:1.02;--camera:2.2s">
+        <img class="scene" src="assets/menu-mountains.jpg" alt="灵山大掌门">
+        <div class="shade"></div>
+        <div class="copy"><h2 class="headline">灵山大掌门</h2><p class="subline">开山立宗，财通三界！</p></div>
+      </article>
+    </section>
+
+    <div class="chrome">
+      <button class="icon sound" type="button" aria-label="静音">♫</button>
+      <div class="progress" aria-label="播放进度"><i></i></div>
+      <span class="time">00:00 / 00:12</span>
+      <button class="skip" type="button">跳过</button>
+    </div>
+
+    <div class="gate">
+      <div class="gate-card">
+        <div class="seal">灵</div>
+        <h1>灵山大掌门</h1>
+        <p>开山立宗，财通三界！</p>
+        <button class="play" type="button">点击启程</button>
+      </div>
+    </div>
+    <audio preload="auto" src="assets/opening-temp-cue-v1.wav"></audio>
+  </main>
+  <script>
+    const shots=[...document.querySelectorAll('.shot')];
+    const gate=document.querySelector('.gate');
+    const playButton=document.querySelector('.play');
+    const audio=document.querySelector('audio');
+    const bar=document.querySelector('.progress i');
+    const timeLabel=document.querySelector('.time');
+    const soundButton=document.querySelector('.sound');
+    const skipButton=document.querySelector('.skip');
+    const qa=new URLSearchParams(location.search).has('qa');
+    const duration=12;
+    const speed=qa?10:1;
+    let playing=false,startedAt=0,frame=0;
+    function clock(sec){return `00:${String(Math.min(12,Math.floor(sec))).padStart(2,'0')}`}
+    function showAt(sec){
+      const found=shots.findIndex(s=>sec>=+s.dataset.start&&sec<+s.dataset.end);
+      const index=found<0?shots.length-1:found;
+      shots.forEach((shot,i)=>shot.classList.toggle('active',i===index));
+      bar.style.width=`${Math.min(100,sec/duration*100)}%`;
+      timeLabel.textContent=`${clock(sec)} / 00:12`;
+    }
+    function finish(){
+      playing=false; cancelAnimationFrame(frame); audio.pause(); showAt(duration);
+      playButton.textContent='再次播放'; gate.classList.add('ended'); gate.classList.remove('hidden');
+    }
+    function tick(now){
+      if(!playing)return;
+      const sec=(now-startedAt)/1000*speed;
+      showAt(sec);
+      if(sec>=duration){finish();return}
+      frame=requestAnimationFrame(tick);
+    }
+    async function start(){
+      cancelAnimationFrame(frame); playing=true; gate.classList.remove('ended'); gate.classList.add('hidden'); showAt(0);
+      audio.currentTime=0;
+      if(!qa){try{await audio.play()}catch{}}
+      startedAt=performance.now(); frame=requestAnimationFrame(tick);
+    }
+    playButton.addEventListener('click',start);
+    skipButton.addEventListener('click',finish);
+    soundButton.addEventListener('click',()=>{
+      audio.muted=!audio.muted; soundButton.textContent=audio.muted?'×':'♫';
+      soundButton.setAttribute('aria-label',audio.muted?'开启声音':'静音');
+    });
+    showAt(0);
+  </script>
+</body>
+</html>
