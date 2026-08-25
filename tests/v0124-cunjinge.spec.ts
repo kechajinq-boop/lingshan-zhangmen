@@ -20,6 +20,15 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
   await page.locator('button[data-room="market"]').click();
   await expect(page.locator('.player')).toHaveCount(4);
   await expect.poll(() => page.locator('.avatar img').evaluateAll(images => images.every(image => (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0))).toBeTruthy();
+  const desktopAvatars = await page.locator('.avatar').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect().width));
+  expect(desktopAvatars.every(width => width >= 110)).toBeTruthy();
+  const desktopAppraisalControls = await page.locator('#arts .art, #threatBtn').evaluateAll(nodes => nodes.map(node => {
+    const box = (node as HTMLElement).getBoundingClientRect();
+    return { x: Math.round(box.x), y: Math.round(box.y), height: box.height };
+  }));
+  expect(desktopAppraisalControls).toHaveLength(5);
+  expect([...new Set(desktopAppraisalControls.map(box => box.y))]).toHaveLength(2);
+  expect(desktopAppraisalControls.every(box => box.height >= 40)).toBeTruthy();
   await expect(page.locator('.clue')).toHaveCount(1);
   await expect(page.locator('#topStatus')).toContainText('45秒');
   await expect(page.locator('#topStatus .countdown')).toHaveText('45秒');
@@ -85,6 +94,10 @@ test('desktop prototype completes a full five-round auction', async ({ page }, t
     const bidBubbleTexts = await page.locator('.bid-bubble').allTextContents();
     expect(bidBubbleTexts.every(text => text.includes('筹码') && !text.includes('灵石'))).toBeTruthy();
     expect(new Set(bidBubbleTexts).size).toBe(activeBidders);
+    expect(await page.locator('.bid-bubble').evaluateAll(nodes => nodes.every(node => {
+      const style = getComputedStyle(node);
+      return style.textAlign === 'center' && Number.parseFloat(style.fontSize) >= 12;
+    }))).toBeTruthy();
     if (round === 1) {
       await page.waitForTimeout(400);
       await page.screenshot({ path: testInfo.outputPath('desktop-bids.png'), fullPage: true });
@@ -142,11 +155,14 @@ test('844x390 landscape keeps chest, clues and bid controls on screen', async ({
   const shapes = await page.locator('.treasure').evaluateAll(nodes => nodes.map(node => `${(node as HTMLElement).dataset.w}x${(node as HTMLElement).dataset.h}`));
   expect(shapes.every(shape => allowedShapes.has(shape))).toBeTruthy();
   expect(shapes.some(shape => ['2x3', '2x4', '3x3', '4x2', '4x4'].includes(shape))).toBeTruthy();
-  const fiveControls = await page.locator('#arts .art, #threatBtn').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect()).map(box => ({ x: box.x, y: box.y, height: box.height })));
+  const fiveControls = await page.locator('#arts .art, #threatBtn').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect()).map(box => ({ x: Math.round(box.x), y: Math.round(box.y), height: box.height })));
   expect(fiveControls).toHaveLength(5);
-  expect(Math.max(...fiveControls.map(box => box.y)) - Math.min(...fiveControls.map(box => box.y))).toBeLessThanOrEqual(2);
-  expect(fiveControls.map(box => box.x)).toEqual([...fiveControls.map(box => box.x)].sort((a, b) => a - b));
-  expect(Math.max(...fiveControls.map(box => box.height))).toBeLessThanOrEqual(24);
+  const controlRows = [...new Set(fiveControls.map(box => box.y))];
+  expect(controlRows).toHaveLength(2);
+  expect(controlRows.map(y => fiveControls.filter(box => box.y === y).length).sort()).toEqual([2, 3]);
+  expect(fiveControls.every(box => box.height >= 24 && box.height <= 27)).toBeTruthy();
+  const mobileAvatarWidths = await page.locator('.avatar').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect().width));
+  expect(mobileAvatarWidths.every(width => width >= 48)).toBeTruthy();
   const readingColumns = await Promise.all(['.clues', '.auction-log'].map(async selector => (await page.locator(selector).boundingBox())!));
   expect(readingColumns[0].x).toBeLessThan(readingColumns[1].x);
   const playerCards = await page.locator('.player').evaluateAll(nodes => nodes.map(node => (node as HTMLElement).getBoundingClientRect()).map(box => ({ x: box.x, y: box.y })));

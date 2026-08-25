@@ -27,6 +27,7 @@ interface BuildingRenderConfig {
   height: number;
   offsetX: number;
   anchorOffsetY: number;
+  dedicatedOffsetY?: number;
   collisionHalfWidth: number;
   collisionHalfHeight: number;
   collisionOffsetY: number;
@@ -83,10 +84,10 @@ const BUILDING_RENDER: Record<string, BuildingRenderConfig> = {
   'decor-crystal-lamp': { width: 59, height: 80, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 12, collisionHalfHeight: 14, collisionOffsetY: 4 },
   'decor-lotus': { width: 68, height: 51, offsetX: -3, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 10, collisionOffsetY: 2 },
   'decor-reeds': { width: 61, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 18, collisionHalfHeight: 11, collisionOffsetY: 2 },
-  'decor-quenching-trough': { width: 66, height: 51, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 20, collisionHalfHeight: 11, collisionOffsetY: 2 },
-  'decor-artifact-sword-case': { width: 68, height: 61, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 19, collisionHalfHeight: 13, collisionOffsetY: 3 },
-  'decor-suppression-stele': { width: 42, height: 63, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 13, collisionHalfHeight: 14, collisionOffsetY: 4 },
-  'decor-crane-standing': { width: 36, height: 65, offsetX: 0, anchorOffsetY: 36, collisionHalfWidth: 10, collisionHalfHeight: 12, collisionOffsetY: 3 },
+  'decor-quenching-trough': { width: 108, height: 108, offsetX: 0, anchorOffsetY: 36, dedicatedOffsetY: 5, collisionHalfWidth: 20, collisionHalfHeight: 11, collisionOffsetY: 2 },
+  'decor-artifact-sword-case': { width: 96, height: 96, offsetX: 0, anchorOffsetY: 36, dedicatedOffsetY: 5, collisionHalfWidth: 19, collisionHalfHeight: 13, collisionOffsetY: 3 },
+  'decor-suppression-stele': { width: 104, height: 104, offsetX: 0, anchorOffsetY: 36, dedicatedOffsetY: 5, collisionHalfWidth: 13, collisionHalfHeight: 14, collisionOffsetY: 4 },
+  'decor-crane-standing': { width: 100, height: 104, offsetX: 0, anchorOffsetY: 36, dedicatedOffsetY: 5, collisionHalfWidth: 10, collisionHalfHeight: 12, collisionOffsetY: 3 },
 };
 const VISITOR_NATIVE_RIGHT: Record<VisitorVariant, { front: boolean; back: boolean }> = {
   a: { front: false, back: true },
@@ -131,6 +132,9 @@ export class GameScene extends Phaser.Scene {
   commissionOpen = false;
   selectedBuild: string | null = null;
   decorMenuOpen = false;
+  decorMenuScrollRow = 0;
+  decorMenuMaxScrollRow = 0;
+  decorMenuBounds?: Phaser.Geom.Rectangle;
   ghost: BuildGhost | null = null;
   selectedBuilding: PlacedBuilding | null = null;
   visitorSprites = new Map<number, Phaser.GameObjects.Container>();
@@ -972,6 +976,18 @@ export class GameScene extends Phaser.Scene {
   }
 
   onWheel(p: Phaser.Input.Pointer, deltaY: number): void {
+    if (this.decorMenuOpen && this.decorMenuBounds?.contains(p.x, p.y)) {
+      const nextRow = Phaser.Math.Clamp(
+        this.decorMenuScrollRow + (deltaY > 0 ? 1 : -1),
+        0,
+        this.decorMenuMaxScrollRow,
+      );
+      if (nextRow !== this.decorMenuScrollRow) {
+        this.decorMenuScrollRow = nextRow;
+        this.layoutUI();
+      }
+      return;
+    }
     if (this.selectedBuild || this.researchOpen || this.elderOpen || this.recruitOpen || this.commissionOpen || this.isPointerOverHUD(p)) return;
     const oldScale = this.board.scaleX;
     const factor = deltaY > 0 ? 0.9 : 1.1;
@@ -985,6 +1001,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   isPointerOverHUD(p: Phaser.Input.Pointer): boolean {
+    if (this.decorMenuOpen && this.decorMenuBounds?.contains(p.x, p.y)) return true;
     const compact = this.scale.width < 900;
     const top = compact ? 10 : 16;
     if (p.y >= top && p.y <= top + this.topBarHeight()) return true;
@@ -1081,7 +1098,9 @@ export class GameScene extends Phaser.Scene {
     const slotPoint = this.slotVisualPosition(b.gx, b.gy);
     const foot = slotPoint || this.buildingArtPosition(b.gx, b.gy, def.w, def.h);
     const artX = slotPoint ? render.offsetX * MAP_ART_SCALE_X : 0;
-    const artY = slotPoint && !this.isDedicatedDecoration(b) ? render.anchorOffsetY * MAP_ART_SCALE_Y : 0;
+    const artY = slotPoint
+      ? (this.isDedicatedDecoration(b) ? (render.dedicatedOffsetY || 0) : render.anchorOffsetY * MAP_ART_SCALE_Y)
+      : 0;
     const renderScale = (def.renderScale ?? 1) * DEFAULT_BUILDING_SCALE;
     const displayW = render.width * renderScale * MAP_ART_SCALE_X;
     const displayH = render.height * renderScale * MAP_ART_SCALE_Y;
@@ -2210,7 +2229,7 @@ export class GameScene extends Phaser.Scene {
       x: margin,
       y: top + this.topBarHeight() + (compact ? 6 : 12),
       width: compact ? Math.min(300, this.scale.width - margin * 2) : 300,
-      height: compact || this.eventFeedCollapsed ? 34 : 166,
+      height: compact || this.eventFeedCollapsed ? 34 : 250,
     };
   }
 
@@ -2301,6 +2320,7 @@ export class GameScene extends Phaser.Scene {
 
   layoutUI(): void {
     this.buildMenu.removeAll(true);
+    this.decorMenuBounds = undefined;
     const w = this.scale.width, h = this.scale.height;
     const defs = this.gs.defs.buildings.filter(def => def.type !== 'decor');
     const allDecorDefs = this.gs.defs.buildings.filter(def => def.type === 'decor');
@@ -2436,6 +2456,7 @@ export class GameScene extends Phaser.Scene {
       this.decorMenuOpen ? 0xf3b85f : 0xd9b37a,
       () => {
         this.decorMenuOpen = !this.decorMenuOpen;
+        this.decorMenuScrollRow = 0;
         this.layoutUI();
       },
       { key: 'action', value: '装饰' },
@@ -2443,34 +2464,70 @@ export class GameScene extends Phaser.Scene {
       '景',
     );
     if (this.decorMenuOpen) {
-      const decorColumns = Math.min(8, decorDefs.length);
+      const decorColumns = Math.min(2, decorDefs.length);
       const decorRows = Math.ceil(decorDefs.length / decorColumns);
+      const paletteHeaderH = 40;
+      const paletteBottomScreenY = h - menuHeight - 22;
+      const paletteTopScreenY = (compact ? 10 : 16) + this.topBarHeight() + 8;
+      const availablePaletteH = Math.max(buttonH + paletteHeaderH, paletteBottomScreenY - paletteTopScreenY);
+      const visibleRows = Math.max(1, Math.min(
+        6,
+        decorRows,
+        Math.floor((availablePaletteH - paletteHeaderH + gap) / (buttonH + gap)),
+      ));
+      this.decorMenuMaxScrollRow = Math.max(0, decorRows - visibleRows);
+      this.decorMenuScrollRow = Phaser.Math.Clamp(this.decorMenuScrollRow, 0, this.decorMenuMaxScrollRow);
       const paletteW = decorColumns * buttonW + (decorColumns - 1) * gap;
-      const paletteHeaderH = 18;
-      const paletteH = decorRows * buttonH + (decorRows - 1) * gap + paletteHeaderH;
-      const paletteBottomY = firstRowY - buttonH / 2 - gap - 8;
+      const paletteH = visibleRows * buttonH + (visibleRows - 1) * gap + paletteHeaderH;
+      const paletteBottomY = paletteBottomScreenY - (h - 12);
       const paletteCenterY = paletteBottomY - paletteH / 2;
-      const palette = this.add.rectangle(0, paletteCenterY, paletteW + 16, paletteH + 12, 0xffefc1, 0.98)
+      const paletteCenterX = w / 2 - (paletteW + 16) / 2 - 18;
+      const palette = this.add.rectangle(paletteCenterX, paletteCenterY, paletteW + 16, paletteH + 12, 0xffefc1, 0.98)
         .setStrokeStyle(2, 0xd8993a, 0.95)
         .setInteractive();
       palette.on('pointerdown', (_p: Phaser.Input.Pointer, _x: number, _y: number, ev: any) => ev.stopPropagation());
       this.buildMenu.add(palette);
-      const nextHint = decorDefs.length < allDecorDefs.length ? ' · 扩建后开放更多' : ' · 已全部开放';
-      const paletteTitle = this.add.text(0, paletteCenterY - paletteH / 2 + 10, '装饰 ' + decorDefs.length + '/' + allDecorDefs.length + nextHint, {
-        fontSize: compact ? '10px' : '11px', color: '#6a4b2a', fontFamily: FONT, fontStyle: 'bold',
-      }).setOrigin(0.5);
+      this.decorMenuBounds = new Phaser.Geom.Rectangle(
+        w - paletteW - 34,
+        paletteBottomScreenY - paletteH - 6,
+        paletteW + 16,
+        paletteH + 12,
+      );
+      const nextHint = decorDefs.length < allDecorDefs.length ? '扩建后开放更多' : '已全部开放';
+      const visibleStart = this.decorMenuScrollRow * decorColumns + 1;
+      const visibleEnd = Math.min(decorDefs.length, (this.decorMenuScrollRow + visibleRows) * decorColumns);
+      const scrollHint = this.decorMenuMaxScrollRow > 0 ? ` · ${visibleStart}-${visibleEnd}/${decorDefs.length} ↕` : '';
+      const paletteTitle = this.add.text(
+        paletteCenterX,
+        paletteCenterY - paletteH / 2 + 5,
+        `装饰 ${decorDefs.length}/${allDecorDefs.length}\n${nextHint}${scrollHint}`,
+        {
+          fontSize: compact ? '10px' : '11px',
+          color: '#6a4b2a',
+          fontFamily: FONT,
+          fontStyle: 'bold',
+          align: 'center',
+          wordWrap: { width: paletteW - 8, useAdvancedWrap: true },
+        },
+      ).setOrigin(0.5, 0);
       this.buildMenu.add(paletteTitle);
-      const paletteStartX = -paletteW / 2 + buttonW / 2;
+      const paletteStartX = paletteCenterX - paletteW / 2 + buttonW / 2;
       decorDefs.forEach((def, index) => {
         const column = index % decorColumns;
         const row = Math.floor(index / decorColumns);
+        if (row < this.decorMenuScrollRow || row >= this.decorMenuScrollRow + visibleRows) return;
         const bx = paletteStartX + column * (buttonW + gap);
-        const by = paletteBottomY - buttonH / 2 - row * (buttonH + gap);
+        const visibleRow = row - this.decorMenuScrollRow;
+        const by = paletteCenterY - paletteH / 2 + paletteHeaderH + buttonH / 2 + visibleRow * (buttonH + gap);
         addButton(bx, by, def.name, 0xcde0a1, pointer => {
           this.beginBuildPointer(def.id, pointer);
         }, { key: 'defId', value: def.id });
+        const enlargedIcon = ['decor-quenching-trough', 'decor-artifact-sword-case', 'decor-suppression-stele', 'decor-crane-standing'].includes(def.id);
         const icon = this.add.image(bx, by - 8, 'building-' + def.id)
-          .setDisplaySize(compact ? 30 : 38, compact ? 27 : 34);
+          .setDisplaySize(
+            enlargedIcon ? (compact ? 54 : 64) : (compact ? 30 : 38),
+            enlargedIcon ? (compact ? 50 : 60) : (compact ? 27 : 34),
+          );
         const cost = this.add.text(bx, by + buttonH / 2 - 20, String(def.cost), {
           fontSize: '11px', color: '#7b241c', fontFamily: FONT, fontStyle: 'bold',
           stroke: '#fff1bd', strokeThickness: 2,

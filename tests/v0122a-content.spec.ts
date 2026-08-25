@@ -126,13 +126,39 @@ async function clickAction(page: Page, action: string) {
 }
 
 async function clickBuildDefinition(page: Page, defId: string) {
-  await expect.poll(async () => {
-    const state = await gameState(page);
-    return state.uiButtons?.find((item: any) => item.defId === defId) || null;
-  }).not.toBeNull();
-  const state = await gameState(page);
-  const target = state.uiButtons.find((item: any) => item.defId === defId);
+  let state = await gameState(page);
+  let target = state.uiButtons?.find((item: any) => item.defId === defId);
+  for (let attempt = 0; !target && defId.startsWith('decor-') && attempt < 12; attempt++) {
+    const visibleDecor = state.uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
+    expect(visibleDecor.length).toBeGreaterThan(0);
+    const anchor = visibleDecor[Math.floor(visibleDecor.length / 2)];
+    await page.mouse.move(anchor.x, anchor.y);
+    await page.mouse.wheel(0, 500);
+    await page.waitForTimeout(80);
+    state = await gameState(page);
+    target = state.uiButtons?.find((item: any) => item.defId === defId);
+  }
+  expect(target).toBeTruthy();
   await page.locator('canvas').click({ position: { x: target.x, y: target.y }, force: true });
+}
+
+async function collectDecorationButtons(page: Page) {
+  const collected = new Map<string, any>();
+  let unchangedRounds = 0;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const state = await gameState(page);
+    const visibleDecor = state.uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
+    const previousSize = collected.size;
+    for (const button of visibleDecor) collected.set(button.defId, button);
+    if (visibleDecor.length === 0) break;
+    unchangedRounds = collected.size === previousSize ? unchangedRounds + 1 : 0;
+    if (unchangedRounds >= 2) break;
+    const anchor = visibleDecor[Math.floor(visibleDecor.length / 2)];
+    await page.mouse.move(anchor.x, anchor.y);
+    await page.mouse.wheel(0, 500);
+    await page.waitForTimeout(40);
+  }
+  return [...collected.values()];
 }
 
 async function openAcceptanceTools(page: Page) {
@@ -372,7 +398,7 @@ test('decoration menu unlocks cumulatively as eight, twelve and twenty items', a
   for (const [expansionsUnlocked, expected] of [[0, 8], [1, 12], [2, 20]] as const) {
     await continueGame(page, schemaEightSave({ expansionsUnlocked }));
     await clickAction(page, '装饰');
-    const buttons = (await gameState(page)).uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
+    const buttons = await collectDecorationButtons(page);
     expect(buttons).toHaveLength(expected);
   }
 });
@@ -419,8 +445,7 @@ test('decoration palette stays inside mobile landscape viewport', async ({ brows
   const page = await context.newPage();
   await continueGame(page, schemaEightSave({ expansionsUnlocked: 2 }), { x: 422, y: 320 });
   await clickAction(page, '装饰');
-  const state = await gameState(page);
-  const buttons = state.uiButtons.filter((item: any) => item.defId?.startsWith('decor-'));
+  const buttons = await collectDecorationButtons(page);
   expect(buttons).toHaveLength(20);
   for (const button of buttons) {
     expect(button.x).toBeGreaterThan(20);
