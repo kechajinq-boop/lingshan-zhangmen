@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1" />
+  <title>灵山大掌门 · 灵证指数规则确认切片</title>
+  <style>
+    :root{font-family:"Microsoft YaHei",system-ui,sans-serif;color:#4f3823;background:#1b2528}*{box-sizing:border-box}body{margin:0;min-height:100vh;overflow:auto;background:#182428}.stage{position:relative;width:min(100vw,1500px);min-height:100vh;margin:auto;background:#8dcfdd url('../../../public/assets/v12/map/map_base.png') center/cover no-repeat;overflow:hidden}.veil{position:absolute;inset:0;background:rgba(20,31,31,.2);backdrop-filter:blur(1px)}.hud{position:relative;z-index:2;margin:16px;border:2px solid #ef943c;background:rgba(255,244,199,.96);height:68px;display:grid;grid-template-columns:190px 110px 1fr 120px;align-items:center;padding:0 18px;box-shadow:0 4px 18px #15201b55}.brand{font-weight:900;font-size:22px;color:#623719}.day{font-weight:800;text-align:center}.resources{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.herb-entry{border:1px solid #d39440;border-radius:5px;background:#f7df9c;color:#6d421f;padding:5px 9px;font:inherit;font-weight:800;cursor:pointer}.herb-entry:hover,.herb-entry:focus{background:#ffd66e;outline:2px solid #fff1b8}.exit{justify-self:end;border:0;border-radius:4px;padding:12px 20px;background:#bf6543;color:white;font-weight:800;cursor:pointer}.prototype-tools{position:relative;z-index:3;display:flex;justify-content:center;gap:8px;margin:10px auto 0}.prototype-tools button{border:1px solid #e8b86c;background:#fff2ca;color:#6a421e;border-radius:20px;padding:8px 16px;font-weight:700;cursor:pointer}.prototype-tools button.active{background:#a74a31;color:white}.panel{position:relative;z-index:4;width:min(920px,calc(100vw - 30px));margin:16px auto 34px;border:3px solid #e7a14f;border-radius:12px;background:#fff5d8;box-shadow:0 20px 70px #14201dcc;overflow:hidden}.panel-head{height:78px;padding:15px 22px;background:linear-gradient(90deg,#f9e4a7,#fff7d7);border-bottom:1px solid #e7bd73;display:flex;align-items:center;justify-content:space-between}.panel-head h1{font-size:24px;margin:0;color:#67391d}.panel-head p{margin:5px 0 0;color:#8a663f;font-size:13px}.close{font-size:24px;border:0;background:transparent;color:#7b5534;cursor:pointer}.content{display:grid;grid-template-columns:300px 1fr;gap:16px;padding:18px}.market-card,.trade-card{border:1px solid #dfbb7a;border-radius:9px;background:#fffaf0;padding:16px}.market-state{display:flex;align-items:center;gap:13px}.herb-icon{width:72px;height:72px;object-fit:contain;filter:drop-shadow(0 5px 5px #4e6d4255)}.index-number{font-size:38px;font-weight:900;line-height:1;color:#be5a2d}.stage-label{display:inline-block;margin-top:7px;padding:4px 11px;border-radius:14px;background:#f2b457;color:#5f3515;font-weight:800}.price{margin:18px 0 8px;font-size:15px}.price strong{font-size:32px;color:#b04628}.delta.up{color:#b33b2c}.delta.down{color:#2a8055}.risk{margin-top:12px;padding:10px 12px;background:#fff0cf;border-left:4px solid #e06b38;font-size:13px;line-height:1.6}.legend{margin-top:12px;font-size:12px;color:#886b4e}.chart{width:100%;height:160px;background:linear-gradient(#fffdf7,#fff8e7);border:1px solid #edd7ad;border-radius:7px}.chart text{font-size:10px;fill:#896d51}.holdings{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}.holding{padding:10px;background:#f8ebc5;border-radius:6px;text-align:center}.holding strong{display:block;font-size:20px;color:#6d3c1d}.comparison{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.choice{border:1px solid #e0c38a;border-radius:7px;padding:12px}.choice.risky{background:#fff0dd}.choice.safe{background:#eef7dc}.choice b{display:block;margin-bottom:6px}.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.actions button{min-height:54px;border:0;border-radius:6px;background:#bb6b33;color:#fff;font-weight:800;cursor:pointer;box-shadow:inset 0 -3px #81401f}.actions button:last-child{background:#598c4f;box-shadow:inset 0 -3px #386334}.result{margin-top:12px;min-height:46px;padding:12px;border-radius:6px;background:#3f3024;color:#fff3ce;font-size:13px;line-height:1.55}.foot{display:flex;justify-content:space-between;padding:0 18px 16px;font-size:12px;color:#8b6e52}.concept-tag{color:#9b3b2b;font-weight:800}@media(max-width:720px){.stage{min-height:390px}.hud{height:52px;margin:6px;grid-template-columns:100px 70px 1fr 70px;padding:0 8px}.brand{font-size:15px}.resources{font-size:11px}.herb-entry{padding:3px 5px}.exit{padding:8px}.prototype-tools{margin-top:6px}.prototype-tools button{padding:6px 10px;font-size:11px}.panel{margin:8px auto 18px}.panel-head{height:58px;padding:9px 14px}.panel-head h1{font-size:18px}.panel-head p{font-size:10px}.content{grid-template-columns:230px 1fr;gap:8px;padding:8px}.market-card,.trade-card{padding:9px}.herb-icon{width:50px;height:50px}.index-number{font-size:28px}.chart{height:112px}.actions button{font-size:11px;min-height:44px}.holdings,.comparison{margin:7px 0}.holding{padding:6px}.holding strong{font-size:15px}.risk,.result{padding:7px;margin-top:7px}.foot{display:none}}
+    @media(max-height:500px){body{overflow:hidden}.stage{height:100vh;min-height:0}.hud{position:absolute;inset:0 0 auto 0;height:44px;margin:4px;grid-template-columns:150px 76px 1fr 86px;padding:0 8px}.brand{font-size:15px}.day{font-size:11px}.resources{font-size:10px}.exit{padding:7px;font-size:11px}.prototype-tools{position:absolute;z-index:5;top:50px;left:0;right:0;margin:0}.prototype-tools button{padding:5px 10px;font-size:10px}.panel{position:absolute;left:5px;right:5px;top:82px;bottom:4px;width:auto;margin:0}.panel-head{height:42px;padding:6px 12px}.panel-head h1{font-size:16px}.panel-head p{font-size:9px;margin:2px 0 0}.close{font-size:17px}.content{height:calc(100% - 42px);grid-template-columns:225px 1fr;gap:6px;padding:6px}.market-card,.trade-card{padding:7px;overflow:hidden}.market-state{gap:7px}.herb-icon{width:42px;height:42px}.index-number{font-size:24px}.stage-label{font-size:10px;margin-top:2px;padding:2px 7px}.price{margin:5px 0 2px;font-size:11px}.price strong{font-size:22px}.delta{font-size:10px}.risk{margin-top:4px;padding:5px;font-size:9px;line-height:1.35}.legend{display:none}.chart{height:68px}.chart text{font-size:8px}.holdings{gap:5px;margin:4px 0}.holding{padding:3px;font-size:9px}.holding strong{font-size:13px}.comparison{gap:5px;margin:4px 0}.choice{padding:5px;font-size:9px}.choice b{margin-bottom:2px}.actions{gap:5px}.actions button{min-height:34px;font-size:9px}.result{margin-top:4px;min-height:28px;padding:5px;font-size:9px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.foot{display:none}}
+    .stage{background-image:url('../shared-assets/map_base.png')}
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="veil"></div>
+    <header class="hud"><div class="brand">灵山大掌门</div><div class="day">14:20<br>第26天</div><div class="resources">灵石 <span id="hudSpirit">1,860</span> · 声望 142 · <button class="herb-entry" id="herbEntry">灵草 <span id="hudHerbs">80</span></button> · 丹药 24 · 青锋剑 3</div><button class="exit" id="closeMarket">关闭行情</button></header>
+    <div class="prototype-tools" aria-label="效果稿场景切换"><button data-scene="stable" class="active">平稳行情</button><button data-scene="crazy">狂热高点</button><button data-scene="crash">崩盘演示</button></div>
+    <section class="panel" id="marketPanel">
+      <div class="panel-head"><div><h1>百草行情 · 灵证指数</h1><p>每日价格只结算一次；刷新、读档不会改变当天行情</p></div><button class="close" id="closePanel" aria-label="关闭行情">×</button></div>
+      <div class="content">
+        <article class="market-card">
+          <div class="market-state"><img class="herb-icon" src="../shared-assets/prop_plant_spirit_blue.png" alt="灵草"><div><div>今日灵证指数</div><div class="index-number" id="index">58</div><span class="stage-label" id="stageLabel">平稳</span></div></div>
+          <div class="price">今日收购价　<strong id="price">12</strong> 灵石/株</div>
+          <div class="delta up" id="delta">▲ 较昨日上涨 2 灵石</div>
+          <div class="risk" id="risk">市场正在升温，但还没有进入狂热。直接出售收益一般，炼丹仍更稳妥。</div>
+          <div class="legend">长期模拟：直接卖草均价 12.565；基础炼丹价值约 15/株。狂热行情才明显值得冒险。</div>
+        </article>
+        <article class="trade-card">
+          <svg class="chart" viewBox="0 0 520 160" role="img" aria-label="最近七日灵草价格">
+            <g stroke="#e9d9b7"><path d="M34 24H502M34 68H502M34 112H502M34 145H502"/><path d="M34 18V145"/></g>
+            <text x="6" y="28">24</text><text x="11" y="72">16</text><text x="17" y="116">8</text>
+            <polyline id="line" fill="none" stroke="#c0522e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" points="42,115 118,104 194,111 270,91 346,83 422,72 498,80"/>
+            <g id="dots" fill="#f8c15d" stroke="#7b3c21" stroke-width="2"></g>
+          </svg>
+          <div class="holdings"><div class="holding">总灵草<strong id="herbs">80</strong></div><div class="holding">委托预留<strong>20</strong></div><div class="holding">可出售<strong id="available">60</strong></div></div>
+          <div class="comparison"><div class="choice risky"><b>直接出售 · 风险大</b><span id="sellValue">当前可得 720 灵石</span></div><div class="choice safe"><b>炼成丹药 · 稳赚</b><span id="alchemyValue">等价约 900 灵石</span></div></div>
+          <div class="actions"><button data-ratio="0.25">出售25%</button><button data-ratio="0.5">出售50%</button><button data-ratio="1">全部出售</button><button data-ratio="0">暂不出售<br>留作炼丹</button></div>
+          <div class="result" id="result">掌门尚未操作。建议关注狂热阶段，不必每天追涨杀跌。</div>
+        </article>
+      </div>
+      <div class="foot"><span class="concept-tag">独立效果稿 · 未接入正式游戏</span><span>崩盘只影响当日价格，不扣已有灵石，不清空库存</span></div>
+    </section>
+  </main>
+  <script>
+    const scenes={
+      stable:{index:58,label:'平稳',price:12,delta:'▲ 较昨日上涨 2 灵石',deltaClass:'up',risk:'市场正在升温，但还没有进入狂热。直接出售收益一般，炼丹仍更稳妥。',points:[9,11,10,13,14,15,12]},
+      crazy:{index:91,label:'狂热',price:23,delta:'▲ 较昨日上涨 7 灵石',deltaClass:'up',risk:'高收益伴随高风险：连续上涨后，明日崩盘概率已经明显提高。今天卖出可能大赚，也可能错过更高点。',points:[10,11,13,15,18,16,23]},
+      crash:{index:8,label:'崩盘',price:4,delta:'▼ 较昨日下跌 17 灵石',deltaClass:'down',risk:'市场今日崩盘。低价出售非常不划算，但不会扣除已有灵石，也不会清空库存；可暂存灵草或继续炼丹。',points:[11,13,16,19,22,21,4]}
+    };
+    let herbs=80,spirit=1860,current=scenes.stable;
+    const $=id=>document.getElementById(id);
+    function draw(points){const xs=[42,118,194,270,346,422,498];const ys=points.map(v=>145-(v/25)*120);$('line').setAttribute('points',xs.map((x,i)=>`${x},${ys[i]}`).join(' '));$('dots').innerHTML=xs.map((x,i)=>`<circle cx="${x}" cy="${ys[i]}" r="5"/>`).join('')}
+    function refresh(){const available=Math.max(0,herbs-20);$('index').textContent=current.index;$('stageLabel').textContent=current.label;$('price').textContent=current.price;$('delta').textContent=current.delta;$('delta').className=`delta ${current.deltaClass}`;$('risk').textContent=current.risk;$('herbs').textContent=herbs;$('available').textContent=available;$('sellValue').textContent=`当前可得 ${available*current.price} 灵石`;$('alchemyValue').textContent=`等价约 ${available*15} 灵石`;$('hudSpirit').textContent=spirit.toLocaleString();$('hudHerbs').textContent=herbs;draw(current.points)}
+    document.querySelectorAll('[data-scene]').forEach(button=>button.onclick=()=>{document.querySelectorAll('[data-scene]').forEach(x=>x.classList.remove('active'));button.classList.add('active');current=scenes[button.dataset.scene];$('result').textContent='已切换效果稿场景，尚未进行出售。';refresh()});
+    document.querySelectorAll('[data-ratio]').forEach(button=>button.onclick=()=>{const ratio=Number(button.dataset.ratio);const available=Math.max(0,herbs-20);if(!ratio){$('result').textContent=`今日暂不出售。${available}株可用灵草继续保留，按基础丹药计算约值${available*15}灵石。`;return}const sold=Math.max(1,Math.floor(available*ratio));const gain=sold*current.price;herbs-=sold;spirit+=gain;$('result').textContent=`出售${sold}株灵草，收入${gain}灵石。委托预留的20株没有被动用。`;refresh()});
+    $('herbEntry').onclick=()=>{$('marketPanel').hidden=false};
+    $('closeMarket').onclick=$('closePanel').onclick=()=>{$('marketPanel').hidden=true};
+    refresh();
+  </script>
+</body>
+</html>
