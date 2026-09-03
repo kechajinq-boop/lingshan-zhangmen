@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>灵山大掌门 · 七日宗门考核</title>
+  <style>
+    :root{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:#3e2b1d;background:#17201d;--gold:#d8a64f;--paper:#fff3c9;--ink:#3f2c1e;--green:#376f59;--red:#a84632;--line:#b78542}*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#151b18}.game{position:relative;width:min(100vw,1500px);height:100vh;min-height:620px;margin:auto;background:#7ebdc7 url('./assets/map_base.png') center/cover no-repeat;overflow:hidden}.game:before{content:"";position:absolute;inset:0;background:rgba(18,28,24,.46);backdrop-filter:blur(1px)}button,select{font:inherit}.topbar{position:relative;z-index:2;height:64px;margin:10px 12px 0;border:2px solid #d89138;background:rgba(255,245,207,.97);display:grid;grid-template-columns:210px 130px 1fr auto;align-items:center;padding:0 14px;box-shadow:0 4px 18px #0b120e88}.brand{font-size:23px;font-weight:900;color:#573218}.brand small{font-size:11px;color:#9b6232}.day{font-weight:900;text-align:center}.day strong{font-size:22px;color:#a43b27}.resources{display:flex;gap:11px;flex-wrap:wrap;font-size:13px}.resources b{color:#9b441e}.top-actions{display:flex;gap:7px}.top-actions button{border:0;padding:9px 13px;background:#76513a;color:#fff4ce;font-weight:800;cursor:pointer}.top-actions .new-seed{background:#477b63}.layout{position:relative;z-index:2;height:calc(100% - 84px);display:grid;grid-template-columns:270px minmax(520px,1fr) 320px;gap:10px;padding:10px 12px 12px}.panel{border:2px solid #b87834;background:rgba(255,246,216,.96);box-shadow:0 8px 25px #14201977;min-height:0;overflow:hidden}.panel-title{height:42px;padding:9px 12px;background:#4b3426;color:#ffe8a8;font-size:17px;font-weight:900;display:flex;align-items:center;justify-content:space-between}.panel-title small{font-size:11px;font-weight:600;color:#f2cc7e}.goals{display:flex;flex-direction:column}.goal-list{padding:10px;display:grid;gap:8px}.goal{padding:8px 9px;border:1px solid #d7b273;background:#fff9e8}.goal-head{display:flex;justify-content:space-between;font-size:13px;font-weight:800}.goal.optional .goal-head:after{content:"可选";font-size:10px;color:#88613c}.bar{height:7px;margin-top:6px;background:#d9ccb0;overflow:hidden}.bar i{display:block;height:100%;width:0;background:#4d8b61;transition:width .2s}.goal.done{border-color:#5d936c;background:#eff7df}.goal.done .bar i{background:#3e8a55}.rules{margin:0 10px 10px;padding:10px;border:1px dashed #bd8d4c;background:#f7e7b9;font-size:12px;line-height:1.55}.rules b{color:#8f3e27}.side-status{margin-top:auto;padding:9px 10px;background:#ead29a;border-top:1px solid #c69a59;font-size:12px;line-height:1.5}.command{display:flex;flex-direction:column}.disciples{padding:9px;display:grid;gap:7px;overflow:auto}.disciple{display:grid;grid-template-columns:64px 140px 1fr;min-height:82px;border:1px solid #cba162;background:#fffaf0;align-items:center}.portrait{width:58px;height:72px;margin-left:4px;border:1px solid #b1843f;background:#243f35;object-fit:contain;object-position:center bottom}.disciple-info{padding:7px}.disciple-info b{display:block;font-size:15px;color:#57331e}.trait{display:inline-block;margin-top:5px;padding:3px 6px;background:#e7c578;color:#704119;font-size:11px;font-weight:800}.training{font-size:11px;margin-top:6px;color:#735b43}.assignment{padding:7px 9px;border-left:1px solid #ead4a5}.assignment label{display:block;font-size:11px;color:#7d654b;margin-bottom:5px}.assignment select{width:100%;height:36px;border:1px solid #a9783d;background:#fff4ce;color:#4c321f;font-weight:800;padding:0 8px}.pipeline{margin:0 9px 8px;display:grid;grid-template-columns:1fr 1fr;gap:7px}.production{position:relative;min-height:62px;border:1px solid #c19655;background:#f2dfad;padding:8px 8px 7px 70px;font-size:11px;line-height:1.55}.production img{position:absolute;left:5px;bottom:2px;width:60px;height:56px;object-fit:contain}.production b{display:block;color:#6e391f;font-size:13px}.day-action{margin-top:auto;display:grid;grid-template-columns:1fr 180px;gap:8px;padding:8px 9px;border-top:1px solid #c79a56;background:#ead39c}.hint{font-size:12px;line-height:1.5;color:#674b31;align-self:center}.end-day{border:0;background:#a9462f;color:white;font-weight:900;font-size:16px;cursor:pointer;box-shadow:inset 0 -3px #74301f}.end-day:disabled{background:#9a8b76;cursor:not-allowed;box-shadow:none}.right{display:grid;grid-template-rows:minmax(175px,1fr) auto minmax(150px,1fr)}.opportunity{padding:9px;border-bottom:1px solid #c99d59;background:#f7e8bd}.opportunity h3{font-size:14px;margin:0 0 4px}.opportunity p{font-size:11px;margin:0 0 7px;line-height:1.45}.opportunity-buttons{display:grid;grid-template-columns:1fr 1fr;gap:6px}.opportunity button{min-height:42px;border:0;background:#6d4a35;color:#fff0c8;font-size:11px;font-weight:800;cursor:pointer;padding:5px}.opportunity button:last-child{background:#627b45}.opportunity button:disabled{background:#9c927f;color:#e4dfd4;cursor:not-allowed}.opportunity-result{margin-top:6px;font-size:11px;color:#8d3f29;font-weight:700}.log-title{padding:7px 10px;background:#ead29a;font-size:13px;font-weight:900;border-top:1px solid #bd8c48;border-bottom:1px solid #bd8c48}.log{margin:0;padding:8px 10px 8px 26px;overflow:auto;font-size:11px;line-height:1.5}.log li{margin-bottom:5px}.modal{position:absolute;z-index:20;inset:0;background:rgba(10,16,13,.76);display:grid;place-items:center;padding:15px}.modal[hidden]{display:none}.dialog{width:min(580px,calc(100vw - 28px));border:3px solid #d89c45;background:#fff2c8;box-shadow:0 20px 70px #000;padding:18px}.dialog h2{margin:0 0 8px;color:#67371f}.dialog p{line-height:1.65;margin:6px 0 12px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:10px}.choices button{min-height:62px;border:0;background:#4e7b61;color:white;padding:8px;font-weight:800;cursor:pointer}.choices button:last-child{background:#9b5c38}.choices button:disabled{background:#9b9385;color:#e4dfd5;cursor:not-allowed}.result-dialog{width:min(700px,calc(100vw - 28px))}.grade{text-align:center;font-size:34px;font-weight:900;color:#9d3f26;margin:4px 0 12px}.result-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}.result-item{border:1px solid #ca9d59;background:#fff9e6;padding:8px;text-align:center;font-size:11px}.result-item b{display:block;font-size:18px;margin:3px 0}.result-item.ok{background:#e6f0d7;border-color:#71936b}.result-item.bad{background:#f4d8cd;border-color:#b9634b}.result-actions{display:flex;justify-content:center;gap:10px;margin-top:14px}.result-actions button{border:0;padding:11px 22px;color:white;background:#6c4a35;font-weight:900;cursor:pointer}.result-actions button:last-child{background:#42765e}.toast{position:absolute;z-index:30;left:50%;top:75px;transform:translateX(-50%);padding:8px 16px;background:#3a2b22;color:#ffefbd;border:1px solid #e2b75e;font-size:12px;opacity:0;pointer-events:none;transition:opacity .2s}.toast.show{opacity:1}.risk{color:#a4402b;font-weight:800}.good{color:#3e7b55;font-weight:800}
+    .game{background-image:url('../../assets/v12/map/map_base.png')}
+    @media(max-width:1050px){.layout{grid-template-columns:230px minmax(450px,1fr) 270px}.topbar{grid-template-columns:180px 90px 1fr auto}.brand{font-size:19px}.resources{gap:7px;font-size:11px}.disciple{grid-template-columns:58px 115px 1fr}}
+    @media(max-height:500px){.game{min-height:0;height:100vh}.topbar{height:46px;margin:3px 4px 0;padding:0 7px;grid-template-columns:145px 66px 1fr auto}.brand{font-size:16px}.brand small{display:none}.day{font-size:10px}.day strong{font-size:15px}.resources{gap:5px;font-size:9px;white-space:nowrap;overflow:hidden}.top-actions button{padding:6px 8px;font-size:10px}.layout{height:calc(100% - 52px);grid-template-columns:180px minmax(390px,1fr) 238px;gap:4px;padding:4px}.panel-title{height:29px;padding:5px 7px;font-size:12px}.panel-title small{font-size:8px}.goal-list{padding:5px;gap:3px}.goal{padding:4px 5px}.goal-head{font-size:9px}.bar{height:4px;margin-top:3px}.rules{margin:0 5px 4px;padding:5px;font-size:8px;line-height:1.35}.side-status{padding:4px 5px;font-size:8px;line-height:1.3}.disciples{padding:4px;gap:3px}.disciple{grid-template-columns:42px 84px 1fr;min-height:58px}.portrait{width:38px;height:50px;margin-left:2px}.disciple-info{padding:3px}.disciple-info b{font-size:10px}.trait{font-size:8px;margin-top:2px;padding:1px 3px}.training{font-size:8px;margin-top:2px}.assignment{padding:3px 4px}.assignment label{font-size:8px;margin-bottom:2px}.assignment select{height:28px;font-size:9px;padding:0 3px}.pipeline{margin:0 4px 3px;gap:3px}.production{min-height:42px;padding:4px 4px 3px 44px;font-size:8px;line-height:1.25}.production img{width:41px;height:38px}.production b{font-size:9px}.day-action{grid-template-columns:1fr 105px;gap:3px;padding:4px}.hint{font-size:8px;line-height:1.3}.end-day{font-size:10px}.right{grid-template-rows:minmax(100px,1fr) auto minmax(80px,1fr)}.opportunity{padding:4px}.opportunity h3{font-size:10px;margin-bottom:2px}.opportunity p{font-size:8px;margin-bottom:3px}.opportunity-buttons{gap:3px}.opportunity button{min-height:30px;font-size:8px;padding:2px}.opportunity-result{font-size:8px;margin-top:2px}.log-title{padding:4px 5px;font-size:9px}.log{padding:4px 5px 4px 17px;font-size:8px;line-height:1.25}.log li{margin-bottom:2px}.dialog{padding:11px;width:min(520px,calc(100vw - 15px))}.dialog h2{font-size:18px;margin-bottom:4px}.dialog p{font-size:11px;line-height:1.4;margin:3px 0 7px}.choices{gap:6px}.choices button{min-height:44px;font-size:10px}.grade{font-size:23px;margin:2px 0 6px}.result-grid{gap:3px}.result-item{padding:4px;font-size:8px}.result-item b{font-size:13px}.result-actions{margin-top:7px}.result-actions button{padding:7px 14px;font-size:10px}.toast{top:49px;font-size:9px;padding:5px 10px}}
+  </style>
+</head>
+<body>
+  <main class="game" id="game">
+    <header class="topbar">
+      <div class="brand">灵山大掌门 <small>七日宗门考核</small></div>
+      <div class="day">距考核 <strong id="daysLeft">7</strong> 天<br><span id="dayLabel">第1天</span></div>
+      <div class="resources" aria-label="宗门资源">
+        <span>灵石 <b id="spirit">1500</b></span><span>声望 <b id="reputation">12</b></span><span>灵草 <b id="herbs">2</b></span><span>丹药 <b id="pills">0</b></span><span>灵矿 <b id="ore">2</b></span><span>青锋剑 <b id="swords">0</b></span>
+      </div>
+      <div class="top-actions"><button id="restartSame">本局重开</button><button class="new-seed" id="restartNew">更换事件</button></div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel goals">
+        <div class="panel-title">仙盟升品考核 <small>第7日结算</small></div>
+        <div class="goal-list">
+          <div class="goal" data-goal="pills"><div class="goal-head"><span>丹药储备</span><span id="goalPillsText">0 / 8</span></div><div class="bar"><i id="goalPillsBar"></i></div></div>
+          <div class="goal" data-goal="swords"><div class="goal-head"><span>青锋剑储备</span><span id="goalSwordsText">0 / 6</span></div><div class="bar"><i id="goalSwordsBar"></i></div></div>
+          <div class="goal" data-goal="training"><div class="goal-head"><span>一名弟子修炼</span><span id="goalTrainingText">0 / 60</span></div><div class="bar"><i id="goalTrainingBar"></i></div></div>
+          <div class="goal optional" data-goal="spirit"><div class="goal-head"><span>结余灵石</span><span id="goalSpiritText">1500 / 1200</span></div><div class="bar"><i id="goalSpiritBar"></i></div></div>
+          <div class="goal optional" data-goal="reputation"><div class="goal-head"><span>宗门声望</span><span id="goalReputationText">12 / 22</span></div><div class="bar"><i id="goalReputationBar"></i></div></div>
+        </div>
+        <div class="rules"><b>过关条件：</b>丹药、法器、修炼三项必须全部完成。灵石和声望决定是否“圆满通过”。<br><b>每日维护：</b>结算时消耗180灵石；灵石不足会损失4点声望。</div>
+        <div class="side-status" id="roundAdvice">先让擅长生产的弟子准备丹药和法器，同时别忘了安排一名弟子连续练功。</div>
+      </aside>
+
+      <section class="panel command">
+        <div class="panel-title">今日弟子安排 <small>每人每日只能执行一项</small></div>
+        <div class="disciples" id="disciples"></div>
+        <div class="pipeline">
+          <div class="production"><img src="../../assets/v10/buildings/building-danfang.png" alt="炼丹房"><b>丹药生产</b>消耗2灵草炼1丹；沈玉衡凭丹心可炼2丹。</div>
+          <div class="production"><img src="../../assets/v12/buildings/building-lianqi.png" alt="炼器坊"><b>法器生产</b>消耗2灵矿炼1剑；柳听雪凭器灵可炼2剑。</div>
+        </div>
+        <div class="day-action"><div class="hint" id="assignmentHint">请为三名弟子安排今日工作。所有安排完成后才能进入下一天。</div><button class="end-day" id="endDay" disabled>执行安排 · 结束本日</button></div>
+      </section>
+
+      <aside class="panel right">
+        <div><div class="panel-title">本轮抉择 <small>资源不会自动补足</small></div><div class="opportunity">
+          <h3>一次旁路机缘 <span id="opportunityStatus">第3～6天开放</span></h3>
+          <p>生产来不及时可以冒险筹资；同一局只能二选一，结果可能亏损。</p>
+          <div class="opportunity-buttons"><button id="auctionChance" disabled>寸金阁试拍<br>投入500灵石</button><button id="herbChance" disabled>补天芝短线<br>投入400灵石</button></div>
+          <div class="opportunity-result" id="opportunityResult">尚未参与旁路机缘。</div>
+        </div></div>
+        <div class="log-title">宗门纪事 · 最近记录</div>
+        <ol class="log" id="log"></ol>
+      </aside>
+    </section>
+
+    <div class="modal" id="eventModal" hidden><div class="dialog"><h2 id="eventTitle"></h2><p id="eventText"></p><div class="choices"><button id="eventChoiceA"></button><button id="eventChoiceB"></button></div></div></div>
+    <div class="modal" id="resultModal" hidden><div class="dialog result-dialog"><h2>第七日 · 仙盟考核</h2><div class="grade" id="grade"></div><p id="resultSummary"></p><div class="result-grid" id="resultGrid"></div><div class="result-actions"><button id="resultRestartSame">按原事件重试</button><button id="resultRestartNew">更换事件再来</button></div></div></div>
+    <div class="toast" id="toast"></div>
+  </main>
+
+  <script>
+    const ACTIONS={
+      herb:{label:'采集灵草',detail:'+4灵草'},
+      alchemy:{label:'炼制丹药',detail:'-2灵草，+1丹药'},
+      ore:{label:'开采灵矿',detail:'+4灵矿'},
+      forge:{label:'炼制法器',detail:'-2灵矿，+1青锋剑'},
+      train:{label:'进入练功房',detail:'+20修炼'},
+      trade:{label:'经营商铺',detail:'+260灵石，+1声望'}
+    };
+    const DISCIPLES=[
+      {id:'shen',name:'沈玉衡',trait:'丹心',desc:'炼丹时额外产出1枚',portrait:'../../cunjinge-prototype/assets/npc/npc-03.png'},
+      {id:'liu',name:'柳听雪',trait:'器灵',desc:'炼器时额外产出1柄',portrait:'../../cunjinge-prototype/assets/npc/npc-13.png'},
+      {id:'zhao',name:'赵元朗',trait:'善贾',desc:'经营商铺时收入提升至420',portrait:'../../cunjinge-prototype/assets/npc/npc-06.png'}
+    ];
+    const EVENTS=[
+      {title:'灵田虫患',text:'灵田突然出现噬灵虫。现在处理能抢救一批灵草，但会打乱宗门资金安排。',choices:[
+        {label:'布置灵雨阵\n-260灵石，+6灵草',can:s=>s.spirit>=260,effect:s=>{s.spirit-=260;s.herbs+=6;return'耗费260灵石布阵，抢救回6株灵草。'}},
+        {label:'弟子连夜抢救\n-2灵草，+3声望',can:s=>s.herbs>=2,effect:s=>{s.herbs-=2;s.reputation+=3;return'弟子守田一夜，损失2株灵草，却赢得3点声望。'}}]},
+      {title:'受伤散修求援',text:'一名散修伤重登门。赠丹救治能扬名，也可以收取诊金缓解眼前缺钱。',choices:[
+        {label:'赠丹救治\n-1丹药，+8声望',can:s=>s.pills>=1,effect:s=>{s.pills-=1;s.reputation+=8;return'赠出1枚丹药救人，宗门声望增加8点。'}},
+        {label:'按价诊治\n+300灵石，-4声望',can:()=>true,effect:s=>{s.spirit+=300;s.reputation=Math.max(0,s.reputation-4);return'收下300灵石诊金，声望下降4点。'}}]},
+      {title:'矿脉深处传来灵光',text:'深层矿脉可能藏有富矿，也可能只是一次危险塌方。',choices:[
+        {label:'冒险深挖\n可能+8灵矿',can:()=>true,effect:(s,rng)=>{if(rng()<.62){s.ore+=8;return'深挖成功，获得8份灵矿！'}s.ore+=1;s.reputation=Math.max(0,s.reputation-3);return'矿道塌方，只带回1份灵矿，声望下降3点。'}},
+        {label:'封存矿口\n+3灵矿，+1声望',can:()=>true,effect:s=>{s.ore+=3;s.reputation+=1;return'稳妥开采外围，获得3份灵矿和1点声望。'}}]},
+      {title:'丹炉出现裂纹',text:'旧丹炉承受不住灵火。现在花钱修复，下一次炼丹能获得额外产出。',choices:[
+        {label:'彻底修复\n-300灵石，下次炼丹+1',can:s=>s.spirit>=300,effect:s=>{s.spirit-=300;s.nextAlchemyBonus+=1;return'丹炉彻底修复，下一次炼丹额外获得1枚丹药。'}},
+        {label:'停炉检修\n-1丹药，+2声望',can:s=>s.pills>=1,effect:s=>{s.pills-=1;s.reputation+=2;return'拆解1枚废丹稳定炉火，声望增加2点。'}}]},
+      {title:'山下商队紧急求丹',text:'商队愿意高价收购两枚丹药。卖掉能迅速回笼资金，但会拉大考核缺口。',choices:[
+        {label:'交付两枚丹药\n-2丹药，+760灵石',can:s=>s.pills>=2,effect:s=>{s.pills-=2;s.spirit+=760;return'交付2枚丹药，收入760灵石。'}},
+        {label:'婉拒商队\n+2声望',can:()=>true,effect:s=>{s.reputation+=2;return'坚持为考核保留丹药，声望增加2点。'}}]},
+      {title:'前人洞府现世',text:'洞府外禁制不稳。强闯可能得到现成法器，也可能白白消耗宗门积蓄。',choices:[
+        {label:'破阵探洞\n-450灵石，可能+3青锋剑',can:s=>s.spirit>=450,effect:(s,rng)=>{s.spirit-=450;if(rng()<.55){s.swords+=3;s.reputation+=4;return'破阵成功，获得3柄青锋剑和4点声望！'}s.reputation=Math.max(0,s.reputation-1);return'洞府早已被搬空，损失450灵石。'}},
+        {label:'就地参悟\n修炼最低者+20',can:()=>true,effect:s=>{const target=[...DISCIPLES].sort((a,b)=>s.training[a.id]-s.training[b.id])[0];s.training[target.id]+=20;return`${target.name}参悟禁制，修炼进度增加20。`}}]}
+    ];
+    const GOALS={pills:8,swords:6,training:60,spirit:1200,reputation:22};
+    let seed=Number(new URLSearchParams(location.search).get('seed'))||20260903;
+    let rng,state,eventQueue,currentEvent,toastTimer;
+    const $=id=>document.getElementById(id);
+    function makeRng(value){let n=value>>>0;return()=>{n+=0x6D2B79F5;let t=n;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}};
+    function shuffledEvents(){const list=EVENTS.map((event,index)=>({event,index}));for(let i=list.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[list[i],list[j]]=[list[j],list[i]]}return list.slice(0,3)}
+    function initialState(){return{day:1,spirit:1500,reputation:12,herbs:2,pills:0,ore:2,swords:0,training:{shen:0,liu:0,zhao:0},assignments:{shen:'',liu:'',zhao:''},logs:['仙盟使者将在第七日验收宗门，请掌门合理调度弟子。'],opportunityUsed:false,opportunityResult:'尚未参与旁路机缘。',pendingHerb:null,nextAlchemyBonus:0,eventCursor:0,finished:false}}
+    function reset(newSeed=false){if(newSeed)seed=(Date.now()+seed+37)%2147483647;rng=makeRng(seed);eventQueue=shuffledEvents();state=initialState();currentEvent=null;$('eventModal').hidden=true;$('resultModal').hidden=true;renderDisciples();render()}
+    function renderDisciples(){const root=$('disciples');root.innerHTML=DISCIPLES.map(d=>`<article class="disciple" data-disciple="${d.id}"><img class="portrait" src="${d.portrait}" alt="${d.name}"><div class="disciple-info"><b>${d.name}</b><span class="trait">${d.trait}</span><div class="training">修炼 <span id="training-${d.id}">0</span>/100 · ${d.desc}</div></div><div class="assignment"><label for="assign-${d.id}">今日安排</label><select id="assign-${d.id}" data-assign="${d.id}"><option value="">请选择工作</option>${Object.entries(ACTIONS).map(([key,a])=>`<option value="${key}">${a.label}｜${a.detail}</option>`).join('')}</select></div></article>`).join('');root.querySelectorAll('[data-assign]').forEach(select=>select.addEventListener('change',e=>{state.assignments[e.target.dataset.assign]=e.target.value;render()}))}
+    function progress(key,value){const goal=GOALS[key];const ratio=Math.min(1,value/goal);$(`goal${key[0].toUpperCase()+key.slice(1)}Text`).textContent=`${value} / ${goal}`;$(`goal${key[0].toUpperCase()+key.slice(1)}Bar`).style.width=`${ratio*100}%`;document.querySelector(`[data-goal="${key}"]`).classList.toggle('done',value>=goal)}
+    function render(){
+      $('dayLabel').textContent=`第${state.day}天`;$('daysLeft').textContent=8-state.day;
+      ['spirit','reputation','herbs','pills','ore','swords'].forEach(key=>$(key).textContent=state[key]);
+      DISCIPLES.forEach(d=>{const node=$(`training-${d.id}`);if(node)node.textContent=state.training[d.id]});
+      const bestTraining=Math.max(...Object.values(state.training));progress('pills',state.pills);progress('swords',state.swords);progress('training',bestTraining);progress('spirit',state.spirit);progress('reputation',state.reputation);
+      const selected=Object.values(state.assignments).filter(Boolean).length;$('endDay').disabled=selected!==3||state.finished||!$('eventModal').hidden;$('assignmentHint').textContent=selected===3?'安排已完成。结算会执行工作，并扣除180灵石宗门维护费。':`还需安排${3-selected}名弟子。`;
+      $('log').innerHTML=state.logs.slice(-9).reverse().map(item=>`<li>${item}</li>`).join('');
+      const open=state.day>=3&&state.day<=6&&!state.opportunityUsed&&!state.finished;$('auctionChance').disabled=!open||state.spirit<500;$('herbChance').disabled=!open||state.spirit<400;$('opportunityStatus').textContent=state.opportunityUsed?'本局已选择':(state.day<3?'第3～6天开放':state.day>6?'本局已错过':'现在可选');$('opportunityResult').textContent=state.opportunityResult;
+      const missing=[];if(state.pills<GOALS.pills)missing.push(`丹药差${GOALS.pills-state.pills}`);if(state.swords<GOALS.swords)missing.push(`青锋剑差${GOALS.swords-state.swords}`);if(bestTraining<GOALS.training)missing.push(`修炼差${GOALS.training-bestTraining}`);$('roundAdvice').textContent=missing.length?`当前主要缺口：${missing.join('、')}。`:'三项必需目标已经完成，可以冲击灵石与声望的圆满评价。';
+    }
+    function addLog(text){state.logs.push(`第${state.day}天：${text}`)}
+    function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1800)}
+    function runAction(disciple,action){
+      if(action==='herb'){state.herbs+=4;return`${disciple.name}采得4株灵草。`}
+      if(action==='ore'){state.ore+=4;return`${disciple.name}开采4份灵矿。`}
+      if(action==='train'){state.training[disciple.id]+=20;return`${disciple.name}修炼进度增加20。`}
+      if(action==='trade'){const gain=disciple.id==='zhao'?420:260;state.spirit+=gain;state.reputation+=1;return`${disciple.name}经营商铺，收入${gain}灵石并增加1点声望。`}
+      if(action==='alchemy'){if(state.herbs<2)return`${disciple.name}准备炼丹，但灵草不足，今日没有产出。`;state.herbs-=2;let gain=disciple.id==='shen'?2:1;if(state.nextAlchemyBonus>0){gain+=1;state.nextAlchemyBonus-=1}state.pills+=gain;return`${disciple.name}消耗2株灵草，炼成${gain}枚丹药。`}
+      if(action==='forge'){if(state.ore<2)return`${disciple.name}准备炼器，但灵矿不足，今日没有产出。`;state.ore-=2;const gain=disciple.id==='liu'?2:1;state.swords+=gain;return`${disciple.name}消耗2份灵矿，炼成${gain}柄青锋剑。`}
+      return`${disciple.name}今日休整。`;
+    }
+    function endDay(){if(Object.values(state.assignments).some(value=>!value))return;const results=DISCIPLES.map(d=>runAction(d,state.assignments[d.id]));results.forEach(addLog);state.spirit-=180;if(state.spirit<0){state.spirit=0;state.reputation=Math.max(0,state.reputation-4);addLog('宗门无力支付全部维护费，声望下降4点。')}else addLog('支付本日宗门维护费180灵石。');state.assignments={shen:'',liu:'',zhao:''};document.querySelectorAll('[data-assign]').forEach(select=>select.value='');if([2,4,6].includes(state.day)){showEvent()}else advanceOrSettle();render()}
+    function showEvent(){currentEvent=eventQueue[state.eventCursor++].event;$('eventTitle').textContent=currentEvent.title;$('eventText').textContent=currentEvent.text;currentEvent.choices.forEach((choice,index)=>{const button=index===0?$('eventChoiceA'):$('eventChoiceB');button.textContent=choice.label;button.disabled=!choice.can(state)});$('eventModal').hidden=false;render()}
+    function chooseEvent(index){const choice=currentEvent.choices[index];if(!choice.can(state))return;const result=choice.effect(state,rng);addLog(result);$('eventModal').hidden=true;currentEvent=null;advanceOrSettle();render()}
+    function resolvePending(day){if(!state.pendingHerb||state.pendingHerb.settleDay>day)return;const roll=rng();const payout=roll<.30?780:roll<.68?470:160;state.spirit+=payout;const net=payout-400;state.opportunityResult=`补天芝于第${day}天结算：${net>=0?'赚':'亏'}${Math.abs(net)}灵石。`;addLog(state.opportunityResult);state.pendingHerb=null}
+    function advanceOrSettle(){if(state.day>=7){settle();return}state.day+=1;resolvePending(state.day);render()}
+    function takeAuction(){if(state.opportunityUsed||state.day<3||state.day>6||state.spirit<500)return;state.opportunityUsed=true;state.spirit-=500;if(rng()<.52){state.spirit+=1150;state.opportunityResult='寸金阁试拍得手：净赚650灵石。'}else{state.spirit+=100;state.opportunityResult='寸金阁判断失误：亏损400灵石。'}addLog(state.opportunityResult);toast(state.opportunityResult);render()}
+    function takeHerb(){if(state.opportunityUsed||state.day<3||state.day>6||state.spirit<400)return;state.opportunityUsed=true;state.spirit-=400;state.pendingHerb={settleDay:state.day+1};state.opportunityResult=`已买入补天芝，第${state.day+1}天按行情结算。`;addLog(state.opportunityResult);toast(state.opportunityResult);render()}
+    function settle(){state.finished=true;const bestTraining=Math.max(...Object.values(state.training));const checks=[['丹药',state.pills,GOALS.pills],['青锋剑',state.swords,GOALS.swords],['修炼',bestTraining,GOALS.training],['灵石',state.spirit,GOALS.spirit],['声望',state.reputation,GOALS.reputation]];const required=checks.slice(0,3).every(item=>item[1]>=item[2]);const optional=checks.slice(3).filter(item=>item[1]>=item[2]).length;const grade=required?(optional===2?'圆满通过':optional===1?'稳健通过':'险胜通过'):'考核未通过';$('grade').textContent=grade;$('resultSummary').textContent=required?'宗门按时完成仙盟的生产与培养要求。下一轮可以尝试减少浪费、冲击更高评价。':'宗门未能在七日内完成全部必需目标。下方红色项目就是本轮缺口，可按原事件立即重试。';$('resultGrid').innerHTML=checks.map(([name,value,target],index)=>`<div class="result-item ${value>=target?'ok':'bad'}"><span>${name}${index>=3?'（可选）':''}</span><b>${value}</b><span>目标 ${target}</span></div>`).join('');$('resultModal').hidden=false;render()}
+    $('endDay').onclick=endDay;$('eventChoiceA').onclick=()=>chooseEvent(0);$('eventChoiceB').onclick=()=>chooseEvent(1);$('auctionChance').onclick=takeAuction;$('herbChance').onclick=takeHerb;$('restartSame').onclick=()=>reset(false);$('restartNew').onclick=()=>reset(true);$('resultRestartSame').onclick=()=>reset(false);$('resultRestartNew').onclick=()=>reset(true);
+    window.__sectAssessment={getState:()=>JSON.parse(JSON.stringify(state)),reset:(value)=>{seed=value||seed;reset(false)},assign:(id,action)=>{state.assignments[id]=action;const select=$(`assign-${id}`);if(select)select.value=action;render()},endDay,chooseEvent,takeAuction,takeHerb,getSeed:()=>seed};
+    reset(false);
+  </script>
+</body>
+</html>
