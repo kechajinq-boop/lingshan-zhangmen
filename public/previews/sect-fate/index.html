@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>灵山大掌门 · 七年掌门录</title>
+  <style>
+    :root{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;color:#402d20;background:#111815;--paper:#fff3c9;--paper2:#f3dfaa;--brown:#4b3426;--gold:#d79a3d;--green:#42705b;--red:#a84431;--line:#bd8740}*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#111815}button{font:inherit}.game{position:relative;width:min(100vw,1540px);height:100vh;min-height:650px;margin:auto;overflow:hidden;background:#79bac4 url('../../assets/v12/map/map_base.png') center/cover no-repeat}.game:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(17,25,21,.64),rgba(20,31,25,.38) 45%,rgba(17,25,21,.67));backdrop-filter:blur(1px)}.topbar{position:relative;z-index:2;height:66px;margin:9px 11px 0;border:2px solid #dc9639;background:rgba(255,245,209,.97);display:grid;grid-template-columns:245px 145px 1fr auto;align-items:center;padding:0 14px;box-shadow:0 5px 20px #0007}.brand{font-size:23px;font-weight:900;color:#55301a}.brand small{font-size:11px;color:#9b5e2e}.year{text-align:center;font-weight:800}.year strong{color:#a53e2d;font-size:23px}.resources{display:flex;gap:13px;flex-wrap:wrap;font-size:13px}.resources b{color:#9c451f}.top-actions{display:flex;gap:7px}.top-actions button{border:0;padding:9px 12px;background:#76513a;color:#fff2cd;font-weight:800;cursor:pointer}.top-actions .new{background:#44745c}.layout{position:relative;z-index:2;height:calc(100% - 83px);display:grid;grid-template-columns:300px minmax(500px,1fr) 345px;gap:9px;padding:8px 11px 11px}.panel{min-height:0;overflow:hidden;border:2px solid #b77934;background:rgba(255,246,216,.97);box-shadow:0 8px 26px #0b110d88}.panel-title{height:40px;padding:8px 11px;background:var(--brown);color:#ffe6a2;font-size:16px;font-weight:900;display:flex;align-items:center;justify-content:space-between}.panel-title small{font-size:10px;color:#e9c675;font-weight:600}.chronicle-panel{display:flex;flex-direction:column}.chapter{padding:9px 10px;border-bottom:1px solid #cba160;background:#f2dca5}.chapter b{display:block;color:#733c22;font-size:14px}.chapter span{font-size:11px;line-height:1.45}.chronicle{margin:0;padding:9px 10px 9px 28px;overflow:auto;flex:1;font-size:11px;line-height:1.55}.chronicle li{margin-bottom:7px;padding-bottom:6px;border-bottom:1px dashed #d6ba82}.chronicle li.major{color:#8f3a27;font-weight:700}.legend{padding:7px 9px;border-top:1px solid #c5924c;background:#ead099;font-size:10px;line-height:1.5}.center{display:grid;grid-template-rows:auto minmax(0,1fr) auto}.focus-banner{padding:7px 10px;background:#ead19a;border-bottom:1px solid #bf8b47;font-size:11px;display:flex;gap:12px;align-items:center}.focus-banner b{color:#8d3c24}.disciples{padding:8px;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;overflow:auto;align-content:start}.disciple{position:relative;min-height:140px;border:1px solid #c59a58;background:#fff9e8;display:grid;grid-template-columns:72px 1fr;cursor:pointer;transition:.15s}.disciple:hover,.disciple.selected{border-color:#4f8264;box-shadow:inset 0 0 0 2px #76a783}.disciple.focus{background:#fff0c4;border-color:#d2912f}.disciple.focus:after{content:"亲传关注";position:absolute;right:4px;top:4px;background:#9b432d;color:#fff3ce;padding:2px 5px;font-size:9px;font-weight:800}.portrait{align-self:end;width:68px;height:105px;margin-left:3px;object-fit:contain;object-position:center bottom;background:#254438;border-right:1px solid #c39957}.disciple-info{padding:8px 6px 5px;min-width:0}.disciple-info h3{margin:0 0 3px;font-size:14px;color:#60351f}.tags{display:flex;gap:3px;flex-wrap:wrap}.tag{font-size:9px;padding:2px 4px;background:#e7c675;color:#70431f}.stat{font-size:10px;line-height:1.55;margin-top:4px}.stat b{color:#3e7556}.relation{margin-top:3px;font-size:9px;color:#775b40;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.event{border-top:2px solid #b77934;background:#fff1c4;padding:9px 10px}.event-head{display:flex;align-items:center;justify-content:space-between;gap:8px}.event h2{margin:0;color:#71391f;font-size:16px}.event-badge{background:#a94730;color:white;padding:3px 7px;font-size:10px;font-weight:800}.event p{margin:5px 0 7px;font-size:11px;line-height:1.5}.event-choices{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.event-choices button{min-height:45px;border:0;background:#4d765f;color:white;padding:5px;font-size:10px;font-weight:800;cursor:pointer}.event-choices button:nth-child(2){background:#80603d}.event-choices button:nth-child(3){background:#9a4d35}.event-choices button:disabled{background:#9a9181;color:#e5dfd2;cursor:not-allowed}.decision-note{margin-top:5px;color:#8f3f29;font-size:10px;font-weight:700}.right{display:flex;flex-direction:column}.workshop{padding:8px;border-bottom:1px solid #c49755}.subhead{font-size:13px;font-weight:900;color:#6d3b23;margin-bottom:5px;display:flex;justify-content:space-between}.subhead small{font-size:9px;color:#836a4d;font-weight:600}.crop-grid,.pill-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}.workshop button{min-height:51px;border:1px solid #bd8c49;background:#f7e6b7;color:#55351f;padding:4px;font-size:9px;font-weight:800;cursor:pointer}.workshop button b{display:block;font-size:11px}.workshop button.selected{background:#4d765e;color:white;border-color:#315541}.workshop button:disabled{background:#d5c9ae;color:#8c806d;cursor:not-allowed}.inventory{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:6px}.inventory span{background:#ead29b;padding:4px;text-align:center;font-size:9px}.selected-detail{margin:7px 8px;padding:7px;border:1px solid #d2ad6b;background:#fff9e7;min-height:70px;font-size:10px;line-height:1.5}.selected-detail b{font-size:13px;color:#683921}.year-action{margin-top:auto;padding:8px;background:#ead19a;border-top:1px solid #bd8b47}.year-action p{margin:0 0 6px;font-size:10px;line-height:1.45}.advance{width:100%;min-height:46px;border:0;background:#a74630;color:white;font-size:15px;font-weight:900;cursor:pointer;box-shadow:inset 0 -3px #75301e}.advance:disabled{background:#978a78;box-shadow:none;cursor:not-allowed}.modal{position:absolute;z-index:20;inset:0;background:rgba(8,13,10,.8);display:grid;place-items:center;padding:12px}.modal[hidden]{display:none}.dialog{width:min(820px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;border:3px solid #d99a40;background:#fff2c8;padding:17px;box-shadow:0 22px 70px #000}.dialog h2{margin:0 0 5px;color:#66351e}.dialog>p{margin:0 0 12px;font-size:12px;line-height:1.55}.focus-choices{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}.focus-choice{display:grid;grid-template-columns:76px 1fr;border:1px solid #c89a56;background:#fff9e9;padding:6px;text-align:left;cursor:pointer}.focus-choice img{width:70px;height:100px;object-fit:contain;background:#27483a}.focus-choice b{display:block;font-size:15px;color:#63371f}.focus-choice span{font-size:10px;line-height:1.45}.ending-title{text-align:center;font-size:30px;font-weight:900;color:#9b3f29;margin:4px 0}.ending-summary{text-align:center;font-size:12px;line-height:1.6;margin-bottom:10px}.ending-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.ending-card{border:1px solid #c99c58;background:#fff9e8;padding:7px;font-size:10px;line-height:1.45}.ending-card b{display:block;font-size:13px;color:#60351f}.ending-card.focus{background:#fff0bf;border-color:#d28e2e}.ending-actions{display:flex;justify-content:center;gap:8px;margin-top:12px}.ending-actions button{border:0;padding:10px 18px;background:#6c4a35;color:white;font-weight:800;cursor:pointer}.ending-actions .new{background:#44745c}.toast{position:absolute;z-index:30;left:50%;top:74px;transform:translateX(-50%);padding:8px 16px;background:#382a20;color:#ffefba;border:1px solid #deb052;font-size:11px;opacity:0;pointer-events:none;transition:.18s}.toast.show{opacity:1}
+    .event-choices button{min-height:52px}.event-choices button b{display:block}.event-choices button span{display:block;margin-top:3px;color:#f7e6bd;font-size:9px;font-weight:500}.event-choices button:disabled span{color:#e5dfd2}
+    @media(max-width:1100px){.layout{grid-template-columns:245px minmax(440px,1fr) 285px}.topbar{grid-template-columns:205px 110px 1fr auto}.brand{font-size:19px}.resources{gap:8px;font-size:11px}.disciple{grid-template-columns:58px 1fr}.portrait{width:55px}}
+    @media(max-height:520px){.game{min-height:0}.topbar{height:45px;margin:3px 4px 0;padding:0 6px;grid-template-columns:152px 74px 1fr auto}.brand{font-size:15px}.brand small{display:none}.year{font-size:9px}.year strong{font-size:15px}.resources{gap:5px;font-size:8px;white-space:nowrap;overflow:hidden}.top-actions button{font-size:8px;padding:5px 7px}.layout{height:calc(100% - 51px);grid-template-columns:190px minmax(385px,1fr) 245px;gap:3px;padding:3px 4px}.panel-title{height:27px;padding:4px 6px;font-size:10px}.panel-title small{font-size:7px}.chapter{padding:4px 5px}.chapter b{font-size:9px}.chapter span{font-size:7px}.chronicle{padding:4px 4px 4px 17px;font-size:7px;line-height:1.3}.chronicle li{margin-bottom:2px;padding-bottom:2px}.legend{padding:3px 4px;font-size:7px}.focus-banner{padding:3px 5px;font-size:7px}.disciples{padding:3px;gap:2px}.disciple{min-height:71px;grid-template-columns:40px 1fr}.portrait{width:38px;height:57px}.disciple-info{padding:3px 2px}.disciple-info h3{font-size:8px;margin-bottom:1px}.tag{font-size:6px;padding:1px 2px}.stat{font-size:6px;line-height:1.25;margin-top:1px}.relation{font-size:6px}.disciple.focus:after{font-size:5px;padding:1px 2px}.event{padding:4px 5px}.event h2{font-size:10px}.event-badge{font-size:6px;padding:1px 3px}.event p{font-size:7px;margin:2px 0 3px;line-height:1.25}.event-choices{gap:2px}.event-choices button{min-height:28px;font-size:6px;padding:2px}.decision-note{font-size:6px;margin-top:1px}.workshop{padding:3px 4px}.subhead{font-size:8px;margin-bottom:2px}.subhead small{font-size:6px}.crop-grid,.pill-grid{gap:2px}.workshop button{min-height:30px;font-size:6px;padding:1px}.workshop button b{font-size:7px}.inventory{gap:2px;margin-top:2px}.inventory span{font-size:6px;padding:2px}.selected-detail{margin:3px 4px;padding:3px;min-height:38px;font-size:6px;line-height:1.3}.selected-detail b{font-size:8px}.year-action{padding:3px 4px}.year-action p{font-size:6px;margin-bottom:2px}.advance{min-height:29px;font-size:9px}.dialog{padding:8px}.dialog h2{font-size:15px}.dialog>p{font-size:8px;margin-bottom:6px}.focus-choices{gap:4px}.focus-choice{grid-template-columns:45px 1fr;padding:3px}.focus-choice img{width:42px;height:63px}.focus-choice b{font-size:9px}.focus-choice span{font-size:6px}.ending-title{font-size:18px}.ending-summary{font-size:8px;margin-bottom:5px}.ending-grid{gap:3px}.ending-card{padding:3px;font-size:6px}.ending-card b{font-size:8px}.ending-actions{margin-top:6px}.ending-actions button{padding:6px 10px;font-size:8px}.toast{top:48px;font-size:7px;padding:4px 7px}}
+  </style>
+</head>
+<body>
+  <main class="game" id="game">
+    <header class="topbar">
+      <div class="brand">灵山大掌门 <small>七年掌门录</small></div>
+      <div class="year">宗门历 <strong id="yearLabel">一</strong> 年</div>
+      <div class="resources"><span>灵石 <b id="spirit">1200</b></span><span>声望 <b id="reputation">18</b></span><span>灵草 <b id="herbs">6</b></span><span>法器 <b id="artifacts">1</b></span></div>
+      <div class="top-actions"><button id="restartSame">本命重演</button><button class="new" id="restartNew">更换命数</button></div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel chronicle-panel">
+        <div class="panel-title">宗门纪事 <small>因果会跨年延续</small></div>
+        <div class="chapter"><b id="chapterTitle">初掌灵山</b><span id="chapterHint">先选定一名重点培养的弟子。</span></div>
+        <ol class="chronicle" id="chronicle"></ol>
+        <div class="legend">普通纪事记录弟子自行生活；赤色记录掌门选择、突破与延迟后果。</div>
+      </aside>
+
+      <section class="panel center">
+        <div class="panel-title">门下弟子 <small>点击人物查看详细状态</small></div>
+        <div class="focus-banner">本届重点培养：<b id="focusName">尚未选择</b><span id="focusGoal">选择后，宗门会围绕其命运逐年展开。</span></div>
+        <div class="disciples" id="disciples"></div>
+        <section class="event">
+          <div class="event-head"><h2 id="eventTitle">等待掌门入席</h2><span class="event-badge">每年一次关键干预</span></div>
+          <p id="eventText">重要事件不会自动略过。</p>
+          <div class="event-choices" id="eventChoices"></div>
+          <div class="decision-note" id="decisionNote">尚未作出本年决定。</div>
+        </section>
+      </section>
+
+      <aside class="panel right">
+        <div class="panel-title">灵田与丹房 <small>经营所得用于养人</small></div>
+        <section class="workshop">
+          <div class="subhead">本年灵田 <small>必须选择一种作物</small></div>
+          <div class="crop-grid">
+            <button class="crop-btn" data-crop="steady"><b>聚灵草</b>稳定收获5株</button>
+            <button class="crop-btn" data-crop="heart"><b>赤心花</b>收获4株，回春丹省料</button>
+            <button class="crop-btn" data-crop="moon"><b>月华芝</b>可能收获2或9株</button>
+          </div>
+        </section>
+        <section class="workshop">
+          <div class="subhead">本年炼丹 <small>每年最多开炉一次</small></div>
+          <div class="pill-grid">
+            <button class="brew-btn" data-pill="qi"><b>聚气丹</b>6灵草 · 助突破</button>
+            <button class="brew-btn" data-pill="heal"><b>回春丹</b>6灵草 · 治伤势</button>
+            <button class="brew-btn" data-pill="mind"><b>清心丹</b>6灵草 · 解心魔</button>
+          </div>
+          <div class="inventory"><span>聚气丹 <b id="qiPill">0</b></span><span>回春丹 <b id="healPill">0</b></span><span>清心丹 <b id="mindPill">0</b></span></div>
+        </section>
+        <div class="selected-detail" id="selectedDetail">点击一名弟子，可以查看这名弟子的志向、状态和最重要的人际关系。</div>
+        <div class="year-action">
+          <p id="advanceHint">选择重点弟子后开始第一年。</p>
+          <button class="advance" id="advanceYear" disabled>推演这一年</button>
+        </div>
+      </aside>
+    </section>
+
+    <div class="modal" id="focusModal"><div class="dialog"><h2>选定本届重点培养弟子</h2><p>你可以改变关注对象，但无法照顾所有人。其余弟子仍会自行成长，并可能成为朋友、对手或后来居上的黑马。</p><div class="focus-choices" id="focusChoices"></div></div></div>
+    <div class="modal" id="resultModal" hidden><div class="dialog"><h2>七年已过 · 宗门人物志</h2><div class="ending-title" id="endingTitle"></div><div class="ending-summary" id="endingSummary"></div><div class="ending-grid" id="endingGrid"></div><div class="ending-actions"><button id="resultSame">沿原命数重来</button><button class="new" id="resultNew">换一条命数</button></div></div></div>
+    <div class="toast" id="toast"></div>
+  </main>
+
+  <script>
+    const YEAR_NAMES=['一','二','三','四','五','六','七'];
+    const BASE_DISCIPLES=[
+      {id:'qinghe',name:'林青禾',traits:['剑骨','孤傲'],goal:'以剑问道',secret:'一直在寻找失踪父亲留下的那柄断剑。',realm:1,cultivation:22,loyalty:56,health:92,fortune:72,portrait:'../../cunjinge-prototype/assets/npc/npc-02.png'},
+      {id:'shenyan',name:'沈砚',traits:['沉稳','重情'],goal:'护同门周全',secret:'幼时曾被林青禾搭救，因此总在暗中照看她。',realm:1,cultivation:16,loyalty:68,health:98,fortune:58,portrait:'../../cunjinge-prototype/assets/npc/npc-09.png'},
+      {id:'tingxue',name:'陆听雪',traits:['聪慧','好胜'],goal:'成为最年轻的长老',secret:'真正介意的不是输，而是掌门从未注意到她。',realm:1,cultivation:19,loyalty:60,health:90,fortune:65,portrait:'../../cunjinge-prototype/assets/npc/npc-06.png'},
+      {id:'changfeng',name:'顾长风',traits:['果断','野心'],goal:'执掌一峰',secret:'私下保存着一封外宗招揽信，始终没有烧掉。',realm:1,cultivation:25,loyalty:48,health:96,fortune:61,portrait:'../../cunjinge-prototype/assets/npc/npc-12.png'},
+      {id:'wanqing',name:'苏晚晴',traits:['温和','丹痴'],goal:'炼出一炉上品灵丹',secret:'曾炼坏一炉救命丹，从此最害怕有人因她而死。',realm:1,cultivation:14,loyalty:72,health:94,fortune:55,portrait:'../../cunjinge-prototype/assets/npc/npc-04.png'},
+      {id:'wuchen',name:'叶无尘',traits:['谨慎','体弱'],goal:'平安筑基',secret:'看似胆小，却能听见灵植将要枯萎前的声音。',realm:1,cultivation:12,loyalty:65,health:76,fortune:80,portrait:'../../cunjinge-prototype/assets/npc/npc-18.png'}
+    ];
+    const RELATION_SEEDS=[['qinghe','shenyan',22],['qinghe','tingxue',-8],['shenyan','wanqing',18],['tingxue','changfeng',-14],['changfeng','wuchen',6],['wanqing','wuchen',20]];
+    const CROPS={steady:{name:'聚灵草'},heart:{name:'赤心花'},moon:{name:'月华芝'}};
+    const PILL_NAMES={qi:'聚气丹',heal:'回春丹',mind:'清心丹'};
+    let seed=Number(new URLSearchParams(location.search).get('seed'))||20260904;
+    let rng,state,toastTimer;
+    const $=id=>document.getElementById(id);
+    function makeRng(value){let n=value>>>0;return()=>{n+=0x6D2B79F5;let t=n;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}};
+    function key(a,b){return[a,b].sort().join(':')}
+    function getDisciple(id){return state.disciples.find(d=>d.id===id)}
+    function focus(){return getDisciple(state.focusId)}
+    function relation(a,b){return state.relations[key(a,b)]||0}
+    function changeRelation(a,b,amount){state.relations[key(a,b)]=Math.max(-100,Math.min(100,relation(a,b)+amount))}
+    function relationWord(value){return value>=45?'生死之交':value>=18?'亲近':value>=-9?'平常':value>=-34?'不睦':'宿敌'}
+    function otherDisciples(){return state.disciples.filter(d=>d.id!==state.focusId)}
+    function rival(){return [...otherDisciples()].sort((a,b)=>relation(state.focusId,a.id)-relation(state.focusId,b.id))[0]}
+    function friend(){return [...otherDisciples()].sort((a,b)=>relation(state.focusId,b.id)-relation(state.focusId,a.id))[0]}
+    function addLog(text,major=false,year=state.year){state.logs.push({year,text,major})}
+    function initialState(){
+      const disciples=BASE_DISCIPLES.map((d,index)=>({...d,cultivation:d.cultivation+Math.floor((seed+index*7)%6),injured:false,heartDemon:false,left:false,breakthroughs:0,memories:[]}));
+      const relations={};RELATION_SEEDS.forEach(([a,b,value])=>relations[key(a,b)]=value+Math.floor(rng()*9)-4);
+      return{year:1,spirit:1200,reputation:18,herbs:6,artifacts:1,pills:{qi:0,heal:0,mind:0},disciples,relations,focusId:'',selectedId:'',crop:'',brewed:false,eventResolved:false,decisionNote:'尚未作出本年决定。',logs:[{year:1,text:'新掌门继位，六名弟子的命数从这一年开始彼此牵连。',major:true}],flags:{},knownSecrets:{},finished:false};
+    }
+    function reset(newSeed=false){if(newSeed)seed=(Date.now()+seed+97)%2147483647;rng=makeRng(seed);state=initialState();$('focusModal').hidden=false;$('resultModal').hidden=true;renderFocusChoices();render()}
+    function renderFocusChoices(){
+      $('focusChoices').innerHTML=state.disciples.map(d=>`<button class="focus-choice" data-focus="${d.id}"><img src="${d.portrait}" alt="${d.name}"><span><b>${d.name}</b>${d.traits.join(' · ')}<br>${d.goal}<br>天命倾向：${d.fortune>=68?'机缘旺盛':d.loyalty>=65?'性情可靠':'成长迅猛'}</span></button>`).join('');
+      document.querySelectorAll('[data-focus]').forEach(button=>button.onclick=()=>chooseFocus(button.dataset.focus));
+    }
+    function remember(ids,text,year=state.year){ids.forEach(id=>{const d=getDisciple(id);if(d){d.memories.push(`第${YEAR_NAMES[year-1]}年：${text}`);if(d.memories.length>4)d.memories.shift()}})}
+    function chooseFocus(id){state.focusId=id;state.selectedId=id;state.knownSecrets[id]=true;getDisciple(id).loyalty+=6;$('focusModal').hidden=true;addLog(`掌门将${focus().name}列为本届重点培养对象，也第一次听见了此人真正的心愿。`,true);remember([id],'被掌门选为重点培养弟子。');render()}
+    function strongestRelation(d){const list=state.disciples.filter(x=>x.id!==d.id).map(x=>({name:x.name,value:relation(d.id,x.id)})).sort((a,b)=>Math.abs(b.value)-Math.abs(a.value));return list[0]||{name:'暂无',value:0}}
+    function renderDisciples(){
+      $('disciples').innerHTML=state.disciples.map(d=>{const rel=strongestRelation(d);const status=d.left?'已离宗':d.injured?'负伤':d.heartDemon?'心魔缠身':'安稳';return`<article class="disciple ${d.id===state.focusId?'focus':''} ${d.id===state.selectedId?'selected':''}" data-disciple="${d.id}"><img class="portrait" src="${d.portrait}" alt="${d.name}"><div class="disciple-info"><h3>${d.name}</h3><div class="tags">${d.traits.map(t=>`<span class="tag">${t}</span>`).join('')}</div><div class="stat">境界 <b>${realmName(d.realm)}</b><br>修炼 ${d.cultivation}/100 · 忠诚 ${d.loyalty}<br>状态 ${status}</div><div class="relation">${rel.name}：${relationWord(rel.value)}（${rel.value}）</div></div></article>`}).join('');
+      document.querySelectorAll('[data-disciple]').forEach(card=>card.onclick=()=>{state.selectedId=card.dataset.disciple;render()});
+    }
+    function realmName(level){return['炼气初期','炼气中期','炼气后期','筑基初期','筑基中期','金丹初期'][Math.min(5,level-1)]}
+    function currentEvent(){
+      if(!state.focusId)return{title:'等待掌门入席',text:'选定重点弟子后，七年宗门故事才会开始。',choices:[]};
+      const f=focus(),r=rival(),ally=friend();
+      const events={
+        1:{title:'残图落入少年手',text:`${f.name}在藏经阁夹层中发现半幅秘境残图，却没有立刻上交。${r.name}恰好撞见此事。`,choices:[
+          {label:'赐聚气丹，准其参悟',hint:'消耗1枚聚气丹｜修为大进',can:()=>state.pills.qi>0,effect:()=>{state.pills.qi--;f.cultivation+=24;f.loyalty+=9;state.flags.map='pill';return`${f.name}服丹参悟残图，记下了其中一处隐秘入口。`}},
+          {label:`命${ally.name}共同查验`,hint:'结成同伴｜但会引来旁人猜疑',can:()=>true,effect:()=>{changeRelation(f.id,ally.id,16);changeRelation(f.id,r.id,-4);f.loyalty+=4;state.flags.map='companion';return`${f.name}与${ally.name}共同查验残图，两人关系明显亲近，${r.name}却怀疑他们隐瞒了什么。`}},
+          {label:'收走残图，严禁涉险',hint:'保住安全｜忠诚下降',can:()=>true,effect:()=>{f.loyalty-=11;f.health+=4;state.flags.map='forbid';return`残图被收入大殿，${f.name}表面领命，心中却并不服气。`}}]},
+        2:{title:'丹房前的争执',text:`${r.name}认为宗门资源过度偏向${f.name}，两人在丹房前爆发争执，其他弟子都在观望掌门如何处置。`,choices:[
+          {label:'各退一步，亲自调解',hint:'关系修复｜二人停修十日',can:()=>true,effect:()=>{changeRelation(f.id,r.id,18);f.cultivation=Math.max(0,f.cultivation-6);r.cultivation=Math.max(0,r.cultivation-6);f.loyalty+=2;r.loyalty+=4;state.flags.rivalry='mediate';return`掌门让二人停修十日、共同照看丹火。争执平息了，却也耽误了修炼。`}},
+          {label:`惩戒${r.name}，维护亲传`,hint:'亲传修为+10｜结下更深嫌隙',can:()=>true,effect:()=>{changeRelation(f.id,r.id,-18);f.cultivation+=10;f.loyalty+=8;r.loyalty-=13;state.flags.rivalry='punish';return`${r.name}受罚后不再公开争论，${f.name}独得丹房时日，二人的嫌隙也更深了。`}},
+          {label:'以清心丹化解躁意',hint:'消耗1枚清心丹｜双方坦白心结',can:()=>state.pills.mind>0,effect:()=>{state.pills.mind--;changeRelation(f.id,r.id,12);f.loyalty+=4;r.loyalty+=4;state.flags.rivalry='pill';return`丹香散去后，二人终于坦白了各自的不满。`}}]},
+        3:{title:'心魔入梦',text:`${f.name}连续数夜梦见秘境中的呼唤，修炼时灵气开始逆行。此前关于残图的选择正在显出后果。`,choices:[
+          {label:'服用清心丹护住神识',hint:'消耗1枚清心丹｜最稳妥',can:()=>state.pills.mind>0,effect:()=>{state.pills.mind--;f.heartDemon=false;f.health=Math.min(100,f.health+8);f.loyalty+=7;state.flags.heart='safe';return`清心丹压住杂念，${f.name}从梦中辨认出了一条真正的生路。`}},
+          {label:`请${ally.name}守关`,hint:'关系加深｜仍有失败风险',can:()=>true,effect:()=>{changeRelation(f.id,ally.id,14);const safe=rng()<.65;f.heartDemon=!safe;if(!safe)f.health-=12;state.flags.heart=safe?'guarded':'lingering';return safe?`${ally.name}在洞外守了七日，终于将${f.name}从梦魇中唤醒。`:`${ally.name}守了七日，${f.name}虽然醒来，心魔却已在识海扎根。`}},
+          {label:'强令停止修炼一年',hint:'解除心魔｜修为与忠诚下降',can:()=>true,effect:()=>{f.cultivation=Math.max(0,f.cultivation-12);f.health=Math.min(100,f.health+12);f.loyalty-=5;f.heartDemon=false;state.flags.heart='retreat';return`${f.name}被迫停功，虽然心有不甘，逆行的灵气却逐渐平复。`}}]},
+        4:{title:'秘境山门洞开',text:`残图所指的秘境真的出现了。${f.name}主动请缨，${ally.name}也愿意同行；但其中的凶险无人知晓。`,choices:[
+          {label:'赐护身法器，准其独行',hint:'消耗1件法器｜成功率最高',can:()=>state.artifacts>0,effect:()=>{state.artifacts--;state.flags.expedition='artifact';return`掌门赐下护身法器，${f.name}独自踏入秘境。`}},
+          {label:`命${ally.name}与其同行`,hint:'不耗资源｜两人共担风险',can:()=>true,effect:()=>{changeRelation(f.id,ally.id,10);state.flags.expedition='companion';return`${f.name}与${ally.name}结伴进入秘境，约定无论所得都平分。`}},
+          {label:'封锁入口，不许任何人进入',hint:'看似避险｜可能私自出走',can:()=>true,effect:()=>{f.loyalty-=12;state.flags.expedition='forbid';return`秘境入口被封，${f.name}却在当夜失去了踪影。`}}]},
+        5:expeditionAftermath(f,ally,r),
+        6:{title:'外宗递来玉帖',text:`凌霄宗看中了${f.name}这些年的成长，许诺功法与长老之位。宗门中关于掌门偏爱的议论也随之浮上水面。`,choices:[
+          {label:'册立亲传，公开挽留',hint:'消耗6声望｜其他弟子失落',can:()=>state.reputation>=6,effect:()=>{state.reputation-=6;f.loyalty+=20;otherDisciples().forEach(d=>d.loyalty-=3);state.flags.recruit='retain';return`${f.name}接过亲传令，向掌门行了正式拜师礼。`}},
+          {label:'让其自行决定去留',hint:'尊重其心意｜结果取决于七年羁绊',can:()=>true,effect:()=>{const stay=f.loyalty+Math.floor(rng()*35)>=70;if(stay){f.loyalty+=8;state.flags.recruit='chosen';return`${f.name}拒绝外宗，称灵山已有自己放不下的人。`}f.left=true;state.flags.recruit='left';return`${f.name}最终接过玉帖，离开灵山另寻大道。`}},
+          {label:'扣下玉帖，严禁私议',hint:'强行留下｜忠诚与声望下降',can:()=>true,effect:()=>{f.loyalty-=18;state.reputation-=3;state.flags.recruit='detain';return`玉帖被焚，宗门恢复安静，${f.name}却再也没有来大殿请安。`}}]},
+        7:{title:'七年之后，谁承掌门衣钵',text:`七年约满，长老请你留下传承人选。${f.name}是你亲自关注的弟子，但其他人也在这些年走出了各自的道路。`,choices:[
+          {label:`立${f.name}为首席`,hint:'兑现七年偏爱｜旧嫌隙可能爆发',can:()=>!f.left,effect:()=>{f.loyalty+=14;otherDisciples().forEach(d=>d.loyalty-=relation(f.id,d.id)<0?7:1);state.flags.heir=f.id;return`${f.name}接过首席令牌，七年的培养终于有了名分。`}},
+          {label:'以修为最高者为首席',hint:'只论实力｜可能旁落他人',can:()=>true,effect:()=>{const best=[...state.disciples].filter(d=>!d.left).sort((a,b)=>(b.realm*100+b.cultivation)-(a.realm*100+a.cultivation))[0];best.loyalty+=10;state.flags.heir=best.id;return`${best.name}凭修为获立首席，众弟子心服口服。`}},
+          {label:'由六名弟子共同推举',hint:'只论人心｜声望提升',can:()=>true,effect:()=>{const best=[...state.disciples].filter(d=>!d.left).sort((a,b)=>b.loyalty-a.loyalty)[0];best.loyalty+=8;state.reputation+=6;state.flags.heir=best.id;return`众人最终推举${best.name}为首席，宗门声望增加6点。`}}]}
+      };
+      return events[state.year];
+    }
+    function expeditionAftermath(f,ally,r){
+      const success=state.flags.expeditionResult==='success',injured=f.injured;
+      return{title:success?'秘境归来':'秘境失讯',text:success?`${f.name}带回一卷残缺传承，但所得如何分配，再次牵动了同门关系。`:`${f.name}从秘境中被人救回，伤势沉重。${r.name}却质疑这次冒险本就不该发生。`,choices:injured?[
+        {label:'以回春丹全力救治',hint:'消耗1枚回春丹｜保住根基',can:()=>state.pills.heal>0,effect:()=>{state.pills.heal--;f.injured=false;f.health=Math.min(100,f.health+42);f.loyalty+=12;state.flags.rescue='pill';return`回春丹保住了${f.name}的根基，他记住了掌门的救命之恩。`}},
+        {label:'耗费400灵石请医修',hint:'花费灵石｜伤势仍需恢复',can:()=>state.spirit>=400,effect:()=>{state.spirit-=400;f.injured=false;f.health=Math.min(100,f.health+28);state.flags.rescue='doctor';return`外宗医修稳住了伤势，但${f.name}仍需多年恢复。`}},
+        {label:'让其自行闭关疗伤',hint:'不耗资源｜根基与忠诚受损',can:()=>true,effect:()=>{f.health=Math.max(20,f.health-8);f.cultivation=Math.max(0,f.cultivation-18);f.loyalty-=8;state.flags.rescue='alone';return`${f.name}独自闭关，虽然活了下来，修炼根基却受到损伤。`}}
+      ]:[
+        {label:`让${f.name}独得传承`,hint:'重点弟子修为大进｜同门不满',can:()=>true,effect:()=>{f.cultivation+=30;f.loyalty+=8;changeRelation(f.id,r.id,-10);return`${f.name}修为大进，但部分同门认为掌门再次偏心。`}},
+        {label:`与${ally.name}共同参悟`,hint:'两人成长｜羁绊加深',can:()=>true,effect:()=>{f.cultivation+=16;ally.cultivation+=16;changeRelation(f.id,ally.id,18);return`二人共同参悟残卷，结下了真正的同道之谊。`}},
+        {label:'收入藏经阁，全门共享',hint:'全员小幅成长｜宗门声望提升',can:()=>true,effect:()=>{state.disciples.forEach(d=>d.cultivation+=7);state.reputation+=5;return`残卷录入藏经阁，全门弟子均有所得。`}}
+      ]};
+    }
+    function resolveExpedition(){
+      const f=focus(),ally=friend();let chance=state.flags.expedition==='artifact'?0.82:state.flags.expedition==='companion'?0.68:0.34;
+      if(state.flags.heart==='safe')chance+=.12;if(state.flags.heart==='guarded')chance+=.05;if(state.flags.map==='pill')chance+=.06;
+      if(rng()<chance){state.flags.expeditionResult='success';f.cultivation+=22;f.health=Math.min(100,f.health+3);if(state.flags.expedition==='companion')ally.cultivation+=10;const personal=personalDiscovery(f,ally);addLog(`${f.name}${state.flags.expedition==='companion'?`与${ally.name}`:''}从秘境归来，并带回一卷残缺传承。${personal}`,true,5);remember([f.id,ally.id],personal,5)}else{state.flags.expeditionResult='injured';f.injured=true;f.health=Math.max(24,f.health-48);f.cultivation=Math.max(0,f.cultivation-8);const rescue=state.flags.expedition==='companion'?`${ally.name}背着${f.name}走完了最后三十里山路。`:'';addLog(`${f.name}从秘境中重伤归来，根基正在迅速恶化。${rescue}`,true,5);remember([f.id,ally.id],'秘境之行以重伤告终，二人的命运从此留下裂痕。',5)}
+    }
+    function personalDiscovery(f,ally){const discoveries={qinghe:'她在石壁上找到了父亲断剑的另一半，却没有找到父亲的遗骨。',shenyan:`危急关头，他替${ally.name}挡下一击，也终于说出了自己为何总想护住同门。`,tingxue:'她发现一枚无主长老令，第一次有人承认她的野心并非妄想。',changfeng:'秘境里竟有凌霄宗留下的密印，那封招揽信似乎另有来历。',wanqing:'残卷中记载着她当年那炉救命丹真正失败的原因，她终于不再只怪自己。',wuchen:'他听见枯死千年的古药开口，指明了宗门灵田下沉睡的灵脉。'};return discoveries[f.id]||''}
+    function renderEvent(){const event=currentEvent();$('eventTitle').textContent=event.title;$('eventText').textContent=event.text;$('eventChoices').innerHTML=event.choices.map((choice,index)=>`<button data-event-choice="${index}" ${state.eventResolved||!choice.can()?'disabled':''}><b>${choice.label}</b>${choice.hint?`<span>${choice.hint}</span>`:''}</button>`).join('');document.querySelectorAll('[data-event-choice]').forEach(button=>button.onclick=()=>chooseEvent(Number(button.dataset.eventChoice)));$('decisionNote').textContent=state.decisionNote}
+    function chooseEvent(index){if(state.eventResolved)return;const event=currentEvent(),choice=event.choices[index];if(!choice||!choice.can())return;if(state.year===3)focus().heartDemon=true;const result=choice.effect();state.eventResolved=true;state.decisionNote=result;addLog(result,true);remember([state.focusId,rival().id,friend().id],result);render();toast('掌门决定已记入宗门因果')}
+    function plant(crop){if(state.crop)return;state.crop=crop;render();toast(`本年灵田改种${CROPS[crop].name}`)}
+    function brew(type){if(state.brewed)return;let cost=6;if(type==='heal'&&state.flags.heartHarvest){cost=4;state.flags.heartHarvest=false}if(state.herbs<cost){toast('灵草不足，无法开炉');return}state.herbs-=cost;state.pills[type]+=1;state.brewed=true;addLog(`丹房消耗${cost}株灵草，炼成1枚${PILL_NAMES[type]}。`);render();toast(`${PILL_NAMES[type]}已收入丹房`) }
+    function harvest(){
+      if(state.crop==='steady'){state.herbs+=5;addLog('聚灵草成熟，灵田稳定收获5株灵草。')}
+      if(state.crop==='heart'){state.herbs+=4;state.flags.heartHarvest=true;addLog('赤心花成熟，收获4株灵草；下一炉回春丹仅需4株灵草。')}
+      if(state.crop==='moon'){const rich=rng()<.43,gain=rich?9:2;state.herbs+=gain;if(rich)state.reputation+=2;addLog(`月华芝${rich?'吸足月华':'遭遇阴雨'}，收获${gain}株灵草${rich?'并增加2点声望':''}。`,rich)}
+    }
+    function simulateYear(){
+      state.disciples.filter(d=>!d.left).forEach((d,index)=>{let gain=8+Math.floor(rng()*9);if(d.id===state.focusId)gain+=3;if(d.injured)gain=Math.floor(gain/2);if(d.heartDemon)gain=Math.max(2,gain-6);d.cultivation+=gain;d.health=Math.min(100,d.health+(d.injured?0:2));if(d.cultivation>=100){const chance=.5+d.fortune/250+((state.pills.qi>0&&d.id===state.focusId)?0.03:0);if(rng()<chance){d.cultivation-=100;d.realm+=1;d.breakthroughs+=1;state.reputation+=2;addLog(`${d.name}突破至${realmName(d.realm)}，宗门声望增加2点。`,true)}else{d.cultivation=88;d.health=Math.max(35,d.health-12);addLog(`${d.name}冲击境界失败，气息一度紊乱。`,true)}}if(index<2){const partner=state.disciples[(index+state.year+1)%state.disciples.length];const delta=Math.floor(rng()*9)-3;changeRelation(d.id,partner.id,delta)}});
+      const active=state.disciples.filter(d=>!d.left);const actor=active[Math.floor(rng()*active.length)],target=active[(active.indexOf(actor)+2)%active.length];const positive=rng()<.68;const warm=[`${actor.name}在练功房替${target.name}守住走火的灵气，两人第一次说起各自入门前的往事。`,`${actor.name}主动替${target.name}完成了灵田差事，却没有留下姓名。`,`${actor.name}炼坏一炉丹药，却把仅存的一枚成丹悄悄放在${target.name}门前。`];const cold=[`${actor.name}在藏经阁当众驳斥${target.name}，二人从功法争到掌门是否偏心。`,`${actor.name}发现${target.name}私藏灵草，虽然没有告发，态度却冷了下来。`,`${actor.name}抢先领取了${target.name}盯了半年的宗门差事。`];const scene=(positive?warm:cold)[Math.floor(rng()*3)];const delta=positive?6:-7;addLog(`${scene}（关系${delta>0?'+':''}${delta}）`);changeRelation(actor.id,target.id,delta);remember([actor.id,target.id],scene);
+      const unknown=state.disciples.filter(d=>!state.knownSecrets[d.id]);if(state.year>=2&&unknown.length&&rng()<.78){const revealed=unknown[Math.floor(rng()*unknown.length)];state.knownSecrets[revealed.id]=true;addLog(`掌门从丹房夜谈中得知：${revealed.name}${revealed.secret}`,true);remember([revealed.id],'不愿示人的心事被掌门知晓。')}
+    }
+    function advanceYear(){if(!state.crop||!state.eventResolved||state.finished)return;harvest();simulateYear();if(state.year===4)resolveExpedition();if(state.year>=7){settle();return}state.year+=1;state.crop='';state.brewed=false;state.eventResolved=false;state.decisionNote='尚未作出本年决定。';addLog(`宗门进入第${YEAR_NAMES[state.year-1]}年。`,false,state.year);render()}
+    function openThread(){if(state.year<=2)return'残图为何会在梦中呼唤，尚无人知晓。';if(state.year<=4)return'秘境将开，之前关于残图与心魔的选择都会被验证。';if(state.year===5)return'秘境所得或伤势，正在改变同门对重点弟子的态度。';if(state.year===6)return'外宗的玉帖会迫使弟子表明真正的归属。';return'最后一年，首席之位会把七年的偏爱与嫌隙一起摆上台面。'}
+    function renderSelected(){const d=getDisciple(state.selectedId)||focus();if(!d){$('selectedDetail').textContent='点击一名弟子，可以查看这名弟子的志向、状态和最重要的人际关系。';return}const rels=state.disciples.filter(x=>x.id!==d.id).map(x=>({name:x.name,value:relation(d.id,x.id)})).sort((a,b)=>Math.abs(b.value)-Math.abs(a.value)).slice(0,2);const secret=state.knownSecrets[d.id]?d.secret:'尚未被掌门看透；继续观察纪事，可能听见关于此人的传闻。';const memory=d.memories.length?d.memories[d.memories.length-1]:'尚未留下值得记述的共同经历。';$('selectedDetail').innerHTML=`<b>${d.name}</b>｜志向：${d.goal}<br><strong>心事：</strong>${secret}<br><strong>牵挂：</strong>${rels.map(rel=>`${rel.name}${relationWord(rel.value)}（${rel.value}）`).join('；')}<br><strong>最近经历：</strong>${memory}<br><strong>未完因果：</strong>${openThread()}`}
+    function render(){
+      $('yearLabel').textContent=YEAR_NAMES[state.year-1]||'七';['spirit','reputation','herbs','artifacts'].forEach(k=>$(k).textContent=state[k]);$('qiPill').textContent=state.pills.qi;$('healPill').textContent=state.pills.heal;$('mindPill').textContent=state.pills.mind;
+      $('focusName').textContent=state.focusId?focus().name:'尚未选择';$('focusGoal').textContent=state.focusId?`志向：${focus().goal}；掌门无法保证所有选择都有圆满结果。`:'选择后，宗门会围绕其命运逐年展开。';
+      $('chapterTitle').textContent=state.year<=2?'初掌灵山':state.year<=4?'暗流与机缘':state.year<=6?'命途分岔':'传承之年';$('chapterHint').textContent=state.focusId?`第${YEAR_NAMES[state.year-1]}年：先经营灵田与丹房，再处理本年关键事件。`:'先选定一名重点培养的弟子。';
+      renderDisciples();renderEvent();renderSelected();$('chronicle').innerHTML=state.logs.slice().reverse().map(item=>`<li class="${item.major?'major':''}">第${YEAR_NAMES[item.year-1]||item.year}年｜${item.text}</li>`).join('');
+      document.querySelectorAll('[data-crop]').forEach(button=>{button.disabled=!!state.crop||state.finished;button.classList.toggle('selected',button.dataset.crop===state.crop)});document.querySelectorAll('[data-pill]').forEach(button=>{let cost=button.dataset.pill==='heal'&&state.flags.heartHarvest?4:6;button.disabled=state.brewed||state.herbs<cost||state.finished;const use=button.dataset.pill==='qi'?'助突破':button.dataset.pill==='heal'?'治伤势':'解心魔';button.lastChild.textContent=`${cost}灵草 · ${button.dataset.pill==='heal'&&state.flags.heartHarvest?'赤心花省料':use}`});
+      const ready=!!state.focusId&&!!state.crop&&state.eventResolved&&!state.finished;$('advanceYear').disabled=!ready;$('advanceYear').textContent=state.year===7?'写下七年结局':'推演这一年';const missing=[];if(!state.crop)missing.push('选择灵田作物');if(!state.eventResolved)missing.push('处理关键事件');$('advanceHint').textContent=ready?'经营与决定已完成，可以让时间继续流逝。':state.focusId?`还需：${missing.join('、')}。炼丹是可选操作。`:'选择重点弟子后开始第一年。'
+    }
+    function endingFor(d){if(d.left)return'离开灵山，去往外宗寻找自己的大道。';if(d.injured)return'带伤留在宗门，成为谨慎寡言的执事。';if(d.realm>=4)return'成功筑基，成为宗门新一代中坚。';if(d.loyalty<35)return'虽留在门中，却与掌门渐行渐远。';if(d.breakthroughs>0)return'修为稳步突破，开始独当一面。';return'继续留在灵山修炼，等待下一次机缘。'}
+    function settle(){state.finished=true;const f=focus(),avgLoyalty=Math.round(state.disciples.reduce((s,d)=>s+d.loyalty,0)/state.disciples.length),positive=Object.values(state.relations).filter(v=>v>=18).length,negative=Object.values(state.relations).filter(v=>v<=-18).length;let title='烟火长存的灵山';if(f.left)title='留不住天才的宗门';else if(f.realm>=4&&avgLoyalty>=58)title='英才归心的灵山';else if(negative>positive)title='暗流涌动的铁腕宗门';else if(state.herbs>=18)title='丹香满山的药宗';$('endingTitle').textContent=title;$('endingSummary').textContent=`七年间，${f.name}${f.left?'离开了宗门':`修至${realmName(f.realm)}`}；门中形成${positive}段亲近关系与${negative}段明显嫌隙。你留下${state.herbs}株灵草和${Object.values(state.pills).reduce((a,b)=>a+b,0)}枚丹药，但真正留下的，是六个人彼此改变的命运。`;$('endingGrid').innerHTML=state.disciples.map(d=>{const rel=strongestRelation(d),memory=d.memories[d.memories.length-1]||'七年平静，无大事记。';return`<div class="ending-card ${d.id===state.focusId?'focus':''}"><b>${d.name}${d.id===state.flags.heir?' · 首席':''}</b>${realmName(d.realm)}｜忠诚${d.loyalty}<br>${endingFor(d)}<br>与${rel.name}：${relationWord(rel.value)}<br>${memory}</div>`}).join('');$('resultModal').hidden=false;render()}
+    function toast(text){clearTimeout(toastTimer);$('toast').textContent=text;$('toast').classList.add('show');toastTimer=setTimeout(()=>$('toast').classList.remove('show'),1600)}
+    document.querySelectorAll('[data-crop]').forEach(button=>button.onclick=()=>plant(button.dataset.crop));document.querySelectorAll('[data-pill]').forEach(button=>button.onclick=()=>brew(button.dataset.pill));$('advanceYear').onclick=advanceYear;$('restartSame').onclick=()=>reset(false);$('restartNew').onclick=()=>reset(true);$('resultSame').onclick=()=>reset(false);$('resultNew').onclick=()=>reset(true);
+    window.__sectFate={getState:()=>JSON.parse(JSON.stringify(state)),chooseFocus,plant,brew,chooseEvent,advanceYear,reset:(value)=>{seed=value||seed;reset(false)},getEvent:()=>currentEvent().title,getSeed:()=>seed};
+    reset(false);
+  </script>
+</body>
+</html>
